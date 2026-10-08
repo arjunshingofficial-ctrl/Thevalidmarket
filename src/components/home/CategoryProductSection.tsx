@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, ShoppingCart, Star } from "lucide-react";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 function ProductRating({ reviews }: { reviews: Array<{ rating: number }> }) {
   if (!reviews || reviews.length === 0) {
@@ -33,7 +34,7 @@ function CategoryProductCard({ product }: { product: any }) {
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={image}
+            src={normalizeImageUrl(image)}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />

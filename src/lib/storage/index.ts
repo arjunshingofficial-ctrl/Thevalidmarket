@@ -3,6 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { normalizeImageUrl } from "./client";
 
 export interface StorageProvider {
   uploadFile(buffer: Buffer, originalName: string, isPublic: boolean): Promise<{ storageKey: string; url: string }>;
@@ -138,12 +139,7 @@ export class S3StorageProvider implements StorageProvider {
   }
 
   getPublicUrl(storageKey: string): string {
-    const cleanEndpoint = this.endpoint.replace(/\/$/, "");
-    if (cleanEndpoint.includes(".supabase.co") && cleanEndpoint.endsWith("/storage/v1/s3")) {
-      const supabasePublicEndpoint = cleanEndpoint.replace("/storage/v1/s3", "/storage/v1/object/public");
-      return `${supabasePublicEndpoint}/${this.bucket}/${storageKey}`;
-    }
-    return `${cleanEndpoint}/${this.bucket}/${storageKey}`;
+    return normalizeImageUrl(storageKey);
   }
 
   async getSignedDownloadUrl(storageKey: string): Promise<string> {

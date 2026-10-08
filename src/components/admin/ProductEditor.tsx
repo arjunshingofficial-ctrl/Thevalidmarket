@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import RichTextEditor from "./RichTextEditor";
 import ProductFileUploader from "./ProductFileUploader";
 import MediaSelector from "./MediaSelector";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 type Tab = {
   id: string;
@@ -486,7 +487,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                     />
                     {featuredImage && (
                       <div className="mt-2 aspect-video relative rounded-md overflow-hidden bg-slate-100 border">
-                        <img src={featuredImage} alt="Featured" className="w-full h-full object-cover" />
+                        <img src={normalizeImageUrl(featuredImage)} alt="Featured" className="w-full h-full object-cover" />
                         <button type="button" onClick={() => { setFeaturedImage(""); handleChange(); }} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs">×</button>
                       </div>
                     )}
@@ -500,7 +501,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                     <div className="grid grid-cols-3 gap-2 mt-2">
                       {gallery.map((url, i) => (
                         <div key={i} className="aspect-square relative rounded-md overflow-hidden bg-slate-100 border">
-                          <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
+                          <img src={normalizeImageUrl(url)} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
                           <button type="button" onClick={() => { setGallery(gallery.filter((_, idx) => idx !== i)); handleChange(); }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center text-xs">×</button>
                         </div>
                       ))}
