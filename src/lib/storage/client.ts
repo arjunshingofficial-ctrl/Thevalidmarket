@@ -25,6 +25,11 @@ export function normalizeImageUrl(urlOrPath: string | null | undefined): string 
     }
   }
 
+  // Preserve local assets
+  if (urlOrPath.startsWith("/media/") || urlOrPath.startsWith("/images/")) {
+    return urlOrPath;
+  }
+
   let key = urlOrPath.startsWith("/") ? urlOrPath.slice(1) : urlOrPath;
   if (key.startsWith("uploads/")) {
     key = `public/${key}`;

@@ -8,30 +8,43 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminAnalytics() {
   const totalRevenue = await prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID" } });
-  const paidOrders = await prisma.order.count({ where: { paymentStatus: "PAID" } });
-  const pendingOrders = await prisma.order.count({ where: { paymentStatus: "PENDING" } });
-  const failedOrders = await prisma.order.count({ where: { paymentStatus: "FAILED" } });
+  
+  const orderCounts = await prisma.order.groupBy({ by: ["paymentStatus"], _count: true });
+  const paidOrders = orderCounts.find(o => o.paymentStatus === "PAID")?._count || 0;
+  const pendingOrders = orderCounts.find(o => o.paymentStatus === "PENDING")?._count || 0;
+  const failedOrders = orderCounts.find(o => o.paymentStatus === "FAILED")?._count || 0;
+
   const totalCustomers = await prisma.user.count({ where: { role: { name: "CUSTOMER" } } });
-  const totalProducts = await prisma.product.count();
-  const publishedProducts = await prisma.product.count({ where: { status: "PUBLISHED" } });
+  
+  const productCounts = await prisma.product.groupBy({ by: ["status"], _count: true });
+  const totalProducts = productCounts.reduce((acc, p) => acc + p._count, 0);
+  const publishedProducts = productCounts.find(p => p.status === "PUBLISHED")?._count || 0;
+
   const topProducts = await prisma.orderItem.groupBy({
     by: ["productId"],
     _sum: { quantity: true, price: true },
     orderBy: { _sum: { quantity: "desc" } },
     take: 5,
   });
+
   const revenueByMethod = await prisma.payment.groupBy({
     by: ["method"],
     _sum: { amount: true },
     _count: true,
     where: { status: "PAID" },
   });
-  const productViews = await prisma.analyticsEvent.count({ where: { eventType: "PRODUCT_VIEW" } });
-  const addToCarts = await prisma.analyticsEvent.count({ where: { eventType: "ADD_TO_CART" } });
+
+  const eventCounts = await prisma.analyticsEvent.groupBy({
+    by: ["eventType"],
+    _count: true,
+    where: { eventType: { in: ["PRODUCT_VIEW", "ADD_TO_CART"] } }
+  });
+  const productViews = eventCounts.find(e => e.eventType === "PRODUCT_VIEW")?._count || 0;
+  const addToCarts = eventCounts.find(e => e.eventType === "ADD_TO_CART")?._count || 0;
 
   // Fetch product names for top products
   const productIds = topProducts.map(p => p.productId);
-  const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
+  const products = productIds.length > 0 ? await prisma.product.findMany({ where: { id: { in: productIds } } }) : [];
   const productMap = Object.fromEntries(products.map(p => [p.id, p]));
 
   const revenue = totalRevenue._sum.total || 0;
