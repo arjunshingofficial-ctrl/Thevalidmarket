@@ -139,6 +139,10 @@ export class S3StorageProvider implements StorageProvider {
 
   getPublicUrl(storageKey: string): string {
     const cleanEndpoint = this.endpoint.replace(/\/$/, "");
+    if (cleanEndpoint.includes(".supabase.co") && cleanEndpoint.endsWith("/storage/v1/s3")) {
+      const supabasePublicEndpoint = cleanEndpoint.replace("/storage/v1/s3", "/storage/v1/object/public");
+      return `${supabasePublicEndpoint}/${this.bucket}/${storageKey}`;
+    }
     return `${cleanEndpoint}/${this.bucket}/${storageKey}`;
   }
 
