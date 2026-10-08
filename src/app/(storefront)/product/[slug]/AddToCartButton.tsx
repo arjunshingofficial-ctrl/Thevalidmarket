@@ -38,9 +38,10 @@ export default function AddToCartButton({ product }: { product: any }) {
   return (
     <button 
       onClick={handleAdd}
+      disabled={added}
       className={`w-full h-12 rounded-lg font-semibold text-lg transition-all flex items-center justify-center gap-2 shadow-sm
         ${added 
-          ? "bg-emerald-500 text-white" 
+          ? "bg-emerald-500 text-white cursor-not-allowed opacity-90" 
           : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/25"
         }`}
     >

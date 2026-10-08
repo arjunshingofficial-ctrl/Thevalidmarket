@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ShoppingCart, Star, Check, ArrowRight, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { addToCart } from "@/lib/cart";
@@ -58,11 +59,12 @@ export default function ProductCard({ product }: { product: any }) {
       {/* Image Container */}
       <Link href={`/product/${product.slug}`} className="relative aspect-video bg-slate-50 block overflow-hidden">
         {image ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img 
+          <Image 
             src={normalizeImageUrl(image)} 
-            alt={product.name} 
-            className="object-cover object-center w-full h-full transition-transform duration-700 group-hover:scale-105" 
+            alt={product.name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+            className="object-cover object-center transition-transform duration-700 group-hover:scale-105" 
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-100 transition-transform duration-700 group-hover:scale-105">
@@ -110,9 +112,10 @@ export default function ProductCard({ product }: { product: any }) {
           {isCourse ? (
             <button 
               onClick={handleAddToCart}
+              disabled={added}
               className={`flex items-center justify-center h-10 px-4 rounded-xl text-sm font-bold transition-all duration-300 shadow-sm whitespace-nowrap ${
                 added 
-                  ? "bg-emerald-500 text-white shadow-emerald-500/20" 
+                  ? "bg-emerald-500 text-white shadow-emerald-500/20 cursor-not-allowed" 
                   : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-600/20 hover:-translate-y-0.5"
               }`} 
             >
@@ -121,9 +124,10 @@ export default function ProductCard({ product }: { product: any }) {
           ) : (
             <button 
               onClick={handleAddToCart}
+              disabled={added}
               className={`flex items-center justify-center h-10 px-4 rounded-xl text-sm font-bold transition-all duration-300 shadow-sm whitespace-nowrap ${
                 added 
-                  ? "bg-emerald-500 text-white shadow-emerald-500/20" 
+                  ? "bg-emerald-500 text-white shadow-emerald-500/20 cursor-not-allowed" 
                   : "bg-slate-900 text-white hover:bg-slate-800 hover:shadow-slate-900/20 hover:-translate-y-0.5"
               }`} 
             >

@@ -35,20 +35,22 @@ export default async function StorePage({
     ];
   }
 
-  const [productsData, categories] = await Promise.all([
-    prisma.product.findMany({
-      where: whereClause,
-      include: { 
-        category: true,
-        fieldValues: { include: { field: true } }
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { sortOrder: "asc" },
-    }),
-  ]);
+  const needsFieldValues = category?.toLowerCase() === "bb" || category?.toLowerCase() === "ib";
+
+  const productsData = await prisma.product.findMany({
+    where: whereClause,
+    omit: { description: true, shortDesc: true },
+    include: { 
+      category: true,
+      ...(needsFieldValues && { fieldValues: { include: { field: true } } })
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const categories = await prisma.category.findMany({
+    where: { isActive: true },
+    orderBy: { sortOrder: "asc" },
+  });
 
   // Force RDP items to sort by price
   if (category?.toLowerCase() === "rdp") {
