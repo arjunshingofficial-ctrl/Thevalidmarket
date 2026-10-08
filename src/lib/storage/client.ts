@@ -10,8 +10,8 @@ export function normalizeImageUrl(urlOrPath: string | null | undefined): string 
     key = `public/${key}`;
   }
 
-  const endpoint = process.env.NEXT_PUBLIC_STORAGE_ENDPOINT || process.env.STORAGE_ENDPOINT || "";
-  const bucket = process.env.NEXT_PUBLIC_STORAGE_BUCKET || process.env.STORAGE_BUCKET || "";
+  const endpoint = process.env.NEXT_PUBLIC_STORAGE_ENDPOINT || "";
+  const bucket = process.env.NEXT_PUBLIC_STORAGE_BUCKET || "";
 
   if (!endpoint) {
     return `/${key}`;
