@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   LayoutDashboard, BarChart3, Package, Folders, SlidersHorizontal, HardDrive, Image,
   ShoppingCart, CreditCard, Receipt, Ticket, Repeat, Key, Download, RefreshCcw,
@@ -12,7 +13,7 @@ import {
   Wifi, Server, MapPin, Activity,
   FileText, FileSearch, Home, Menu, Megaphone, MessageSquare, HelpCircle,
   Search, Globe, ArrowLeftRight, Map, Bot,
-  Tag, Share2, Bell, Mail,
+  Tag, Share2, Bell, Mail, Loader2,
   UserCheck, Shield, ShieldAlert, Settings, Plug, LogOut, ChevronDown, ChevronRight, Sparkles
 } from "lucide-react";
 
@@ -138,7 +139,20 @@ const NAV_GROUPS: NavGroup[] = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [isPending, startTransition] = useTransition();
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+
+  const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    if (pathname === href) return;
+    setPendingPath(href);
+    startTransition(() => {
+      router.push(href);
+      setPendingPath(null);
+    });
+  };
 
   const toggleGroup = (label: string) => {
     setCollapsed(prev => ({ ...prev, [label]: !prev[label] }));
@@ -191,18 +205,23 @@ export default function AdminSidebar() {
                 <div className="space-y-0.5 mt-0.5">
                   {group.items.map((item) => {
                     const active = isActive(item.href);
+                    const isItemPending = pendingPath === item.href;
                     return (
                       <Link
                         key={`${group.label}-${item.name}`}
                         href={item.href}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
+                        onClick={(e) => handleNavigation(e, item.href)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
                           active
                             ? "bg-primary text-white font-medium shadow-sm"
                             : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
-                        }`}
+                        } ${isItemPending ? "opacity-70 pointer-events-none" : ""}`}
                       >
-                        <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-slate-500"}`} />
-                        <span className="truncate">{item.name}</span>
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <item.icon className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-slate-500"}`} />
+                          <span className="truncate">{item.name}</span>
+                        </div>
+                        {isItemPending && <Loader2 className="h-4 w-4 animate-spin shrink-0 text-slate-300" />}
                       </Link>
                     );
                   })}
