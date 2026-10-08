@@ -5,6 +5,7 @@ import { Check, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { addToCart } from "@/lib/cart";
 import { formatUsd } from "@/lib/currency";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export default function RDPProductCard({ product }: { product: any }) {
   const [added, setAdded] = useState(false);
@@ -48,7 +49,7 @@ export default function RDPProductCard({ product }: { product: any }) {
         {image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img 
-            src={image} 
+            src={normalizeImageUrl(image)} 
             alt={product.name} 
             className="object-cover object-center w-full h-full opacity-90 transition-transform duration-700 group-hover:scale-105 group-hover:opacity-100" 
           />

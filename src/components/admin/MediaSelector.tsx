@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Upload, X, Check, Image as ImageIcon, Search, Loader2 } from "lucide-react";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 interface Media {
   id: string;
@@ -107,7 +108,7 @@ export default function MediaSelector({ onSelect, multiple = false }: MediaSelec
               >
                 {media.mimeType.startsWith("image/") ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={media.url} alt={media.filename} className="w-full h-full object-cover" />
+                  <img src={normalizeImageUrl(media.url)} alt={media.filename} className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex items-center justify-center h-full bg-slate-100 text-slate-400">
                     <span className="text-xs font-medium uppercase">{media.mimeType.split("/")[1]}</span>

@@ -5,6 +5,7 @@ import { ShoppingCart, Star, Check, ArrowRight, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { addToCart } from "@/lib/cart";
 import { formatUsd } from "@/lib/currency";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export default function ProductCard({ product }: { product: any }) {
   const [added, setAdded] = useState(false);
@@ -59,7 +60,7 @@ export default function ProductCard({ product }: { product: any }) {
         {image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img 
-            src={image} 
+            src={normalizeImageUrl(image)} 
             alt={product.name} 
             className="object-cover object-center w-full h-full transition-transform duration-700 group-hover:scale-105" 
           />

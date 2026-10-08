@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ShoppingCart, Globe, Star, Package } from "lucide-react";
 import { addToCart } from "@/lib/cart";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 function BuyButton({ product }: { product: any }) {
   const router = useRouter();
@@ -106,7 +107,7 @@ function IBProductRow({ product, index }: { product: any; index: number }) {
           <div className="shrink-0 w-8 h-8 md:w-12 md:h-12 rounded md:rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-sm">
             {image ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={image} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+              <img src={normalizeImageUrl(image)} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-300">
                 <Package className="h-4 w-4 md:h-5 md:w-5" />
