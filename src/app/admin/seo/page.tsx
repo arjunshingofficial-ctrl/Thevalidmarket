@@ -6,25 +6,14 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminSEO() {
   // Find items missing SEO metadata
-  const [
-    productsMissingSEO,
-    productsTotal,
-    categoriesMissingSEO,
-    categoriesTotal,
-    blogsMissingSEO,
-    blogsTotal,
-    pagesMissingSEO,
-    pagesTotal,
-  ] = await Promise.all([
-    prisma.product.count({ where: { status: "PUBLISHED", AND: [{ metadata: null }] } }),
-    prisma.product.count({ where: { status: "PUBLISHED" } }),
-    prisma.category.count({ where: { isActive: true, seoTitle: null } }),
-    prisma.category.count({ where: { isActive: true } }),
-    prisma.blogPost.count({ where: { status: "PUBLISHED", seoTitle: null } }),
-    prisma.blogPost.count({ where: { status: "PUBLISHED" } }),
-    prisma.page.count({ where: { status: "PUBLISHED", seoTitle: null } }),
-    prisma.page.count({ where: { status: "PUBLISHED" } }),
-  ]);
+  const productsMissingSEO = await prisma.product.count({ where: { status: "PUBLISHED", AND: [{ metadata: null }] } });
+  const productsTotal = await prisma.product.count({ where: { status: "PUBLISHED" } });
+  const categoriesMissingSEO = await prisma.category.count({ where: { isActive: true, seoTitle: null } });
+  const categoriesTotal = await prisma.category.count({ where: { isActive: true } });
+  const blogsMissingSEO = await prisma.blogPost.count({ where: { status: "PUBLISHED", seoTitle: null } });
+  const blogsTotal = await prisma.blogPost.count({ where: { status: "PUBLISHED" } });
+  const pagesMissingSEO = await prisma.page.count({ where: { status: "PUBLISHED", seoTitle: null } });
+  const pagesTotal = await prisma.page.count({ where: { status: "PUBLISHED" } });
 
   const checks = [
     { label: "Products missing SEO", missing: productsMissingSEO, total: productsTotal, href: "/admin/products" },

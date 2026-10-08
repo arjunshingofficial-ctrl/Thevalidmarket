@@ -25,23 +25,22 @@ export default async function MenusPage() {
   const allMenus = await getAllMenus();
   
   // Get detailed items for the first menu by default (or just load them all)
-  const menusWithItems = await Promise.all(
-    allMenus.map(async (m) => {
-      const fullMenu = await prisma.menu.findUnique({
-        where: { id: m.id },
-        include: {
-          items: {
-            orderBy: { sortOrder: "asc" },
-            include: { children: { orderBy: { sortOrder: "asc" } } }
-          }
+  const menusWithItems = [];
+  for (const m of allMenus) {
+    const fullMenu = await prisma.menu.findUnique({
+      where: { id: m.id },
+      include: {
+        items: {
+          orderBy: { sortOrder: "asc" },
+          include: { children: { orderBy: { sortOrder: "asc" } } }
         }
-      });
-      return {
-        ...m,
-        items: fullMenu?.items.filter(i => i.parentId === null) || []
-      };
-    })
-  );
+      }
+    });
+    menusWithItems.push({
+      ...m,
+      items: fullMenu?.items.filter(i => i.parentId === null) || []
+    });
+  }
 
   return (
     <div className="space-y-6">

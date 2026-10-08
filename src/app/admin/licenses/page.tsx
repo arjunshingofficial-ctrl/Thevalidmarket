@@ -13,18 +13,16 @@ export default async function AdminLicenses({ searchParams }: { searchParams: Pr
   const limit = 50;
   const skip = (page - 1) * limit;
 
-  const [licenseKeys, totalKeys] = await Promise.all([
-    prisma.licenseKey.findMany({
-      include: {
-        product: true,
-        assignedTo: true
-      },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take: limit,
-    }),
-    prisma.licenseKey.count()
-  ]);
+  const licenseKeys = await prisma.licenseKey.findMany({
+    include: {
+      product: true,
+      assignedTo: true
+    },
+    orderBy: { createdAt: "desc" },
+    skip,
+    take: limit,
+  });
+  const totalKeys = await prisma.licenseKey.count();
 
   const totalPages = Math.ceil(totalKeys / limit);
   const hasNext = page < totalPages;

@@ -8,23 +8,17 @@ export const dynamic = "force-dynamic";
 export default async function AdminReferrals() {
   await requireAdmin("Referrals", "View");
 
-  const [
-    totalReferrals,
-    commissions,
-    withdrawals
-  ] = await Promise.all([
-    prisma.referral.count(),
-    prisma.referralCommission.findMany({
-      include: { referrer: { select: { id: true, name: true, email: true } }, referred: { select: { email: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 20
-    }),
-    prisma.withdrawalRequest.findMany({
-      include: { user: { select: { name: true, email: true } } },
-      where: { status: "PENDING" },
-      orderBy: { createdAt: "asc" }
-    })
-  ]);
+  const totalReferrals = await prisma.referral.count();
+  const commissions = await prisma.referralCommission.findMany({
+    include: { referrer: { select: { id: true, name: true, email: true } }, referred: { select: { email: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 20
+  });
+  const withdrawals = await prisma.withdrawalRequest.findMany({
+    include: { user: { select: { name: true, email: true } } },
+    where: { status: "PENDING" },
+    orderBy: { createdAt: "asc" }
+  });
 
   let totalCommissionsPaid = 0;
   let totalPendingCommissions = 0;

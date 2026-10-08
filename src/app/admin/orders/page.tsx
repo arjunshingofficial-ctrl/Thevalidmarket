@@ -11,15 +11,13 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
   const limit = 10;
   const skip = (page - 1) * limit;
 
-  const [orders, totalOrders] = await Promise.all([
-    prisma.order.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { user: true, items: { include: { product: true } } },
-      skip,
-      take: limit,
-    }),
-    prisma.order.count()
-  ]);
+  const orders = await prisma.order.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { user: true, items: { include: { product: true } } },
+    skip,
+    take: limit,
+  });
+  const totalOrders = await prisma.order.count();
 
   const totalPages = Math.ceil(totalOrders / limit);
   const hasNext = page < totalPages;

@@ -7,41 +7,27 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function AdminAnalytics() {
-  const [
-    totalRevenue,
-    paidOrders,
-    pendingOrders,
-    failedOrders,
-    totalCustomers,
-    totalProducts,
-    publishedProducts,
-    topProducts,
-    revenueByMethod,
-    productViews,
-    addToCarts
-  ] = await Promise.all([
-    prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID" } }),
-    prisma.order.count({ where: { paymentStatus: "PAID" } }),
-    prisma.order.count({ where: { paymentStatus: "PENDING" } }),
-    prisma.order.count({ where: { paymentStatus: "FAILED" } }),
-    prisma.user.count({ where: { role: { name: "CUSTOMER" } } }),
-    prisma.product.count(),
-    prisma.product.count({ where: { status: "PUBLISHED" } }),
-    prisma.orderItem.groupBy({
-      by: ["productId"],
-      _sum: { quantity: true, price: true },
-      orderBy: { _sum: { quantity: "desc" } },
-      take: 5,
-    }),
-    prisma.payment.groupBy({
-      by: ["method"],
-      _sum: { amount: true },
-      _count: true,
-      where: { status: "PAID" },
-    }),
-    prisma.analyticsEvent.count({ where: { eventType: "PRODUCT_VIEW" } }),
-    prisma.analyticsEvent.count({ where: { eventType: "ADD_TO_CART" } }),
-  ]);
+  const totalRevenue = await prisma.order.aggregate({ _sum: { total: true }, where: { paymentStatus: "PAID" } });
+  const paidOrders = await prisma.order.count({ where: { paymentStatus: "PAID" } });
+  const pendingOrders = await prisma.order.count({ where: { paymentStatus: "PENDING" } });
+  const failedOrders = await prisma.order.count({ where: { paymentStatus: "FAILED" } });
+  const totalCustomers = await prisma.user.count({ where: { role: { name: "CUSTOMER" } } });
+  const totalProducts = await prisma.product.count();
+  const publishedProducts = await prisma.product.count({ where: { status: "PUBLISHED" } });
+  const topProducts = await prisma.orderItem.groupBy({
+    by: ["productId"],
+    _sum: { quantity: true, price: true },
+    orderBy: { _sum: { quantity: "desc" } },
+    take: 5,
+  });
+  const revenueByMethod = await prisma.payment.groupBy({
+    by: ["method"],
+    _sum: { amount: true },
+    _count: true,
+    where: { status: "PAID" },
+  });
+  const productViews = await prisma.analyticsEvent.count({ where: { eventType: "PRODUCT_VIEW" } });
+  const addToCarts = await prisma.analyticsEvent.count({ where: { eventType: "ADD_TO_CART" } });
 
   // Fetch product names for top products
   const productIds = topProducts.map(p => p.productId);

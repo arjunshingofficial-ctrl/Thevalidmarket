@@ -6,17 +6,15 @@ export const dynamic = "force-dynamic";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [product, categories, fieldDefinitions] = await Promise.all([
-    prisma.product.findUnique({ 
-      where: { id },
-      include: { 
-        files: { orderBy: { createdAt: "desc" } },
-        fieldValues: { include: { field: true } }
-      }
-    }),
-    prisma.category.findMany({ orderBy: { name: "asc" } }),
-    prisma.fieldDefinition.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-  ]);
+  const product = await prisma.product.findUnique({ 
+    where: { id },
+    include: { 
+      files: { orderBy: { createdAt: "desc" } },
+      fieldValues: { include: { field: true } }
+    }
+  });
+  const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
+  const fieldDefinitions = await prisma.fieldDefinition.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } });
 
   if (!product) notFound();
 

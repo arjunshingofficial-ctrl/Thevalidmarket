@@ -18,10 +18,8 @@ export default async function HomepageCMSPage() {
   const isDraft = settings?.draftConfig && settings?.homepageConfig && settings.draftConfig !== settings.homepageConfig;
 
   // Fetch categories for the section editors
-  const [productCategories, blogCategories] = await Promise.all([
-    getProductCategoriesForAdmin(),
-    getBlogCategoriesForAdmin(),
-  ]);
+  const productCategories = await getProductCategoriesForAdmin();
+  const blogCategories = await getBlogCategoriesForAdmin();
 
   return (
     <div className="p-4 md:p-8">

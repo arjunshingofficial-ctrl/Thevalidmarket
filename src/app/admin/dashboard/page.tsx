@@ -19,21 +19,14 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   const currentRange = range || "30d";
 
   // Real database analytics
-  const [
-    totalOrders,
-    totalCustomers,
-    totalProducts,
-    recentOrders
-  ] = await Promise.all([
-    prisma.order.count(),
-    prisma.user.count({ where: { role: { name: "CUSTOMER" } } }),
-    prisma.product.count(),
-    prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: { user: true }
-    })
-  ]);
+  const totalOrders = await prisma.order.count();
+  const totalCustomers = await prisma.user.count({ where: { role: { name: "CUSTOMER" } } });
+  const totalProducts = await prisma.product.count();
+  const recentOrders = await prisma.order.findMany({
+    take: 5,
+    orderBy: { createdAt: "desc" },
+    include: { user: true }
+  });
 
   // Calculate total revenue from paid orders
   const totalRevenue = await prisma.order.aggregate({

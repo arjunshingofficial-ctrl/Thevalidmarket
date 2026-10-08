@@ -4,10 +4,8 @@ import ProductEditor from "@/components/admin/ProductEditor";
 export const dynamic = "force-dynamic";
 
 export default async function NewProductPage() {
-  const [categories, fieldDefinitions] = await Promise.all([
-    prisma.category.findMany({ orderBy: { name: "asc" } }),
-    prisma.fieldDefinition.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
-  ]);
+  const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
+  const fieldDefinitions = await prisma.fieldDefinition.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } });
 
   return (
     <div className="max-w-6xl">
