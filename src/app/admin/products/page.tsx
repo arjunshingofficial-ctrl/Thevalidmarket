@@ -7,8 +7,16 @@ import ProductRowActions from "./ProductRowActions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProducts() {
+export default async function AdminProducts({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const { page } = await searchParams;
+  const currentPage = Math.max(1, parseInt(page || "1", 10));
+  const limit = 20;
+
+  const totalProducts = await prisma.product.count();
+  
   const products = await prisma.product.findMany({
+    skip: (currentPage - 1) * limit,
+    take: limit,
     orderBy: { createdAt: "desc" },
     include: { 
       category: true,
@@ -23,6 +31,8 @@ export default async function AdminProducts() {
       }
     }
   });
+
+  const totalPages = Math.ceil(totalProducts / limit);
 
   return (
     <div className="space-y-6">
@@ -136,10 +146,18 @@ export default async function AdminProducts() {
         
         {/* Pagination */}
         <div className="p-4 border-t flex justify-between items-center bg-slate-50">
-          <span className="text-sm text-slate-500">Showing {products.length} products</span>
+          <span className="text-sm text-slate-500">Showing {products.length} of {totalProducts} products</span>
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm" disabled>Previous</button>
-            <button className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50" disabled>Next</button>
+            {currentPage > 1 ? (
+              <Link href={`/admin/products?page=${currentPage - 1}`} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">Previous</Link>
+            ) : (
+              <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm" disabled>Previous</button>
+            )}
+            {currentPage < totalPages ? (
+              <Link href={`/admin/products?page=${currentPage + 1}`} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">Next</Link>
+            ) : (
+              <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm" disabled>Next</button>
+            )}
           </div>
         </div>
       </div>

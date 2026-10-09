@@ -1,0 +1,79 @@
+warning: in the working copy of 'src/components/admin/ProductEditor.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/home/CategoryProductSection.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/lib/storage/index.ts', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/components/admin/ProductEditor.tsx b/src/components/admin/ProductEditor.tsx[m
+[1mindex 0b1f65e..dc3a69d 100644[m
+[1m--- a/src/components/admin/ProductEditor.tsx[m
+[1m+++ b/src/components/admin/ProductEditor.tsx[m
+[36m@@ -5,6 +5,7 @@[m [mimport { useRouter } from "next/navigation";[m
+ import RichTextEditor from "./RichTextEditor";[m
+ import ProductFileUploader from "./ProductFileUploader";[m
+ import MediaSelector from "./MediaSelector";[m
+[32m+[m[32mimport { normalizeImageUrl } from "@/lib/storage/client";[m
+ [m
+ type Tab = {[m
+   id: string;[m
+[36m@@ -486,7 +487,7 @@[m [mexport default function ProductEditor({ categories, fieldDefinitions, initialDat[m
+                     />[m
+                     {featuredImage && ([m
+                       <div className="mt-2 aspect-video relative rounded-md overflow-hidden bg-slate-100 border">[m
+[31m-                        <img src={featuredImage} alt="Featured" className="w-full h-full object-cover" />[m
+[32m+[m[32m                        <img src={normalizeImageUrl(featuredImage)} alt="Featured" className="w-full h-full object-cover" />[m
+                         <button type="button" onClick={() => { setFeaturedImage(""); handleChange(); }} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs">×</button>[m
+                       </div>[m
+                     )}[m
+[36m@@ -500,7 +501,7 @@[m [mexport default function ProductEditor({ categories, fieldDefinitions, initialDat[m
+                     <div className="grid grid-cols-3 gap-2 mt-2">[m
+                       {gallery.map((url, i) => ([m
+                         <div key={i} className="aspect-square relative rounded-md overflow-hidden bg-slate-100 border">[m
+[31m-                          <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover" />[m
+[32m+[m[32m                          <img src={normalizeImageUrl(url)} alt={`Gallery ${i}`} className="w-full h-full object-cover" />[m
+                           <button type="button" onClick={() => { setGallery(gallery.filter((_, idx) => idx !== i)); handleChange(); }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 w-5 h-5 flex items-center justify-center text-xs">×</button>[m
+                         </div>[m
+                       ))}[m
+[1mdiff --git a/src/components/home/CategoryProductSection.tsx b/src/components/home/CategoryProductSection.tsx[m
+[1mindex ea4f010..699c67e 100644[m
+[1m--- a/src/components/home/CategoryProductSection.tsx[m
+[1m+++ b/src/components/home/CategoryProductSection.tsx[m
+[36m@@ -1,5 +1,6 @@[m
+ import Link from "next/link";[m
+ import { ArrowRight, ShoppingCart, Star } from "lucide-react";[m
+[32m+[m[32mimport { normalizeImageUrl } from "@/lib/storage/client";[m
+ [m
+ function ProductRating({ reviews }: { reviews: Array<{ rating: number }> }) {[m
+   if (!reviews || reviews.length === 0) {[m
+[36m@@ -33,7 +34,7 @@[m [mfunction CategoryProductCard({ product }: { product: any }) {[m
+         {image ? ([m
+           // eslint-disable-next-line @next/next/no-img-element[m
+           <img[m
+[31m-            src={image}[m
+[32m+[m[32m            src={normalizeImageUrl(image)}[m
+             alt={product.name}[m
+             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"[m
+           />[m
+[1mdiff --git a/src/lib/storage/index.ts b/src/lib/storage/index.ts[m
+[1mindex 266e3ba..256b821 100644[m
+[1m--- a/src/lib/storage/index.ts[m
+[1m+++ b/src/lib/storage/index.ts[m
+[36m@@ -3,6 +3,7 @@[m [mimport path from "path";[m
+ import crypto from "crypto";[m
+ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";[m
+ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";[m
+[32m+[m[32mimport { normalizeImageUrl } from "./client";[m
+ [m
+ export interface StorageProvider {[m
+   uploadFile(buffer: Buffer, originalName: string, isPublic: boolean): Promise<{ storageKey: string; url: string }>;[m
+[36m@@ -138,12 +139,7 @@[m [mexport class S3StorageProvider implements StorageProvider {[m
+   }[m
+ [m
+   getPublicUrl(storageKey: string): string {[m
+[31m-    const cleanEndpoint = this.endpoint.replace(/\/$/, "");[m
+[31m-    if (cleanEndpoint.includes(".supabase.co") && cleanEndpoint.endsWith("/storage/v1/s3")) {[m
+[31m-      const supabasePublicEndpoint = cleanEndpoint.replace("/storage/v1/s3", "/storage/v1/object/public");[m
+[31m-      return `${supabasePublicEndpoint}/${this.bucket}/${storageKey}`;[m
+[31m-    }[m
+[31m-    return `${cleanEndpoint}/${this.bucket}/${storageKey}`;[m
+[32m+[m[32m    return normalizeImageUrl(storageKey);[m
+   }[m
+ [m
+   async getSignedDownloadUrl(storageKey: string): Promise<string> {[m

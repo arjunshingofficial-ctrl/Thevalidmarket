@@ -8,6 +8,35 @@ import CategoryMobileNav from "@/components/layout/CategoryMobileNav";
 import BBProductTable from "@/components/product/BBProductTable";
 import IBProductTable from "@/components/product/IBProductTable";
 
+import { unstable_cache } from "next/cache";
+
+const getCachedProducts = unstable_cache(
+  async (category: string | undefined, q: string | undefined, needsFieldValues: boolean, whereClause: any) => {
+    return prisma.product.findMany({
+      where: whereClause,
+      omit: { description: true, shortDesc: true },
+      include: { 
+        category: true,
+        ...(needsFieldValues && { fieldValues: { include: { field: true } } })
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
+  ["store-products-list"],
+  { revalidate: 300, tags: ["products"] }
+);
+
+const getCachedCategories = unstable_cache(
+  async () => {
+    return prisma.category.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+  },
+  ["store-categories-list"],
+  { revalidate: 3600, tags: ["categories"] }
+);
+
 export const dynamic = "force-dynamic";
 
 export default async function StorePage({
@@ -37,20 +66,15 @@ export default async function StorePage({
 
   const needsFieldValues = category?.toLowerCase() === "bb" || category?.toLowerCase() === "ib";
 
-  const productsData = await prisma.product.findMany({
-    where: whereClause,
-    omit: { description: true, shortDesc: true },
-    include: { 
-      category: true,
-      ...(needsFieldValues && { fieldValues: { include: { field: true } } })
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const t0 = performance.now();
+  const productsData = await getCachedProducts(category, q, needsFieldValues, whereClause);
+  const t1 = performance.now();
+  console.log(`[Perf] /store productsData query took ${(t1 - t0).toFixed(2)}ms`);
 
-  const categories = await prisma.category.findMany({
-    where: { isActive: true },
-    orderBy: { sortOrder: "asc" },
-  });
+  const t2 = performance.now();
+  const categories = await getCachedCategories();
+  const t3 = performance.now();
+  console.log(`[Perf] /store categories query took ${(t3 - t2).toFixed(2)}ms`);
 
   // Force RDP items to sort by price
   if (category?.toLowerCase() === "rdp") {

@@ -9,6 +9,33 @@ import { authOptions } from "@/lib/auth";
 import { ReviewAvatar } from "@/components/reviews/ReviewAvatar";
 import { trackProductView } from "@/lib/analytics";
 
+import { unstable_cache } from "next/cache";
+
+const getCachedProduct = unstable_cache(
+  async (slug: string) => {
+    return prisma.product.findUnique({
+      where: { slug },
+      include: {
+        category: true,
+        course: {
+          include: {
+            modules: {
+              orderBy: { sortOrder: "asc" },
+              include: {
+                lessons: {
+                  orderBy: { sortOrder: "asc" },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+  ["product-detail"],
+  { revalidate: 300, tags: ["products"] }
+);
+
 export const dynamic = "force-dynamic";
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -16,29 +43,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const session = await getServerSession(authOptions) as any;
   const isAdmin = session?.user?.role === "SUPER_ADMIN";
   
-  const product = await prisma.product.findUnique({
-    where: { slug },
-    include: {
-      category: true,
-      course: {
-        include: {
-          modules: {
-            orderBy: { sortOrder: "asc" },
-            include: {
-              lessons: {
-                orderBy: { sortOrder: "asc" },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const t0 = performance.now();
+  const product = await getCachedProduct(slug);
+  const t1 = performance.now();
+  console.log(`[Perf] /product/[slug] product query took ${(t1 - t0).toFixed(2)}ms`);
 
   if (!product || (product.status !== "PUBLISHED" && !isAdmin)) {
     notFound();
   }
 
+  const t2 = performance.now();
   const reviews = await prisma.review.findMany({
     where: { 
       productId: product.id,
@@ -51,6 +65,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     },
     orderBy: { createdAt: "desc" },
   });
+  const t3 = performance.now();
+  console.log(`[Perf] /product/[slug] reviews query took ${(t3 - t2).toFixed(2)}ms`);
 
   const avgRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 

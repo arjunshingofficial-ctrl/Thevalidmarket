@@ -22,6 +22,7 @@ export default async function DashboardHome() {
     redirect("/login");
   }
   
+  const t0 = performance.now();
   const recentOrders = await prisma.order.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -54,6 +55,9 @@ export default async function DashboardHome() {
   });
 
   const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+  const t1 = performance.now();
+  console.log(`[Perf] /dashboard all sequential queries took ${(t1 - t0).toFixed(2)}ms`);
+
   let telegramUrl = "https://t.me/asiadmarket";
   if (settings?.footerConfig) {
     try { 

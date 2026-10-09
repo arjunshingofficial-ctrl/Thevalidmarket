@@ -19,6 +19,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   const currentRange = range || "30d";
 
   // Real database analytics
+  const t0 = performance.now();
   const totalOrders = await prisma.order.count();
   const totalCustomers = await prisma.user.count({ where: { role: { name: "CUSTOMER" } } });
   const totalProducts = await prisma.product.count();
@@ -33,6 +34,8 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
     _sum: { total: true },
     where: { paymentStatus: "PAID" }
   });
+  const t1 = performance.now();
+  console.log(`[Perf] /admin/dashboard all sequential queries took ${(t1 - t0).toFixed(2)}ms`);
 
   const revenue = totalRevenue._sum.total || 0;
   const rate = await getUsdToInrRate();

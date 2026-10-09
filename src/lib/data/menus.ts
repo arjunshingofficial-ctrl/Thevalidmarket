@@ -1,35 +1,38 @@
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
-export async function getMenu(location: string) {
-  try {
-    const menu = await prisma.menu.findUnique({
-      where: { location },
-      include: {
-        items: {
-          where: { isVisible: true },
-          orderBy: { sortOrder: "asc" },
-          include: {
-            children: {
-              where: { isVisible: true },
-              orderBy: { sortOrder: "asc" }
+export const getMenu = unstable_cache(
+  async (location: string) => {
+    try {
+      const menu = await prisma.menu.findUnique({
+        where: { location },
+        include: {
+          items: {
+            where: { isVisible: true },
+            orderBy: { sortOrder: "asc" },
+            include: {
+              children: {
+                where: { isVisible: true },
+                orderBy: { sortOrder: "asc" }
+              }
             }
           }
         }
-      }
-    });
-    
-    // Filter out top-level items that are children of something else (already included in children array above)
-    // Actually, Prisma might fetch all items and children. We should only get parentId = null.
-    if (!menu) return null;
-    
-    const rootItems = menu.items.filter(item => item.parentId === null);
-    
-    return { ...menu, items: rootItems };
-  } catch (error) {
-    console.error("Failed to fetch menu:", error);
-    return null;
-  }
-}
+      });
+      
+      if (!menu) return null;
+      
+      const rootItems = menu.items.filter(item => item.parentId === null);
+      
+      return { ...menu, items: rootItems };
+    } catch (error) {
+      console.error("Failed to fetch menu:", error);
+      return null;
+    }
+  },
+  ["menu-data"],
+  { revalidate: 3600, tags: ["menus"] }
+);
 
 export async function getAllMenus() {
   return prisma.menu.findMany({
