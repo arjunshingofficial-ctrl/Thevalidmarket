@@ -20,24 +20,30 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
 
   // Real database analytics
   const t0 = performance.now();
-  const totalOrders = await prisma.order.count();
-  const totalCustomers = await prisma.user.count({ where: { role: { name: "CUSTOMER" } } });
-  const totalProducts = await prisma.product.count();
+  
+  // Combine aggregate queries into a single query to save connection overhead
+  const statsResult: any = await prisma.$queryRaw`
+    SELECT 
+      (SELECT COUNT(*) FROM "Order") as "totalOrders",
+      (SELECT COUNT(*) FROM "User" u JOIN "Role" r ON u."roleId" = r.id WHERE r.name = 'CUSTOMER') as "totalCustomers",
+      (SELECT COUNT(*) FROM "Product") as "totalProducts",
+      (SELECT COALESCE(SUM(total), 0) FROM "Order" WHERE "paymentStatus" = 'PAID') as "totalRevenue"
+  `;
+
+  const totalOrders = Number(statsResult[0]?.totalOrders || 0);
+  const totalCustomers = Number(statsResult[0]?.totalCustomers || 0);
+  const totalProducts = Number(statsResult[0]?.totalProducts || 0);
+  const revenue = Number(statsResult[0]?.totalRevenue || 0);
+
   const recentOrders = await prisma.order.findMany({
     take: 5,
     orderBy: { createdAt: "desc" },
     include: { user: true }
   });
 
-  // Calculate total revenue from paid orders
-  const totalRevenue = await prisma.order.aggregate({
-    _sum: { total: true },
-    where: { paymentStatus: "PAID" }
-  });
   const t1 = performance.now();
-  console.log(`[Perf] /admin/dashboard all sequential queries took ${(t1 - t0).toFixed(2)}ms`);
+  console.log(`[Perf] /admin/dashboard sequential queries took ${(t1 - t0).toFixed(2)}ms`);
 
-  const revenue = totalRevenue._sum.total || 0;
   const rate = await getUsdToInrRate();
   const revenueInr = revenue * rate;
 

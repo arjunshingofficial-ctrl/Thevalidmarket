@@ -23,6 +23,21 @@ export default async function DashboardHome() {
   }
   
   const t0 = performance.now();
+  
+  // Combine all simple counts/aggregates into one raw query to avoid pool overhead
+  const statsResult: any = await prisma.$queryRaw`
+    SELECT 
+      (SELECT COALESCE(SUM(total), 0) FROM "Order" WHERE "userId" = ${session.user.id} AND "paymentStatus" = 'PAID') as "totalSpent",
+      (SELECT COUNT(*) FROM "License" WHERE "userId" = ${session.user.id} AND "status" = 'ACTIVE') as "activeLicenses",
+      (SELECT COUNT(*) FROM "Subscription" WHERE "userId" = ${session.user.id} AND "status" = 'ACTIVE') as "activeSubscriptions",
+      (SELECT COUNT(*) FROM "Entitlement" WHERE "userId" = ${session.user.id} AND "type" = 'DOWNLOAD' AND "status" = 'ACTIVE') as "totalDownloads"
+  `;
+
+  const totalSpent = Number(statsResult[0]?.totalSpent || 0);
+  const activeLicenses = Number(statsResult[0]?.activeLicenses || 0);
+  const activeSubscriptions = Number(statsResult[0]?.activeSubscriptions || 0);
+  const totalDownloads = Number(statsResult[0]?.totalDownloads || 0);
+
   const recentOrders = await prisma.order.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
@@ -34,24 +49,6 @@ export default async function DashboardHome() {
     include: { product: { include: { files: { where: { isActive: true } } } } },
     orderBy: { createdAt: "desc" },
     take: 3
-  });
-
-  const totalSpentAggr = await prisma.order.aggregate({
-    _sum: { total: true },
-    where: { userId: session.user.id, paymentStatus: "PAID" }
-  });
-  const totalSpent = totalSpentAggr._sum.total || 0;
-
-  const activeLicenses = await prisma.license.count({
-    where: { userId: session.user.id, status: "ACTIVE" }
-  });
-
-  const activeSubscriptions = await prisma.subscription.count({
-    where: { userId: session.user.id, status: "ACTIVE" }
-  });
-
-  const totalDownloads = await prisma.entitlement.count({
-    where: { userId: session.user.id, type: "DOWNLOAD", status: "ACTIVE" }
   });
 
   const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
