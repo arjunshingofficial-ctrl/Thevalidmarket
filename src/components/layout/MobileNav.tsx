@@ -7,9 +7,10 @@ import {
   Menu, X, User, LayoutDashboard, ShoppingBag, DownloadCloud, Key, 
   Repeat, BookOpen, Heart, Star, Ticket, Users, Bell, LifeBuoy, 
   UserCircle, ShieldCheck, LogOut, Package, Folders, FileText, 
-  Settings, Globe, ChevronRight, Briefcase, ChevronDown, Wallet, MessageSquare
+  Settings, Globe, ChevronRight, Briefcase, ChevronDown, Wallet, MessageSquare, Copy, Check
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import ThemeToggle from "./ThemeToggle";
 
 const NavItem = ({ link, isActive, onClick }: { link: any, isActive: boolean, onClick?: () => void }) => {
   const Icon = link.icon;
@@ -42,6 +43,16 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname() || "";
   const drawerRef = useRef<HTMLDivElement>(null);
+  const [copiedId, setCopiedId] = useState(false);
+
+  const handleCopyId = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (session?.user?.accountId) {
+      navigator.clipboard.writeText(session.user.accountId);
+      setCopiedId(true);
+      setTimeout(() => setCopiedId(false), 2000);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -193,7 +204,17 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-sm text-white truncate">{session.user.name || "User"}</div>
-                      <div className="text-[11px] text-slate-400 truncate">{session.user.email}</div>
+                      <div className="text-[11px] text-slate-400 truncate mb-1">{session.user.email}</div>
+                      {session.user.accountId && (
+                        <div 
+                          onClick={handleCopyId}
+                          className="flex items-center gap-1.5 w-fit px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono rounded cursor-pointer transition-colors"
+                          title="Copy User ID"
+                        >
+                          <span>ID: {session.user.accountId}</span>
+                          {copiedId ? <Check className="w-2.5 h-2.5 text-green-400" /> : <Copy className="w-2.5 h-2.5 text-slate-500" />}
+                        </div>
+                      )}
                     </div>
                     {(isDashboard || isPublic) && (
                       <Link href="/dashboard/profile" onClick={closeDrawer} className="p-1.5 text-slate-500 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md">
@@ -311,6 +332,12 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
                       isActive={getActiveState("/dashboard/security")} 
                       onClick={closeDrawer}
                     />
+                    
+                    {/* Hacker Mode Toggle in Mobile */}
+                    <div className="px-3 py-1 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-all">
+                      <ThemeToggle variant="dropdown-item" />
+                    </div>
+
                     <li>
                       <button 
                         onClick={() => { closeDrawer(); window.location.href = '/api/auth/signout'; }}
