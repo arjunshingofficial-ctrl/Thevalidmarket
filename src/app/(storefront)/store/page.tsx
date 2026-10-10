@@ -97,15 +97,15 @@ export default async function StorePage({
     <div className="min-h-screen bg-slate-50/50 pb-20">
       
       {/* Header Banner */}
-      <div className="bg-slate-950 text-white py-12 md:py-16 relative overflow-hidden">
+      <div className="bg-slate-950 text-white py-6 md:py-8 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/3 pointer-events-none" />
         
         <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 relative z-10">
           <div className="max-w-3xl">
-            <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">{categoryName}</h1>
-            <p className="text-slate-400 text-lg max-w-xl">
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">{categoryName}</h1>
+            <p className="text-slate-400 text-sm md:text-base max-w-xl">
               Discover our handpicked collection of {formattedProducts.length} premium digital products, courses, and software solutions designed to elevate your workflow.
             </p>
           </div>

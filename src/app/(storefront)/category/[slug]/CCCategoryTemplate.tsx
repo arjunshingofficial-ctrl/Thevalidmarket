@@ -245,9 +245,9 @@ export default function CCCategoryTemplate({
           )}
         </div>
 
-        <div className="container max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-12 md:py-20 relative z-10">
+        <div className="container max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 relative z-10">
           {/* Breadcrumb */}
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-400 mb-6">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-slate-400 mb-4">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <span>/</span>
             <Link href="/store" className="hover:text-white transition-colors">Store</Link>
@@ -257,15 +257,15 @@ export default function CCCategoryTemplate({
 
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-slate-300 mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-slate-300 mb-3">
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 {stats.productCount} Products Available
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter text-white mb-3">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white mb-2">
                 {category.name}
                 <span className="text-primary">.</span>
               </h1>
-              <p className="text-lg text-slate-400 leading-relaxed">
+              <p className="text-sm md:text-base text-slate-400 leading-relaxed">
                 {category.description || `Premium ${category.name} products, clearly organized and ready to purchase.`}
               </p>
             </div>
@@ -294,7 +294,7 @@ export default function CCCategoryTemplate({
 
           {/* Stats Row */}
           {(stats.productCount > 0) && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-10 pt-10 border-t border-white/10">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
               <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/8">
                 <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
                   <Package className="h-5 w-5 text-primary" />
