@@ -62,7 +62,8 @@ export default async function OrdersPage() {
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop View (Table) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-muted/50 text-muted-foreground border-b">
               <tr>
@@ -138,6 +139,68 @@ export default async function OrdersPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View (Cards) */}
+        <div className="md:hidden divide-y divide-border">
+          {orders.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground">
+              No orders found.
+            </div>
+          ) : (
+            orders.map((order) => {
+              const paymentMethod = order.payments?.[0]?.method || (order.paymentStatus === 'PAID' && order.payments.length === 0 ? 'WALLET' : 'N/A');
+              const actualPaymentStatus = order.payments?.[0]?.status || order.paymentStatus;
+              
+              return (
+                <div key={order.id} className="p-4 flex flex-col gap-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-bold text-base">#{order.id.slice(0, 8).toUpperCase()}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{new Date(order.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div className="text-right font-bold text-lg text-primary">${order.total.toFixed(2)}</div>
+                  </div>
+                  
+                  <div className="text-sm font-medium p-3 bg-muted/30 rounded-lg">
+                    {order.items.length > 0 ? order.items[0].product.name : "Unknown"}
+                    {order.items.length > 1 ? ` + ${order.items.length - 1} more` : ""}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 items-center text-xs">
+                    <span className={`px-2.5 py-1 rounded-full font-medium ${getPaymentStatusColor(actualPaymentStatus)}`}>
+                      {formatStatus(actualPaymentStatus)}
+                    </span>
+                    <span className={`px-2.5 py-1 rounded-full font-medium ${getOrderStatusColor(order.orderStatus)}`}>
+                      {formatStatus(order.orderStatus)}
+                    </span>
+                    <span className="text-muted-foreground font-semibold ml-auto bg-muted/50 px-2 py-1 rounded-md">{paymentMethod}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 mt-1">
+                    <Link href={`/dashboard/orders/${order.id}`} className="flex-1 flex justify-center items-center gap-2 py-2.5 bg-secondary/10 text-secondary rounded-lg hover:bg-secondary hover:text-secondary-foreground transition-colors font-semibold text-sm">
+                      <Eye className="h-4 w-4" /> View Details
+                    </Link>
+                    
+                    {order.paymentStatus === 'PAID' && order.entitlements && order.entitlements.filter(e => e.type === 'DOWNLOAD' && e.status === 'ACTIVE').map((ent) => {
+                      const meta = ent.metadata ? JSON.parse(ent.metadata) : {};
+                      if (!meta.fileId) return null;
+                      return (
+                        <a 
+                          key={ent.id}
+                          href={`/api/download/${meta.fileId}`} 
+                          download
+                          className="flex-1 flex justify-center items-center gap-2 py-2.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors font-semibold text-sm" 
+                        >
+                          <Download className="h-4 w-4" /> Download
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
         
         <div className="p-4 border-t flex justify-between items-center bg-muted/20">
