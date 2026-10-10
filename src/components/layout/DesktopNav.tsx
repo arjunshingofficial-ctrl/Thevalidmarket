@@ -21,9 +21,9 @@ export default function DesktopNav({ items = [] }: { items?: MenuItem[] }) {
     // Fallback menu if database menu is empty
     return (
       <nav className="hidden md:flex gap-6">
-        <Link href="/" className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Home</Link>
-        <Link href="/store" className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Store</Link>
-        <Link href="/courses" className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Courses</Link>
+        <Link href="/" prefetch={true} className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Home</Link>
+        <Link href="/store" prefetch={true} className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Store</Link>
+        <Link href="/courses" prefetch={true} className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Courses</Link>
       </nav>
     );
   }
@@ -62,6 +62,7 @@ export default function DesktopNav({ items = [] }: { items?: MenuItem[] }) {
                     <Link
                       key={child.id}
                       href={child.url}
+                      prefetch={true}
                       target={child.openInNew ? "_blank" : "_self"}
                       className="px-4 py-2.5 text-sm text-slate-700 hover:text-primary hover:bg-slate-50 transition-colors"
                       onClick={() => setOpenDropdown(null)}
@@ -79,6 +80,7 @@ export default function DesktopNav({ items = [] }: { items?: MenuItem[] }) {
           <Link
             key={item.id}
             href={item.url}
+            prefetch={true}
             target={item.openInNew ? "_blank" : "_self"}
             className={`px-3 py-2 text-[15px] font-medium transition-all ${
               isActive 

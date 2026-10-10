@@ -37,7 +37,7 @@ const getCachedCategories = unstable_cache(
   { revalidate: 3600, tags: ["categories"] }
 );
 
-export const dynamic = "force-dynamic";
+// Removed force-dynamic to allow Next.js route caching and faster TTFB
 
 export default async function StorePage({
   searchParams,
@@ -125,6 +125,7 @@ export default async function StorePage({
               <div className="space-y-1.5">
                 <Link
                   href="/store"
+                  prefetch={true}
                   className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     currentCategory === "all"
                       ? "bg-primary text-white shadow-md shadow-primary/20"
@@ -141,6 +142,7 @@ export default async function StorePage({
                     <Link
                       key={cat.id}
                       href={`/store?category=${cat.slug}`}
+                      prefetch={true}
                       className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                         isActive
                           ? "bg-primary text-white shadow-md shadow-primary/20"

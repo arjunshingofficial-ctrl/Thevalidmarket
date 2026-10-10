@@ -76,6 +76,7 @@ export default function CategoryMobileNav({ categories, currentCategory }: { cat
             <li>
               <Link 
                 href="/store"
+                prefetch={true}
                 className={`flex items-center justify-between px-4 py-3 rounded-lg text-base transition-all ${
                   currentCategory === "all" || currentCategory === "store"
                     ? "bg-gradient-to-r from-blue-600/20 to-transparent border-l-4 border-blue-500 text-white font-bold"
@@ -91,7 +92,8 @@ export default function CategoryMobileNav({ categories, currentCategory }: { cat
               return (
                 <li key={cat.id}>
                   <Link 
-                    href={`/category/${cat.slug}`}
+                    href={`/store?category=${cat.slug}`}
+                    prefetch={true}
                     className={`flex items-center justify-between px-4 py-3 rounded-lg text-base transition-all ${
                       isActive
                         ? "bg-gradient-to-r from-blue-600/20 to-transparent border-l-4 border-blue-500 text-white font-bold"

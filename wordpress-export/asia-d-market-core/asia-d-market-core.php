@@ -33,12 +33,17 @@ register_activation_hook( __FILE__, [ 'ADM_Installer', 'activate' ] );
 add_action( 'init', [ 'ADM_Post_Types', 'register' ] );
 add_action( 'rest_api_init', [ 'ADM_REST_API', 'register_routes' ] );
 
-// Initialize components
-new ADM_Wallet();
-new ADM_Auth();
-new ADM_Products();
-new ADM_Cart();
-new ADM_Orders();
-new ADM_Payments();
-new ADM_Storage();
-new ADM_Referrals();
+// Initialize components safely after all plugins are loaded
+add_action( 'plugins_loaded', 'adm_core_initialize_components' );
+function adm_core_initialize_components() {
+    new ADM_Wallet();
+    new ADM_Auth();
+    new ADM_Products();
+    new ADM_Cart();
+    new ADM_Orders();
+    new ADM_Payments();
+    new ADM_Storage();
+    if ( class_exists( 'ADM_Referrals' ) ) {
+        new ADM_Referrals();
+    }
+}

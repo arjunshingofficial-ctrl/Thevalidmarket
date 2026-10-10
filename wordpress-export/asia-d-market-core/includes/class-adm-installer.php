@@ -88,6 +88,7 @@ class ADM_Installer {
             PRIMARY KEY  (session_key),
             KEY user_id (user_id)
         ) $charset_collate;
+
         CREATE TABLE {$wpdb->prefix}adm_webhook_events (
             id bigint(20) NOT NULL AUTO_INCREMENT,
             provider varchar(50) NOT NULL,
