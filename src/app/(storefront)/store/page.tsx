@@ -5,7 +5,7 @@ import VipBuyButton from "@/components/product/VipBuyButton";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import CategoryMobileNav from "@/components/layout/CategoryMobileNav";
-import BBProductTable from "@/components/product/BBProductTable";
+import CCProductTable from "@/components/product/CCProductTable";
 import IBProductTable from "@/components/product/IBProductTable";
 
 import { unstable_cache } from "next/cache";
@@ -64,7 +64,7 @@ export default async function StorePage({
     ];
   }
 
-  const needsFieldValues = category?.toLowerCase() === "bb" || category?.toLowerCase() === "ib";
+  const needsFieldValues = category?.toLowerCase() === "cc" || category?.toLowerCase() === "ib";
 
   const t0 = performance.now();
   const [productsData, categories] = await Promise.all([
@@ -221,8 +221,8 @@ export default async function StorePage({
                   Clear Filters
                 </Link>
               </div>
-            ) : currentCategory === "bb" ? (
-              <BBProductTable products={productsData} />
+            ) : currentCategory === "cc" ? (
+              <CCProductTable products={productsData} />
             ) : currentCategory === "ib" ? (
               <IBProductTable products={productsData} />
             ) : currentCategory === "rdp" ? (

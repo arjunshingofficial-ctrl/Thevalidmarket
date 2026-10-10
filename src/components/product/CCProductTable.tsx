@@ -82,7 +82,7 @@ function PriceDisplay({ product }: { product: any }) {
   );
 }
 
-function BBProductRow({ product, index }: { product: any; index: number }) {
+function CCProductRow({ product, index }: { product: any; index: number }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const country = getFieldValue(product, "country");
@@ -146,7 +146,7 @@ function BBProductRow({ product, index }: { product: any; index: number }) {
   );
 }
 
-export default function BBProductTable({ products }: { products: any[] }) {
+export default function CCProductTable({ products }: { products: any[] }) {
   return (
     <div className="w-full mt-6">
       <div className="overflow-hidden w-full">
@@ -162,7 +162,7 @@ export default function BBProductTable({ products }: { products: any[] }) {
           </thead>
           <tbody>
             {products.map((p, i) => (
-              <BBProductRow key={p.id} product={p} index={i} />
+              <CCProductRow key={p.id} product={p} index={i} />
             ))}
           </tbody>
         </table>

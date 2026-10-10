@@ -329,7 +329,7 @@ export default function HomepageCMSClient({
                               value={section.config.customTitle || ""}
                               onChange={e => updateConfig(index, 'customTitle', e.target.value)}
                               className="w-full border rounded p-2"
-                              placeholder="e.g. Best BB Products"
+                              placeholder="e.g. Best CC Products"
                             />
                           ) : (
                             <p className="text-sm text-slate-400 italic">

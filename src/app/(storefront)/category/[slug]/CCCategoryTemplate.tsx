@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { addToCart } from "@/lib/cart";
 import CategoryMobileNav from "@/components/layout/CategoryMobileNav";
-import BBProductTable from "@/components/product/BBProductTable";
+import CCProductTable from "@/components/product/CCProductTable";
 import IBProductTable from "@/components/product/IBProductTable";
 
 // ─── Buy Now Button ────────────────────────────────────────────────────────────
@@ -92,8 +92,8 @@ function PriceDisplay({ product }: { product: any }) {
   );
 }
 
-// ─── BB Product Row (Desktop) ──────────────────────────────────────────────────
-function BBProductRow({ product, index }: { product: any; index: number }) {
+// ─── CC Product Row (Desktop) ──────────────────────────────────────────────────
+function CCProductRow({ product, index }: { product: any; index: number }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const country = getFieldValue(product, "country");
@@ -159,8 +159,8 @@ function BBProductRow({ product, index }: { product: any; index: number }) {
 }
 
 
-// ─── Main BB Category Template ─────────────────────────────────────────────────
-interface BBProps {
+// ─── Main CC Category Template ─────────────────────────────────────────────────
+interface CCProps {
   category: any;
   categories: any[];
   products: any[];
@@ -179,7 +179,7 @@ interface BBProps {
   countries: string[];
 }
 
-export default function BBCategoryTemplate({
+export default function CCCategoryTemplate({
   category,
   categories,
   products,
@@ -191,7 +191,7 @@ export default function BBCategoryTemplate({
   countryFilter,
   stats,
   countries,
-}: BBProps) {
+}: CCProps) {
   const router = useRouter();
   const [searchVal, setSearchVal] = useState(searchQuery);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -222,7 +222,7 @@ export default function BBCategoryTemplate({
   return (
     <div className="min-h-screen bg-slate-50">
 
-      {/* ── BB HERO ──────────────────────────────────────────────────────────── */}
+      {/* ── CC HERO ──────────────────────────────────────────────────────────── */}
       <section className="relative bg-slate-950 text-white overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -525,7 +525,7 @@ export default function BBCategoryTemplate({
                 {category.slug.toLowerCase() === "ib" ? (
                   <IBProductTable products={products} />
                 ) : (
-                  <BBProductTable products={products} />
+                  <CCProductTable products={products} />
                 )}
 
                 {/* Pagination */}

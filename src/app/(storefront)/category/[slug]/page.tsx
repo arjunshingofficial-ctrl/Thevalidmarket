@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import CategoryClient from "./CategoryClient";
-import BBCategoryTemplate from "./BBCategoryTemplate";
+import CCCategoryTemplate from "./CCCategoryTemplate";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -44,8 +44,8 @@ export default async function CategoryPage({
 
   if (!category) return notFound();
 
-  // ── BB & IB SPECIAL TEMPLATE ────────────────────────────────────────────────────
-  if (category.displayMode === "SPECIAL_BB" || category.slug.toLowerCase() === "bb" || category.slug.toLowerCase() === "ib") {
+  // ── CC & IB SPECIAL TEMPLATE ────────────────────────────────────────────────────
+  if (category.displayMode === "SPECIAL_CC" || category.slug.toLowerCase() === "cc" || category.slug.toLowerCase() === "ib" || category.displayMode === "SPECIAL_BB") {
     const page = Math.max(1, parseInt(resolvedSearch.page || "1"));
     const limit = category.productsPerPage || 20;
     const skip = (page - 1) * limit;
@@ -112,7 +112,7 @@ export default async function CategoryPage({
         take: isWorthSort ? 1000 : limit,
       }),
       prisma.product.count({ where: whereClause }),
-      // For stats — fetch minimal data from ALL published BB products
+      // For stats — fetch minimal data from ALL published CC products
       prisma.product.findMany({
         where: { categoryId: category.id, status: "PUBLISHED" },
         select: { price: true, salePrice: true, fieldValues: { include: { field: true } } },
@@ -177,7 +177,7 @@ export default async function CategoryPage({
     };
 
     return (
-      <BBCategoryTemplate
+      <CCCategoryTemplate
         category={category}
         categories={categories}
         products={products}
