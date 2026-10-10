@@ -1,0 +1,29 @@
+/*
+Theme Name: Asia D Market Theme
+Theme URI: https://asiadmarket.com/
+Description: Custom built theme to match the Next.js frontend with Tailwind CSS.
+Author: Asia D Market
+Author URI: https://asiadmarket.com/
+Version: 1.0.0
+Text Domain: adm-theme
+*/
+
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #10b981;
+  --color-background: #0a0a0c;
+  --color-foreground: #10b981;
+  --color-card: #111116;
+  --color-muted: #1e293b;
+  --color-border: #1e293b;
+  --font-sans: "Courier New", Courier, monospace, ui-monospace;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+}

@@ -67,14 +67,12 @@ export default async function StorePage({
   const needsFieldValues = category?.toLowerCase() === "bb" || category?.toLowerCase() === "ib";
 
   const t0 = performance.now();
-  const productsData = await getCachedProducts(category, q, needsFieldValues, whereClause);
+  const [productsData, categories] = await Promise.all([
+    getCachedProducts(category, q, needsFieldValues, whereClause),
+    getCachedCategories()
+  ]);
   const t1 = performance.now();
-  console.log(`[Perf] /store productsData query took ${(t1 - t0).toFixed(2)}ms`);
-
-  const t2 = performance.now();
-  const categories = await getCachedCategories();
-  const t3 = performance.now();
-  console.log(`[Perf] /store categories query took ${(t3 - t2).toFixed(2)}ms`);
+  console.log(`[Perf] /store queries took ${(t1 - t0).toFixed(2)}ms`);
 
   // Force RDP items to sort by price
   if (category?.toLowerCase() === "rdp") {

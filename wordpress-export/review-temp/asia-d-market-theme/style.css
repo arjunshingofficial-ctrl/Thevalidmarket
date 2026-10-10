@@ -1,0 +1,14 @@
+/*
+Theme Name: Asia D Market Theme
+Theme URI: https://asiadmarket.com
+Author: Asia D Market
+Description: Custom presentation layer for Asia D Market.
+Version: 1.0.0
+*/
+
+body {
+    font-family: Inter, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f8fafc;
+}

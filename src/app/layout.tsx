@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import ProgressBarProvider from "@/components/providers/ProgressBarProvider";
 import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" className="h-full">
       <body className={`${inter.className} flex min-h-screen flex-col antialiased`}>
         <AuthProvider>
+          <ProgressBarProvider />
           {children}
         </AuthProvider>
       </body>
