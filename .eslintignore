@@ -1,0 +1,12 @@
+# Ignore non-Next.js root scripts
+*.js
+*.ts
+
+# Ignore WordPress export folder
+wordpress-export/
+
+# Keep Next.js src folder
+!src/
+!next.config.ts
+!prisma.config.ts
+!tailwind.config.ts
