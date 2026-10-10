@@ -186,23 +186,7 @@ export default async function StorePage({
               </div>
             </div>
 
-            {/* VIP Promo Banner */}
-            <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl shadow-lg p-6 mb-8 text-white relative overflow-hidden group border border-violet-500/50">
-              <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none"></div>
-              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-64 h-64 bg-white/10 blur-3xl rounded-full pointer-events-none transition-transform duration-700 group-hover:scale-150"></div>
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div>
-                  <h3 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-                    <Sparkles className="h-6 w-6 text-yellow-300" />
-                    Daily Free Drops - VIP Access
-                  </h3>
-                  <p className="text-indigo-100 mt-2 text-sm md:text-base max-w-xl">
-                    Get instant access to daily free exclusive products, software, and tools for just <strong>$10/month</strong>. Never pay full price again.
-                  </p>
-                </div>
-                <VipBuyButton />
-              </div>
-            </div>
+
 
             {/* Product Grid */}
             {formattedProducts.length === 0 ? (

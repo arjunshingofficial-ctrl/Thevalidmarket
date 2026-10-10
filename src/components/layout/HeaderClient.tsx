@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, User } from "lucide-react";
+import { Search, User, Sparkles, Loader2 } from "lucide-react";
 import CartIcon from "./CartIcon";
+import { addToCart } from "@/lib/cart";
 import MobileNav from "./MobileNav";
 import DesktopNav from "./DesktopNav";
 import AccountDropdown from "./AccountDropdown";
@@ -14,6 +15,7 @@ import ThemeToggle from "./ThemeToggle";
 export default function HeaderClient({ session, menuItems, walletBalance }: { session: any, menuItems: any, walletBalance?: any }) {
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [buyingVip, setBuyingVip] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -31,15 +33,45 @@ export default function HeaderClient({ session, menuItems, walletBalance }: { se
     }
   };
 
+  const handleBuyVip = () => {
+    setBuyingVip(true);
+    addToCart({ 
+      id: "vip-access", 
+      name: "VIP Access (1 Month)", 
+      slug: "vip-access", 
+      price: 10, 
+      image: "" 
+    });
+    router.push("/checkout");
+  };
+
   return (
     <header 
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
+      className={`sticky top-0 z-50 w-full transition-all duration-300 flex flex-col ${
         scrolled 
-          ? "bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200/50 py-2" 
-          : "bg-white border-b border-slate-200 py-3"
+          ? "bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-200/50" 
+          : "bg-white border-b border-slate-200"
       }`}
     >
-      <div className="container max-w-[1440px] mx-auto flex items-center justify-between px-4 md:px-6 lg:px-8">
+      {/* Top VIP Promo Banner */}
+      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none"></div>
+        <div className="container max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm relative z-10">
+          <div className="flex items-center gap-2 font-medium text-center sm:text-left">
+            <Sparkles className="h-4 w-4 text-yellow-300 shrink-0" />
+            <span><strong className="font-bold hidden sm:inline">Daily Free Drops:</strong> Get instant access to VIP exclusive products for just $10/month.</span>
+          </div>
+          <button 
+            onClick={handleBuyVip}
+            disabled={buyingVip}
+            className="bg-white text-indigo-700 px-4 py-1.5 rounded-full font-bold text-[11px] sm:text-xs shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all whitespace-nowrap disabled:opacity-70 flex items-center justify-center min-w-[100px]"
+          >
+            {buyingVip ? <Loader2 className="w-3 h-3 animate-spin" /> : "Join VIP for $10"}
+          </button>
+        </div>
+      </div>
+
+      <div className={`container max-w-[1440px] mx-auto flex items-center justify-between px-4 md:px-6 lg:px-8 transition-all ${scrolled ? "py-2" : "py-3"}`}>
         
         {/* Left: Brand + Nav */}
         <div className="flex items-center gap-8">
