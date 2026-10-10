@@ -79,79 +79,139 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
               <h2 className="font-semibold text-lg">Order Items</h2>
             </div>
             <div className="p-0">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 text-muted-foreground border-b">
-                  <tr>
-                    <th className="px-6 py-4 font-medium">Product</th>
-                    <th className="px-6 py-4 font-medium">Type</th>
-                    <th className="px-6 py-4 font-medium">Price</th>
-                    <th className="px-6 py-4 font-medium">Order Status</th>
-                    <th className="px-6 py-4 font-medium">Available Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {order.items.map((item) => {
-                    const isDownloadable = item.product.type === "DIGITAL" || item.product.type === "SOFTWARE" || item.product.type === "DIGITAL_DOWNLOAD";
-                    let actionElement = <span className="text-muted-foreground text-xs">No Action</span>;
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/50 text-muted-foreground border-b">
+                    <tr>
+                      <th className="px-6 py-4 font-medium">Product</th>
+                      <th className="px-6 py-4 font-medium">Type</th>
+                      <th className="px-6 py-4 font-medium">Price</th>
+                      <th className="px-6 py-4 font-medium">Order Status</th>
+                      <th className="px-6 py-4 font-medium">Available Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {order.items.map((item) => {
+                      const isDownloadable = item.product.type === "DIGITAL" || item.product.type === "SOFTWARE" || item.product.type === "DIGITAL_DOWNLOAD";
+                      let actionElement = <span className="text-muted-foreground text-xs">No Action</span>;
 
-                    if (order.paymentStatus === "PAID") {
-                      if (isDownloadable) {
-                        const entitlement = order.entitlements.find(e => e.productId === item.productId && e.type === "DOWNLOAD" && e.status === "ACTIVE");
-                        const meta = entitlement?.metadata ? JSON.parse(entitlement.metadata) : null;
-                        
-                        if (entitlement && meta?.fileId) {
-                          actionElement = (
-                            <a 
-                              href={`/api/download/${meta.fileId}`}
-                              download
-                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors font-medium text-xs"
-                              title="Download product"
-                            >
-                              <Download className="h-3.5 w-3.5" /> Download
-                            </a>
-                          );
+                      if (order.paymentStatus === "PAID") {
+                        if (isDownloadable) {
+                          const entitlement = order.entitlements.find(e => e.productId === item.productId && e.type === "DOWNLOAD" && e.status === "ACTIVE");
+                          const meta = entitlement?.metadata ? JSON.parse(entitlement.metadata) : null;
+                          
+                          if (entitlement && meta?.fileId) {
+                            actionElement = (
+                              <a 
+                                href={`/api/download/${meta.fileId}`}
+                                download
+                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-md hover:bg-primary hover:text-primary-foreground transition-colors font-medium text-xs"
+                                title="Download product"
+                              >
+                                <Download className="h-3.5 w-3.5" /> Download
+                              </a>
+                            );
+                          } else {
+                            actionElement = <span className="text-muted-foreground text-xs">File unavailable</span>;
+                          }
+                        } else if (item.product.type === "COURSE") {
+                          actionElement = <Link href={`/dashboard/courses/${item.product.id}`} className="text-primary hover:underline text-xs font-medium">Open Course</Link>;
+                        } else if (item.product.type === "LICENSE") {
+                          actionElement = <Link href={`/dashboard/licenses`} className="text-primary hover:underline text-xs font-medium">View License</Link>;
+                        } else if (item.product.type === "SUBSCRIPTION") {
+                          actionElement = <Link href={`/dashboard/subscriptions`} className="text-primary hover:underline text-xs font-medium">Manage Subscription</Link>;
+                        } else if (item.product.type === "VPN" || item.product.type === "PROXY") {
+                          actionElement = <span className="text-primary hover:underline text-xs font-medium cursor-pointer">Manage Access</span>;
                         } else {
-                          actionElement = <span className="text-muted-foreground text-xs">File unavailable</span>;
+                          actionElement = <span className="text-primary hover:underline text-xs font-medium cursor-pointer">View Order</span>;
                         }
-                      } else if (item.product.type === "COURSE") {
-                        actionElement = <Link href={`/dashboard/courses/${item.product.id}`} className="text-primary hover:underline text-xs font-medium">Open Course</Link>;
-                      } else if (item.product.type === "LICENSE") {
-                        actionElement = <Link href={`/dashboard/licenses`} className="text-primary hover:underline text-xs font-medium">View License</Link>;
-                      } else if (item.product.type === "SUBSCRIPTION") {
-                        actionElement = <Link href={`/dashboard/subscriptions`} className="text-primary hover:underline text-xs font-medium">Manage Subscription</Link>;
-                      } else if (item.product.type === "VPN" || item.product.type === "PROXY") {
-                        actionElement = <span className="text-primary hover:underline text-xs font-medium cursor-pointer">Manage Access</span>;
-                      } else {
-                        actionElement = <span className="text-primary hover:underline text-xs font-medium cursor-pointer">View Order</span>;
                       }
-                    }
 
-                    return (
-                      <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-6 py-4 font-medium">
-                          {item.product.name}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-[10px] uppercase font-bold tracking-wider">
-                            {item.product.type.replace("_", " ")}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 font-medium">
-                          ${item.price.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order.orderStatus)}`}>
-                            {formatStatus(order.orderStatus)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          {actionElement}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                      return (
+                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-6 py-4 font-medium">
+                            {item.product.name}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-[10px] uppercase font-bold tracking-wider">
+                              {item.product.type.replace("_", " ")}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-medium">
+                            ${item.price.toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order.orderStatus)}`}>
+                              {formatStatus(order.orderStatus)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            {actionElement}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards View */}
+              <div className="md:hidden divide-y">
+                {order.items.map((item) => {
+                  const isDownloadable = item.product.type === "DIGITAL" || item.product.type === "SOFTWARE" || item.product.type === "DIGITAL_DOWNLOAD";
+                  let actionElement = <span className="text-muted-foreground text-xs">No Action</span>;
+
+                  if (order.paymentStatus === "PAID") {
+                    if (isDownloadable) {
+                      const entitlement = order.entitlements.find(e => e.productId === item.productId && e.type === "DOWNLOAD" && e.status === "ACTIVE");
+                      const meta = entitlement?.metadata ? JSON.parse(entitlement.metadata) : null;
+                      
+                      if (entitlement && meta?.fileId) {
+                        actionElement = (
+                          <a 
+                            href={`/api/download/${meta.fileId}`}
+                            download
+                            className="inline-flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors font-semibold text-sm mt-3"
+                          >
+                            <Download className="h-4 w-4" /> Download Product
+                          </a>
+                        );
+                      } else {
+                        actionElement = <div className="text-muted-foreground text-xs mt-3 text-center">File unavailable</div>;
+                      }
+                    } else if (item.product.type === "COURSE") {
+                      actionElement = <Link href={`/dashboard/courses/${item.product.id}`} className="block text-center w-full bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold mt-3">Open Course</Link>;
+                    } else if (item.product.type === "LICENSE") {
+                      actionElement = <Link href={`/dashboard/licenses`} className="block text-center w-full bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold mt-3">View License</Link>;
+                    } else if (item.product.type === "SUBSCRIPTION") {
+                      actionElement = <Link href={`/dashboard/subscriptions`} className="block text-center w-full bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold mt-3">Manage Subscription</Link>;
+                    } else if (item.product.type === "VPN" || item.product.type === "PROXY") {
+                      actionElement = <button className="block text-center w-full bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-semibold mt-3">Manage Access</button>;
+                    }
+                  }
+
+                  return (
+                    <div key={item.id} className="p-4 flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div className="font-bold text-base">{item.product.name}</div>
+                        <div className="text-lg font-bold text-primary">${item.price.toLocaleString()}</div>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md text-[10px] uppercase font-bold tracking-wider">
+                          {item.product.type.replace("_", " ")}
+                        </span>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getOrderStatusColor(order.orderStatus)}`}>
+                          {formatStatus(order.orderStatus)}
+                        </span>
+                      </div>
+                      
+                      {actionElement}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
