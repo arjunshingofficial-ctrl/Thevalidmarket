@@ -88,8 +88,8 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "CONTENT",
     items: [
-      { name: "Blog Posts", href: "/admin/blog", icon: FileText },
-      { name: "Blog Categories", href: "/admin/blog/categories", icon: Folders },
+      { name: "News", href: "/admin/blog", icon: FileText },
+      { name: "News Categories", href: "/admin/blog/categories", icon: Folders },
       { name: "Pages", href: "/admin/pages", icon: FileSearch },
       { name: "Menus", href: "/admin/appearance/menus", icon: Menu },
       { name: "Homepage", href: "/admin/settings/homepage", icon: Home },

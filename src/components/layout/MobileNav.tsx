@@ -82,7 +82,7 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
         { name: "Software & Tools", href: "/software", icon: Package },
         { name: "VPN & Proxy", href: "/vpn-proxy", icon: ShieldCheck },
         { name: "Services", href: "/services", icon: Briefcase },
-        { name: "Blog", href: "/blog", icon: FileText },
+        { name: "News", href: "/blog", icon: FileText },
       ];
 
   const dashboardLinks = [
@@ -110,7 +110,7 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
     { name: "Subscriptions", href: "/admin/subscriptions", icon: Repeat },
     { name: "Downloads", href: "/admin/downloads", icon: DownloadCloud },
     { name: "Courses", href: "/admin/courses", icon: BookOpen },
-    { name: "Blog", href: "/admin/blog", icon: FileText },
+    { name: "News", href: "/admin/blog", icon: FileText },
     { name: "Pages", href: "/admin/pages", icon: FileText },
     { name: "SEO", href: "/admin/seo", icon: Globe },
     { name: "Settings", href: "/admin/settings", icon: Settings },

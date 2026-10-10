@@ -24,6 +24,7 @@ export default function DesktopNav({ items = [] }: { items?: MenuItem[] }) {
         <Link href="/" prefetch={true} className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Home</Link>
         <Link href="/store" prefetch={true} className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Store</Link>
         <Link href="/courses" prefetch={true} className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">Courses</Link>
+        <Link href="/blog" prefetch={true} className="text-[15px] font-medium transition-colors hover:text-primary text-slate-700">News</Link>
       </nav>
     );
   }

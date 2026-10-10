@@ -5,7 +5,7 @@ import { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Blog - Asia D Market",
+  title: "News - Asia D Market",
   description: "Read the latest news, tutorials, and updates from Asia D Market.",
 };
 
@@ -20,8 +20,8 @@ export default async function BlogIndexPage() {
     <div className="min-h-screen py-16 bg-slate-50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Blog</h1>
-          <p className="mt-4 text-xl text-slate-500">Insights, news, and tutorials from the team.</p>
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">News</h1>
+          <p className="mt-4 text-xl text-slate-500">Latest updates, announcements, and news from the team.</p>
         </div>
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -59,7 +59,7 @@ export default async function BlogIndexPage() {
 
         {posts.length === 0 && (
           <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-300">
-            <h3 className="text-lg font-medium text-slate-900">No posts yet</h3>
+            <h3 className="text-lg font-medium text-slate-900">No news yet</h3>
             <p className="text-slate-500 mt-1">Check back later for new content.</p>
           </div>
         )}

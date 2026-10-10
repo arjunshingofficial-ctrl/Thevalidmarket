@@ -19,8 +19,8 @@ export default async function AdminBlog() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Blog Posts</h1>
-          <p className="text-slate-500 mt-1">Manage articles, news, and SEO content.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">News & Announcements</h1>
+          <p className="text-slate-500 mt-1">Manage news articles, updates, and announcements.</p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/admin/blog/categories"
@@ -29,7 +29,7 @@ export default async function AdminBlog() {
           </Link>
           <Link href="/admin/blog/new"
             className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 hover:bg-primary/90 shadow-sm">
-            <Plus className="h-4 w-4" /> New Post
+            <Plus className="h-4 w-4" /> Post News
           </Link>
         </div>
       </div>
@@ -50,7 +50,7 @@ export default async function AdminBlog() {
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                   <FileText className="mx-auto h-12 w-12 text-slate-300 mb-3" />
-                  <p className="font-medium text-slate-900">No blog posts found</p>
+                  <p className="font-medium text-slate-900">No news posts found</p>
                 </td>
               </tr>
             ) : (
