@@ -22,8 +22,8 @@ const getCachedProducts = unstable_cache(
       orderBy: { createdAt: "desc" },
     });
   },
-  ["store-products-list"],
-  { revalidate: 300, tags: ["products"] }
+  ["store-products-list-v2"],
+  { revalidate: 300, tags: ["products", "products-v2"] }
 );
 
 const getCachedCategories = unstable_cache(
@@ -33,8 +33,8 @@ const getCachedCategories = unstable_cache(
       orderBy: { sortOrder: "asc" },
     });
   },
-  ["store-categories-list"],
-  { revalidate: 3600, tags: ["categories"] }
+  ["store-categories-list-v2"],
+  { revalidate: 3600, tags: ["categories", "categories-v2"] }
 );
 
 // Removed force-dynamic to allow Next.js route caching and faster TTFB

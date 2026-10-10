@@ -30,8 +30,8 @@ export const getMenu = unstable_cache(
       return null;
     }
   },
-  ["menu-data"],
-  { revalidate: 3600, tags: ["menus"] }
+  ["menu-data-v2"],
+  { revalidate: 3600, tags: ["menus", "menus-v2"] }
 );
 
 export async function getAllMenus() {
