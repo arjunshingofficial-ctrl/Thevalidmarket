@@ -157,6 +157,10 @@ model Product {
   reviews       Review[]
   entitlements  Entitlement[]
   course        Course?
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model ProductVariant {
@@ -282,6 +286,11 @@ model Order {
   subscriptions Subscription[]
   entitlements  Entitlement[]
   referralCommissions ReferralCommission[]
+
+  @@index([userId])
+  @@index([paymentStatus])
+  @@index([orderStatus])
+  @@index([createdAt])
 }
 
 model OrderItem {
