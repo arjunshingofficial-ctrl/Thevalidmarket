@@ -105,9 +105,9 @@ function CCProductRow({ product, index }: { product: any; index: number }) {
     <tr onClick={handleRowClick} className={`group transition-all duration-200 cursor-pointer ${loading ? 'opacity-75 pointer-events-none' : ''}`}>
       <td className="px-2 md:px-5 py-3 md:py-4 bg-white border-y border-l border-slate-200 rounded-l-xl group-hover:border-blue-300 group-hover:bg-blue-50/50 shadow-sm">
         <div className="flex items-center gap-2 md:gap-3 group/link">
-          <div className="shrink-0 w-8 h-8 md:w-12 md:h-12 rounded md:rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-sm relative">
+          <div className="shrink-0 w-16 md:w-24 aspect-video rounded-md md:rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-sm relative" style={{ aspectRatio: "16 / 9" }}>
             {image ? (
-              <Image src={normalizeImageUrl(image)} alt={product.name} fill sizes="48px" className="object-cover transition-transform group-hover:scale-105" />
+              <Image src={normalizeImageUrl(image)} alt={product.name} fill sizes="(max-width: 768px) 64px, 96px" className="object-cover transition-transform group-hover:scale-105" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-300">
                 <Package className="h-4 w-4 md:h-5 md:w-5" />
