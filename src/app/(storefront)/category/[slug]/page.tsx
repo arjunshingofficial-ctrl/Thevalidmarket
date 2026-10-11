@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import CategoryClient from "./CategoryClient";
 import CCCategoryTemplate from "./CCCategoryTemplate";
+import { shuffleHourly } from "@/lib/utils/shuffle";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -91,6 +92,8 @@ export default async function CategoryPage({
     // worth_asc / worth_desc → fetch all, sort, then paginate
 
     const isWorthSort = sort === "worth_asc" || sort === "worth_desc";
+    const isDefaultSort = !sort || sort === "default";
+    const needFetchAll = isWorthSort || isDefaultSort;
 
     // ── Parallel queries ───────────────────────────────────────────────────
     const [
@@ -106,10 +109,10 @@ export default async function CategoryPage({
           fieldValues: { include: { field: true } },
           reviews: { where: { status: "APPROVED" }, select: { rating: true } },
         },
-        orderBy: isWorthSort ? { createdAt: "desc" } : orderBy,
-        // If worth sort, fetch all to sort in memory; otherwise paginate
-        skip: isWorthSort ? 0 : skip,
-        take: isWorthSort ? 1000 : limit,
+        orderBy: needFetchAll ? { createdAt: "desc" } : orderBy,
+        // If worth sort or default hourly shuffle, fetch all to sort/shuffle in memory; otherwise paginate
+        skip: needFetchAll ? 0 : skip,
+        take: needFetchAll ? 1000 : limit,
       }),
       prisma.product.count({ where: whereClause }),
       // For stats — fetch minimal data from ALL published CC products
@@ -123,9 +126,13 @@ export default async function CategoryPage({
       }),
     ]);
 
-    // ── Worth sort ─────────────────────────────────────────────────────────
+    // ── Default Hourly Shuffle or Worth sort ─────────────────────────────────
     let products = productsRaw;
-    if (isWorthSort) {
+    if (isDefaultSort) {
+      // Deterministically shuffle products every 60 minutes
+      products = shuffleHourly(productsRaw);
+      products = products.slice(skip, skip + limit);
+    } else if (isWorthSort) {
       products = [...productsRaw].sort((a: any, b: any) => {
         const wa = parseFloat(a.fieldValues?.find((fv: any) => ["worth", "balance"].includes(fv.field?.slug?.toLowerCase()) || ["worth", "balance"].includes(fv.field?.name?.toLowerCase()))?.value || "0") || 0;
         const wb = parseFloat(b.fieldValues?.find((fv: any) => ["worth", "balance"].includes(fv.field?.slug?.toLowerCase()) || ["worth", "balance"].includes(fv.field?.name?.toLowerCase()))?.value || "0") || 0;

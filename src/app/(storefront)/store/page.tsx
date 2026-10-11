@@ -7,6 +7,7 @@ import Link from "next/link";
 import CategoryMobileNav from "@/components/layout/CategoryMobileNav";
 import CCProductTable from "@/components/product/CCProductTable";
 import IBProductTable from "@/components/product/IBProductTable";
+import { shuffleHourly } from "@/lib/utils/shuffle";
 
 import { unstable_cache } from "next/cache";
 
@@ -79,7 +80,13 @@ export default async function StorePage({
     productsData.sort((a, b) => a.price - b.price);
   }
 
-  const formattedProducts = productsData.map((p) => ({
+  // Shuffle CC items every 60 minutes
+  let finalProductsData = productsData;
+  if (category?.toLowerCase() === "cc" && (!q || !q.trim())) {
+    finalProductsData = shuffleHourly(productsData);
+  }
+
+  const formattedProducts = finalProductsData.map((p) => ({
     id: p.id,
     name: p.name,
     slug: p.slug,
@@ -206,7 +213,7 @@ export default async function StorePage({
                 </Link>
               </div>
             ) : currentCategory === "cc" ? (
-              <CCProductTable products={productsData} />
+              <CCProductTable products={finalProductsData} />
             ) : currentCategory === "ib" ? (
               <IBProductTable products={productsData} />
             ) : currentCategory === "rdp" ? (
