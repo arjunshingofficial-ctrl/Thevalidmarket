@@ -12,17 +12,24 @@ export function seededRandom(seed: number) {
 }
 
 /**
+ * Shuffles an array with an arbitrary numerical seed.
+ */
+export function shuffleWithSeed<T>(array: T[], seed: number): T[] {
+  const copy = [...array];
+  const rng = seededRandom(seed);
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+/**
  * Shuffles an array deterministically based on the current hour.
  * The order changes every 60 minutes, remaining consistent across
  * all users and paginated pages within that same hour.
  */
 export function shuffleHourly<T>(array: T[]): T[] {
   const currentHourSeed = Math.floor(Date.now() / (1000 * 60 * 60));
-  const copy = [...array];
-  const rng = seededRandom(currentHourSeed);
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
+  return shuffleWithSeed(array, currentHourSeed);
 }

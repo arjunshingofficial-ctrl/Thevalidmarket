@@ -7,7 +7,8 @@ import Link from "next/link";
 import CategoryMobileNav from "@/components/layout/CategoryMobileNav";
 import CCProductTable from "@/components/product/CCProductTable";
 import IBProductTable from "@/components/product/IBProductTable";
-import { shuffleHourly } from "@/lib/utils/shuffle";
+import StoreFilterToolbar from "./StoreFilterToolbar";
+import { shuffleHourly, shuffleWithSeed } from "@/lib/utils/shuffle";
 
 import { unstable_cache } from "next/cache";
 
@@ -23,8 +24,8 @@ const getCachedProducts = unstable_cache(
       orderBy: { createdAt: "desc" },
     });
   },
-  ["store-products-list-v2"],
-  { revalidate: 300, tags: ["products", "products-v2"] }
+  ["store-products-list-v3"],
+  { revalidate: 300, tags: ["products", "products-v3"] }
 );
 
 const getCachedCategories = unstable_cache(
@@ -34,18 +35,16 @@ const getCachedCategories = unstable_cache(
       orderBy: { sortOrder: "asc" },
     });
   },
-  ["store-categories-list-v2"],
-  { revalidate: 3600, tags: ["categories", "categories-v2"] }
+  ["store-categories-list-v3"],
+  { revalidate: 3600, tags: ["categories", "categories-v3"] }
 );
-
-// Removed force-dynamic to allow Next.js route caching and faster TTFB
 
 export default async function StorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; q?: string }>;
+  searchParams: Promise<{ category?: string; q?: string; sort?: string; seed?: string }>;
 }) {
-  const { category, q } = (await searchParams) || {};
+  const { category, q, sort, seed } = (await searchParams) || {};
 
   const whereClause: any = {
     status: "PUBLISHED",
@@ -65,7 +64,7 @@ export default async function StorePage({
     ];
   }
 
-  const needsFieldValues = category?.toLowerCase() === "cc" || category?.toLowerCase() === "ib";
+  const needsFieldValues = true;
 
   const t0 = performance.now();
   const [productsData, categories] = await Promise.all([
@@ -75,15 +74,40 @@ export default async function StorePage({
   const t1 = performance.now();
   console.log(`[Perf] /store queries took ${(t1 - t0).toFixed(2)}ms`);
 
-  // Force RDP items to sort by price
-  if (category?.toLowerCase() === "rdp") {
-    productsData.sort((a, b) => a.price - b.price);
-  }
+  let finalProductsData = [...productsData];
 
-  // Shuffle CC items every 60 minutes
-  let finalProductsData = productsData;
-  if (category?.toLowerCase() === "cc" && (!q || !q.trim())) {
-    finalProductsData = shuffleHourly(productsData);
+  // Sorting and Shuffling logic
+  if (sort === "shuffle") {
+    const seedNum = seed ? parseInt(seed, 10) : Math.floor(Math.random() * 1000000);
+    finalProductsData = shuffleWithSeed(finalProductsData, seedNum);
+  } else if (sort === "price_asc") {
+    finalProductsData.sort((a, b) => a.price - b.price);
+  } else if (sort === "price_desc") {
+    finalProductsData.sort((a, b) => b.price - a.price);
+  } else if (sort === "worth_asc") {
+    finalProductsData.sort((a: any, b: any) => {
+      const wa = parseFloat(a.fieldValues?.find((fv: any) => ["worth", "balance"].includes(fv.field?.slug?.toLowerCase()) || ["worth", "balance"].includes(fv.field?.name?.toLowerCase()))?.value || "0") || 0;
+      const wb = parseFloat(b.fieldValues?.find((fv: any) => ["worth", "balance"].includes(fv.field?.slug?.toLowerCase()) || ["worth", "balance"].includes(fv.field?.name?.toLowerCase()))?.value || "0") || 0;
+      return wa - wb;
+    });
+  } else if (sort === "worth_desc") {
+    finalProductsData.sort((a: any, b: any) => {
+      const wa = parseFloat(a.fieldValues?.find((fv: any) => ["worth", "balance"].includes(fv.field?.slug?.toLowerCase()) || ["worth", "balance"].includes(fv.field?.name?.toLowerCase()))?.value || "0") || 0;
+      const wb = parseFloat(b.fieldValues?.find((fv: any) => ["worth", "balance"].includes(fv.field?.slug?.toLowerCase()) || ["worth", "balance"].includes(fv.field?.name?.toLowerCase()))?.value || "0") || 0;
+      return wb - wa;
+    });
+  } else if (sort === "name") {
+    finalProductsData.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (sort === "newest") {
+    finalProductsData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } else {
+    // Default sorting
+    if (category?.toLowerCase() === "rdp") {
+      finalProductsData.sort((a, b) => a.price - b.price);
+    } else if (category?.toLowerCase() === "cc" && (!q || !q.trim())) {
+      // Automatic hourly shuffle for CC category
+      finalProductsData = shuffleHourly(finalProductsData);
+    }
   }
 
   const formattedProducts = finalProductsData.map((p) => ({
@@ -168,30 +192,14 @@ export default async function StorePage({
           {/* Main Content Area */}
           <div className="flex-1 min-w-0 w-full">
             
-            {/* Top Toolbar */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-sm font-medium text-slate-500 w-full sm:w-auto">
-                Showing <strong className="text-slate-900">{formattedProducts.length}</strong> results
-              </div>
-              
-              <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3 items-center">
-                <div className="w-full md:hidden">
-                  <CategoryMobileNav categories={categories} currentCategory={currentCategory} />
-                </div>
-                
-                <form method="GET" action="/store" className="relative w-full sm:w-72 group">
-                  {category && <input type="hidden" name="category" value={category} />}
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-                  <input
-                    type="search"
-                    name="q"
-                    defaultValue={q || ""}
-                    placeholder="Search in store..."
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 focus:bg-white transition-all placeholder:text-slate-400 font-medium"
-                  />
-                </form>
-              </div>
-            </div>
+            {/* Top Toolbar with Filter & Shuffle */}
+            <StoreFilterToolbar
+              categories={categories}
+              currentCategory={currentCategory}
+              totalResults={formattedProducts.length}
+              currentSort={sort || "default"}
+              searchQuery={q || ""}
+            />
 
 
 
