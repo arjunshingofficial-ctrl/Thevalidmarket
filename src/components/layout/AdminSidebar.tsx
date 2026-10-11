@@ -78,14 +78,6 @@ const NAV_GROUPS: NavGroup[] = [
     ]
   },
   {
-    label: "NETWORK SERVICES",
-    items: [
-      { name: "VPN & Proxy Plans", href: "/admin/network-services", icon: Wifi },
-      { name: "Locations", href: "/admin/locations", icon: MapPin },
-      { name: "Service Status", href: "/admin/service-status", icon: Activity },
-    ]
-  },
-  {
     label: "CONTENT",
     items: [
       { name: "News", href: "/admin/blog", icon: FileText },
