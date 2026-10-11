@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Star, Check, Shield, Download, ShieldCheck, ChevronRight, Zap, TrendingUp, SlidersHorizontal, BookOpen } from "lucide-react";
+import { Star, Check, Shield, Download, ShieldCheck, ChevronRight, Zap, TrendingUp, SlidersHorizontal, BookOpen, Sparkles, ArrowRight, Newspaper, Calendar } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
 import ProductGallery from "@/components/product/ProductGallery";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { ReviewAvatar } from "@/components/reviews/ReviewAvatar";
 import { trackProductView } from "@/lib/analytics";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 import { unstable_cache } from "next/cache";
 
@@ -67,6 +68,38 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   });
   const t3 = performance.now();
   console.log(`[Perf] /product/[slug] reviews query took ${(t3 - t2).toFixed(2)}ms`);
+
+  // Fetch related products and latest blog posts for sidebar
+  const [relatedProducts, recentPosts] = await Promise.all([
+    prisma.product.findMany({
+      where: {
+        status: "PUBLISHED",
+        id: { not: product.id },
+        ...(product.categoryId ? { categoryId: product.categoryId } : {}),
+      },
+      take: 4,
+      orderBy: { createdAt: "desc" },
+      include: { category: true },
+    }),
+    prisma.blogPost.findMany({
+      where: { status: "PUBLISHED" },
+      take: 3,
+      orderBy: { createdAt: "desc" },
+      include: { category: true },
+    }),
+  ]);
+
+  const finalRelatedProducts = relatedProducts.length > 0 
+    ? relatedProducts 
+    : await prisma.product.findMany({
+        where: {
+          status: "PUBLISHED",
+          id: { not: product.id },
+        },
+        take: 4,
+        orderBy: { createdAt: "desc" },
+        include: { category: true },
+      });
 
   const avgRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
@@ -402,7 +435,115 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           </div>
           
           {/* Right Sidebar Below Fold */}
-          <div className="hidden lg:block space-y-6">
+          <div className="space-y-6">
+            
+            {/* Related Products Widget */}
+            {finalRelatedProducts.length > 0 && (
+              <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    <h3 className="font-bold text-slate-900 text-base">Recommended Products</h3>
+                  </div>
+                  <Link href="/store" className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-0.5">
+                    View All <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+                <div className="space-y-3.5">
+                  {finalRelatedProducts.map((p) => {
+                    const pMeta = p.metadata ? (typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata) : {};
+                    const pImage = pMeta.image || null;
+                    const pPrice = p.salePrice ?? p.price;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/product/${p.slug}`}
+                        className="group flex items-center gap-3.5 p-2 -mx-2 rounded-2xl hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200/80 overflow-hidden shrink-0 relative">
+                          {pImage ? (
+                            <img
+                              src={normalizeImageUrl(pImage)}
+                              alt={p.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-300 text-[10px] font-bold">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {p.category && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary block truncate mb-0.5">
+                              {p.category.name}
+                            </span>
+                          )}
+                          <h4 className="text-sm font-semibold text-slate-900 truncate group-hover:text-primary transition-colors">
+                            {p.name}
+                          </h4>
+                          <span className="text-sm font-black text-slate-900">
+                            ${pPrice.toFixed(2)}
+                          </span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Blog Posts Widget */}
+            {recentPosts.length > 0 && (
+              <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <Newspaper className="w-4 h-4 text-primary" />
+                    <h3 className="font-bold text-slate-900 text-base">Latest From Blog</h3>
+                  </div>
+                  <Link href="/blog" className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-0.5">
+                    Read All <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+                <div className="space-y-3.5">
+                  {recentPosts.map((post) => (
+                    <Link
+                      key={post.id}
+                      href={`/blog/${post.slug}`}
+                      className="group block p-2 -mx-2 rounded-2xl hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-start gap-3.5">
+                        {post.featuredImage && (
+                          <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200/80 overflow-hidden shrink-0 relative">
+                            <img
+                              src={normalizeImageUrl(post.featuredImage)}
+                              alt={post.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-slate-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+                            {post.title}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-400 font-medium">
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                              {new Date(post.createdAt).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="bg-slate-900 text-white rounded-3xl p-8 relative overflow-hidden shadow-xl">
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary/30 rounded-full blur-[50px]" />
               <Shield className="w-10 h-10 text-primary mb-4" />
