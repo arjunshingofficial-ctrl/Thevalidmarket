@@ -30,7 +30,7 @@ function CategoryProductCard({ product }: { product: any }) {
   return (
     <article className="group flex flex-col rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-300">
       {/* Image */}
-      <Link href={`/product/${product.slug}`} className="relative block overflow-hidden bg-slate-50" style={{ aspectRatio: "4/3" }}>
+      <Link href={`/product/${product.slug}`} className="relative block overflow-hidden bg-slate-50 w-full aspect-video" style={{ aspectRatio: "16 / 9" }}>
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

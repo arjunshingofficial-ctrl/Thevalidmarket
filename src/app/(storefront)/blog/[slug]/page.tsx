@@ -69,7 +69,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </header>
 
         {post.featuredImage && (
-          <div className="mb-12 rounded-2xl overflow-hidden shadow-lg border border-slate-100 aspect-video relative">
+          <div className="mb-12 rounded-2xl overflow-hidden shadow-lg border border-slate-100 w-full aspect-video relative" style={{ aspectRatio: "16 / 9" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={post.featuredImage} alt={post.title} className="object-cover w-full h-full" />
           </div>

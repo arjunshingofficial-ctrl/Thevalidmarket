@@ -15,7 +15,7 @@ function BlogPostCard({ post }: { post: any }) {
     <article className="group flex flex-col rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md hover:border-primary/40 transition-all duration-300">
       
       {/* Featured Image */}
-      <Link href={href} className="relative block overflow-hidden bg-slate-100" style={{ aspectRatio: "16/9" }}>
+      <Link href={href} className="relative block overflow-hidden bg-slate-100 w-full aspect-video" style={{ aspectRatio: "16 / 9" }}>
         {post.featuredImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

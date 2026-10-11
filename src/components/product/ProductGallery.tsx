@@ -23,8 +23,11 @@ export default function ProductGallery({ image, gallery, productName }: ProductG
 
   return (
     <div className="space-y-4">
-      {/* Main Image */}
-      <div className="aspect-[4/3] bg-slate-100 rounded-2xl overflow-hidden border flex items-center justify-center relative">
+      {/* Main Image - 16:9 YouTube Thumbnail ratio */}
+      <div 
+        className="w-full aspect-video bg-slate-100 rounded-2xl overflow-hidden border flex items-center justify-center relative shadow-sm"
+        style={{ aspectRatio: "16 / 9" }}
+      >
         {mainImage ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img src={normalizeImageUrl(mainImage)} alt={productName} className="object-cover w-full h-full transition-all" />
@@ -36,14 +39,15 @@ export default function ProductGallery({ image, gallery, productName }: ProductG
         )}
       </div>
 
-      {/* Gallery Thumbnails */}
+      {/* Gallery Thumbnails - 16:9 YouTube Thumbnail ratio */}
       {allImages.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {allImages.map((img, idx) => (
             <button
               key={idx}
               onClick={() => setMainImage(img)}
-              className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${mainImage === img ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-slate-300'}`}
+              className={`flex-shrink-0 w-24 aspect-video rounded-lg overflow-hidden border-2 transition-all ${mainImage === img ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-slate-300'}`}
+              style={{ aspectRatio: "16 / 9" }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={normalizeImageUrl(img)} alt={`${productName} - thumbnail ${idx + 1}`} className="w-full h-full object-cover" />

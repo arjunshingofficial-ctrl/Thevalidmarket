@@ -56,8 +56,8 @@ export default function ProductCard({ product }: { product: any }) {
         </div>
       )}
 
-      {/* Image Container */}
-      <Link href={`/product/${product.slug}`} className="relative aspect-video bg-slate-50 block overflow-hidden">
+      {/* Image Container - 16:9 YouTube Thumbnail ratio */}
+      <Link href={`/product/${product.slug}`} className="relative w-full aspect-video bg-slate-50 block overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
         {image ? (
           <Image 
             src={normalizeImageUrl(image)} 

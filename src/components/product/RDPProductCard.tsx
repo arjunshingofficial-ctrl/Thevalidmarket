@@ -45,7 +45,7 @@ export default function RDPProductCard({ product }: { product: any }) {
       )}
 
       {/* Image Container 16:9 */}
-      <Link href={`/product/${product.slug}`} className="relative aspect-video bg-slate-900 block overflow-hidden border-b border-slate-100">
+      <Link href={`/product/${product.slug}`} className="relative w-full aspect-video bg-slate-900 block overflow-hidden border-b border-slate-100" style={{ aspectRatio: "16 / 9" }}>
         {image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img 

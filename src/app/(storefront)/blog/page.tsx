@@ -27,7 +27,7 @@ export default async function BlogIndexPage() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {posts.map(post => (
             <Link key={post.id} href={`/blog/${post.slug}`} className="group flex flex-col rounded-2xl bg-white border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-              <div className="aspect-[16/9] bg-slate-100 relative overflow-hidden">
+              <div className="w-full aspect-video bg-slate-100 relative overflow-hidden" style={{ aspectRatio: "16 / 9" }}>
                 {post.featuredImage ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={post.featuredImage} alt={post.title} className="object-cover w-full h-full" />
