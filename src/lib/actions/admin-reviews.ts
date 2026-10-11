@@ -8,38 +8,48 @@ import { canReviewProduct } from "./reviews";
 import { trackActivityEvent } from "@/lib/analytics";
 
 export async function moderateReview(reviewId: string, action: string) {
-  const session = await getServerSession(authOptions) as any;
-  if (!session?.user?.role || !["ADMIN", "SUPER_ADMIN"].includes(session?.user?.role)) {
-    throw new Error("Unauthorized");
-  }
-
-  const review = await prisma.review.findUnique({ where: { id: reviewId } });
-  if (!review) throw new Error("Review not found");
-
-  if (action === "DELETE") {
-    await prisma.review.delete({ where: { id: reviewId } });
-  } else {
-    // action is STATUS: APPROVED, REJECTED, HIDDEN
-    if (!["APPROVED", "REJECTED", "HIDDEN", "PENDING"].includes(action)) {
-      throw new Error("Invalid status");
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session?.user?.role || !["ADMIN", "SUPER_ADMIN"].includes(session?.user?.role)) {
+      return { success: false, error: "Unauthorized" };
     }
-    await prisma.review.update({
-      where: { id: reviewId },
-      data: { status: action },
-    });
-    
-    if (action === "APPROVED") {
-      await trackActivityEvent("REVIEW_APPROVED", review.productId, "Review approved");
-    }
-  }
 
-  // Revalidate specific product and dynamic route
-  const product = await prisma.product.findUnique({ where: { id: review.productId } });
-  if (product) {
-    revalidatePath(`/product/${product.slug}`);
-    revalidatePath(`/product/[slug]`, "page");
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) return { success: false, error: "Review not found" };
+
+    if (action === "DELETE") {
+      await prisma.review.delete({ where: { id: reviewId } });
+    } else {
+      // action is STATUS: APPROVED, REJECTED, HIDDEN
+      if (!["APPROVED", "REJECTED", "HIDDEN", "PENDING"].includes(action)) {
+        return { success: false, error: "Invalid status" };
+      }
+      await prisma.review.update({
+        where: { id: reviewId },
+        data: { status: action },
+      });
+      
+      if (action === "APPROVED") {
+        try {
+          await trackActivityEvent("REVIEW_APPROVED", review.productId, "Review approved");
+        } catch (e) {
+          console.error("Activity tracking error:", e);
+        }
+      }
+    }
+
+    // Revalidate specific product and dynamic route
+    const product = await prisma.product.findUnique({ where: { id: review.productId } });
+    if (product) {
+      revalidatePath(`/product/${product.slug}`);
+      revalidatePath(`/product/[slug]`, "page");
+    }
+    revalidatePath("/admin/reviews");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error in moderateReview:", err);
+    return { success: false, error: err?.message || "Failed to moderate review" };
   }
-  revalidatePath("/admin/reviews");
 }
 
 export async function adminAddReview(data: {
@@ -51,43 +61,64 @@ export async function adminAddReview(data: {
   type: string;
   avatarSeed?: string;
 }) {
-  const session = await getServerSession(authOptions) as any;
-  if (!session?.user?.role || !["ADMIN", "SUPER_ADMIN"].includes(session?.user?.role)) {
-    throw new Error("Unauthorized");
-  }
-
-  let verifiedPurchase = false;
-
-  if (data.type === "VERIFIED_CUSTOMER_REVIEW") {
-    const eligible = await canReviewProduct(data.userId, data.productId);
-    if (!eligible) {
-      throw new Error("User has not purchased this product, cannot add as verified customer review.");
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session?.user?.role || !["ADMIN", "SUPER_ADMIN"].includes(session?.user?.role)) {
+      return { success: false, error: "Unauthorized" };
     }
-    verifiedPurchase = true;
+
+    if (!data.productId || !data.userId || !data.comment) {
+      return { success: false, error: "Please fill in all required fields" };
+    }
+
+    // For admin-created reviews, if admin selects VERIFIED_CUSTOMER_REVIEW, mark it as verified
+    const verifiedPurchase = data.type === "VERIFIED_CUSTOMER_REVIEW";
+
+    await prisma.review.upsert({
+      where: {
+        userId_productId: {
+          userId: data.userId,
+          productId: data.productId,
+        },
+      },
+      update: {
+        rating: Number(data.rating),
+        title: data.title || null,
+        comment: data.comment,
+        type: data.type,
+        verifiedPurchase,
+        status: "APPROVED",
+        avatarSeed: data.avatarSeed || Math.random().toString(36).substring(7),
+      },
+      create: {
+        productId: data.productId,
+        userId: data.userId,
+        rating: Number(data.rating),
+        title: data.title || null,
+        comment: data.comment,
+        type: data.type,
+        verifiedPurchase,
+        status: "APPROVED",
+        avatarSeed: data.avatarSeed || Math.random().toString(36).substring(7),
+      },
+    });
+
+    try {
+      await trackActivityEvent("REVIEW_APPROVED", data.productId, "Review approved");
+    } catch (e) {
+      console.error("Activity tracking error:", e);
+    }
+
+    const product = await prisma.product.findUnique({ where: { id: data.productId } });
+    if (product) {
+      revalidatePath(`/product/${product.slug}`);
+      revalidatePath(`/product/[slug]`, "page");
+    }
+    revalidatePath("/admin/reviews");
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error in adminAddReview:", err);
+    return { success: false, error: err?.message || "Failed to add review" };
   }
-
-  await prisma.review.create({
-    data: {
-      productId: data.productId,
-      userId: data.userId,
-      rating: data.rating,
-      title: data.title,
-      comment: data.comment,
-      type: data.type,
-      verifiedPurchase,
-      status: "APPROVED", // Admin added reviews are auto-approved
-      avatarSeed: data.avatarSeed || Math.random().toString(36).substring(7),
-    },
-  });
-
-  await trackActivityEvent("REVIEW_APPROVED", data.productId, "Review approved");
-
-  const product = await prisma.product.findUnique({ where: { id: data.productId } });
-  if (product) {
-    revalidatePath(`/product/${product.slug}`);
-    revalidatePath(`/product/[slug]`, "page");
-  }
-  revalidatePath("/admin/reviews");
-
-  return { success: true };
 }

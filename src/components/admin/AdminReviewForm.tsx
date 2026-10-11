@@ -30,10 +30,15 @@ export function AdminReviewForm({ products, users }: { products: any[]; users: a
     setLoading(true);
     setError(null);
     try {
-      await adminAddReview({ productId, userId, rating, title, comment, type, avatarSeed });
+      const res = await adminAddReview({ productId, userId, rating, title, comment, type, avatarSeed });
+      if (res && !res.success) {
+        setError(res.error || "Failed to add review");
+        return;
+      }
       router.push("/admin/reviews");
+      router.refresh();
     } catch (err: any) {
-      setError(err.message || "Failed to add review");
+      setError(err?.message || "Failed to add review");
     } finally {
       setLoading(false);
     }
