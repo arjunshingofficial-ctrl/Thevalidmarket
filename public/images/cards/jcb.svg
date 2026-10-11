@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="320" height="180">
+  <rect width="320" height="180" rx="16" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="320" height="180" rx="16" fill="none" stroke="#E2E8F0" stroke-width="4"/>
+  <g transform="translate(65, 45)">
+    <!-- Blue Container -->
+    <rect x="0" y="0" width="55" height="90" rx="12" fill="#003B7C"/>
+    <text x="15" y="60" font-family="Arial, sans-serif" font-weight="bold" font-size="44" fill="#FFFFFF">J</text>
+    <!-- Red Container -->
+    <rect x="65" y="0" width="55" height="90" rx="12" fill="#E40012"/>
+    <text x="76" y="60" font-family="Arial, sans-serif" font-weight="bold" font-size="44" fill="#FFFFFF">C</text>
+    <!-- Green Container -->
+    <rect x="130" y="0" width="55" height="90" rx="12" fill="#008837"/>
+    <text x="142" y="60" font-family="Arial, sans-serif" font-weight="bold" font-size="44" fill="#FFFFFF">B</text>
+  </g>
+</svg>
