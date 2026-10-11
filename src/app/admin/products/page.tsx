@@ -1,38 +1,77 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { 
-  Plus, Search, Filter, Package
-} from "lucide-react";
+import { Plus, Package } from "lucide-react";
 import ProductRowActions from "./ProductRowActions";
+import ProductSearchToolbar from "./ProductSearchToolbar";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProducts({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
-  const { page } = await searchParams;
+export default async function AdminProducts({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string; status?: string; categoryId?: string }>;
+}) {
+  const { page, q, status, categoryId } = await searchParams;
   const currentPage = Math.max(1, parseInt(page || "1", 10));
   const limit = 20;
+  const query = q?.trim() || "";
 
-  const totalProducts = await prisma.product.count();
-  
-  const products = await prisma.product.findMany({
-    skip: (currentPage - 1) * limit,
-    take: limit,
-    orderBy: { createdAt: "desc" },
-    include: { 
-      category: true,
-      _count: {
-        select: {
-          orderItems: true,
-          licenses: true,
-          subscriptions: true,
-          reviews: true,
-          entitlements: true
-        }
-      }
-    }
-  });
+  const where: any = {};
+  if (status) {
+    where.status = status;
+  }
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+  if (query) {
+    where.OR = [
+      { name: { contains: query, mode: "insensitive" } },
+      { slug: { contains: query, mode: "insensitive" } },
+      { sku: { contains: query, mode: "insensitive" } },
+      { shortDesc: { contains: query, mode: "insensitive" } },
+      { description: { contains: query, mode: "insensitive" } },
+      { category: { name: { contains: query, mode: "insensitive" } } },
+    ];
+  }
+
+  const [totalProducts, products, categories] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      skip: (currentPage - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        category: true,
+        _count: {
+          select: {
+            orderItems: true,
+            licenses: true,
+            subscriptions: true,
+            reviews: true,
+            entitlements: true,
+          },
+        },
+      },
+    }),
+    prisma.category.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const totalPages = Math.ceil(totalProducts / limit);
+
+  // Helper to build pagination URL preserving search & filters
+  const buildPageUrl = (targetPage: number) => {
+    const p = new URLSearchParams();
+    if (targetPage > 1) p.set("page", targetPage.toString());
+    if (query) p.set("q", query);
+    if (status) p.set("status", status);
+    if (categoryId) p.set("categoryId", categoryId);
+    const qs = p.toString();
+    return `/admin/products${qs ? `?${qs}` : ""}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -50,29 +89,13 @@ export default async function AdminProducts({ searchParams }: { searchParams: Pr
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm flex flex-col overflow-hidden">
-        {/* Toolbar */}
-        <div className="p-4 border-b flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50">
-          <div className="relative w-full sm:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              type="search" 
-              placeholder="Search products..." 
-              className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm bg-white hover:bg-slate-50 text-slate-600 font-medium">
-              <Filter className="h-4 w-4" /> Filter
-            </button>
-            <select className="h-[38px] rounded-md border bg-white px-3 py-2 text-sm text-slate-600 font-medium focus:outline-none">
-              <option>Bulk Actions</option>
-              <option>Publish</option>
-              <option>Unpublish</option>
-              <option>Archive</option>
-              <option>Delete</option>
-            </select>
-          </div>
-        </div>
+        {/* Toolbar with live & debounced search, clear button, and category/status filters */}
+        <ProductSearchToolbar
+          initialQuery={query}
+          categories={categories}
+          currentCategory={categoryId}
+          currentStatus={status}
+        />
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -149,12 +172,12 @@ export default async function AdminProducts({ searchParams }: { searchParams: Pr
           <span className="text-sm text-slate-500">Showing {products.length} of {totalProducts} products</span>
           <div className="flex items-center gap-2">
             {currentPage > 1 ? (
-              <Link href={`/admin/products?page=${currentPage - 1}`} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">Previous</Link>
+              <Link href={buildPageUrl(currentPage - 1)} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">Previous</Link>
             ) : (
               <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm" disabled>Previous</button>
             )}
             {currentPage < totalPages ? (
-              <Link href={`/admin/products?page=${currentPage + 1}`} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">Next</Link>
+              <Link href={buildPageUrl(currentPage + 1)} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">Next</Link>
             ) : (
               <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm" disabled>Next</button>
             )}
