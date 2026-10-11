@@ -117,7 +117,7 @@ export function Footer() {
       <div className="border-t border-slate-800/50 bg-slate-950 relative z-10">
         <div className="container mx-auto px-4 md:px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} Asia D Market. All rights reserved.
+            Copyright &copy; 2026 Asia D Market. All rights reserved.
           </p>
           
           <div className="flex items-center gap-4">
