@@ -80,15 +80,11 @@ export default function ProductCard({ product }: { product: any }) {
           <div className="text-[11px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2.5 py-1 rounded-full">
             {categoryName}
           </div>
-          {hasReviews ? (
+          {hasReviews && (
             <div className="flex items-center text-xs font-semibold text-amber-500 bg-amber-50 px-2 py-1 rounded-full" title={`${reviews.length} reviews`}>
               <Star className="h-3 w-3 mr-1 fill-amber-500 text-amber-500" />
               {avgRating.toFixed(1)}
               <span className="text-[10px] text-amber-600/70 ml-1">({reviews.length})</span>
-            </div>
-          ) : (
-            <div className="text-[10px] font-medium text-slate-400">
-              No ratings yet
             </div>
           )}
         </div>

@@ -114,19 +114,15 @@ export default function CourseCard({ course }: { course: any }) {
         </div>
 
         {/* Rating */}
-        <div className="flex items-center gap-1.5">
-          {reviewCount > 0 ? (
-            <>
-              <div className="flex text-amber-500">
-                <Star className="h-4 w-4 fill-current" />
-              </div>
-              <span className="text-sm font-bold text-slate-700">{avgRating.toFixed(1)}</span>
-              <span className="text-xs text-slate-400">({reviewCount})</span>
-            </>
-          ) : (
-            <span className="text-xs text-slate-400 italic">No ratings yet</span>
-          )}
-        </div>
+        {reviewCount > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="flex text-amber-500">
+              <Star className="h-4 w-4 fill-current" />
+            </div>
+            <span className="text-sm font-bold text-slate-700">{avgRating.toFixed(1)}</span>
+            <span className="text-xs text-slate-400">({reviewCount})</span>
+          </div>
+        )}
         
         {/* Footer: Price & Add to Cart */}
         <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">

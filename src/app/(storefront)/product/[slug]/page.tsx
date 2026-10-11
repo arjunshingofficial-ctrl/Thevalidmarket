@@ -131,13 +131,15 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                     {product.category.name}
                   </div>
                 )}
-                <div className="flex items-center text-amber-500 font-bold text-sm bg-amber-50 px-2.5 py-1 rounded-full">
-                  <Star className="h-4 w-4 fill-amber-500 mr-1" />
-                  {reviews.length > 0 ? avgRating : "New"}
-                  <span className="text-slate-400 font-medium ml-1 text-xs">
-                    ({reviews.length})
-                  </span>
-                </div>
+                {reviews.length > 0 && (
+                  <div className="flex items-center text-amber-500 font-bold text-sm bg-amber-50 px-2.5 py-1 rounded-full">
+                    <Star className="h-4 w-4 fill-amber-500 mr-1" />
+                    {avgRating}
+                    <span className="text-slate-400 font-medium ml-1 text-xs">
+                      ({reviews.length})
+                    </span>
+                  </div>
+                )}
               </div>
 
               <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-4 text-slate-900 leading-[1.1]">{product.name}</h1>

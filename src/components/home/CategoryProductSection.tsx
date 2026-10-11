@@ -4,7 +4,7 @@ import { normalizeImageUrl } from "@/lib/storage/client";
 
 function ProductRating({ reviews }: { reviews: Array<{ rating: number }> }) {
   if (!reviews || reviews.length === 0) {
-    return <span className="text-xs text-slate-400 font-medium">No ratings yet</span>;
+    return null;
   }
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
   return (
