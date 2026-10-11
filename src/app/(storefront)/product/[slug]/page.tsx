@@ -142,9 +142,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
               <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-4 text-slate-900 leading-[1.1]">{product.name}</h1>
               
-              <p className="text-slate-500 mb-8 text-base leading-relaxed">
-                {product.shortDesc || "Elevate your workflow with this premium digital asset."}
-              </p>
+              {product.shortDesc && (
+                <p className="text-slate-500 mb-8 text-base leading-relaxed">
+                  {product.shortDesc}
+                </p>
+              )}
 
               <div className="flex items-end gap-4 mb-8 pb-8 border-b border-slate-100">
                 <div className="flex flex-col">
