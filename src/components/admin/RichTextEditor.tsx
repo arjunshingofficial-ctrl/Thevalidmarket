@@ -124,8 +124,8 @@ const ActionButton = TipTapNode.create({
           const a = el.querySelector("a");
           let style = el.getAttribute("data-style") || "indigo";
           let size = el.getAttribute("data-size") || "md";
-          const align = el.getAttribute("data-align") || "center";
-          const text = a?.textContent || el.textContent || "Click Here";
+          let align = el.getAttribute("data-align") || "center";
+          const text = a?.textContent?.trim() || el.textContent?.trim() || "Click Here";
           const url = a?.getAttribute("href") || "#";
           const newTab = a?.getAttribute("target") === "_blank";
 
@@ -134,6 +134,32 @@ const ActionButton = TipTapNode.create({
             if (mStyle) style = mStyle[1];
             const mSize = a.className.match(/btn-(sm|md|lg)/);
             if (mSize) size = mSize[1];
+          }
+
+          return { text, url, style, size, align, newTab };
+        },
+      },
+      {
+        tag: "a.stylish-btn",
+        getAttrs: (element) => {
+          if (typeof element === "string") return false;
+          const a = element as HTMLElement;
+          let style = "indigo";
+          let size = "md";
+          let align = "center";
+          const text = a.textContent?.trim() || "Click Here";
+          const url = a.getAttribute("href") || "#";
+          const newTab = a.getAttribute("target") === "_blank";
+
+          const mStyle = a.className?.match(/btn-(indigo|carbon|emerald|gold|neon|outline)/);
+          if (mStyle) style = mStyle[1];
+          const mSize = a.className?.match(/btn-(sm|md|lg)/);
+          if (mSize) size = mSize[1];
+
+          const parent = a.parentElement;
+          if (parent) {
+            const pAlign = parent.getAttribute("data-align") || (parent.className.includes("text-left") ? "left" : parent.className.includes("text-right") ? "right" : "center");
+            if (pAlign) align = pAlign;
           }
 
           return { text, url, style, size, align, newTab };
@@ -171,7 +197,7 @@ const ActionButton = TipTapNode.create({
     ];
   },
   addNodeView() {
-    return ({ node }) => {
+    return ({ node, getPos }) => {
       const wrapper = document.createElement("div");
       wrapper.setAttribute("data-action-button", "");
       wrapper.setAttribute("data-style", node.attrs.style || "indigo");
@@ -179,19 +205,73 @@ const ActionButton = TipTapNode.create({
       wrapper.setAttribute("data-align", node.attrs.align || "center");
       wrapper.setAttribute("contenteditable", "false");
       const align = node.attrs.align || "center";
-      wrapper.style.cssText = `text-align: ${align === "full" ? "center" : align}; margin: 1.5rem 0; width: 100%;`;
+      wrapper.style.cssText = `text-align: ${align === "full" ? "center" : align}; margin: 1.5rem 0; width: 100%; position: relative; user-select: none;`;
+      wrapper.className = "action-button-editor-wrap group";
+
+      const inner = document.createElement("div");
+      inner.style.cssText = "display: inline-block; position: relative; max-width: 100%; cursor: pointer;";
 
       const btn = document.createElement("a");
-      btn.href = node.attrs.url || "#";
+      btn.href = "#";
       btn.className = `stylish-btn btn-${node.attrs.style || "indigo"} btn-${node.attrs.size || "md"} ${align === "full" ? "btn-full" : ""}`;
       btn.textContent = node.attrs.text || "Click Here";
-      if (node.attrs.newTab !== false) {
-        btn.target = "_blank";
-        btn.rel = "noopener noreferrer";
-      }
+      btn.title = `Link: ${node.attrs.url || "#"} (Click to edit text & link)`;
 
-      wrapper.appendChild(btn);
-      return { dom: wrapper };
+      const triggerEdit = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const pos = typeof getPos === "function" ? getPos() : null;
+        window.dispatchEvent(new CustomEvent("edit-action-button", {
+          detail: { pos, attrs: { ...node.attrs } }
+        }));
+      };
+
+      btn.addEventListener("click", triggerEdit);
+
+      // Floating hover toolbar
+      const bar = document.createElement("div");
+      bar.className = "action-btn-hover-bar";
+      bar.innerHTML = `
+        <button type="button" class="action-btn-edit-trigger" title="Edit text, link, and style">✏️ Edit Button</button>
+        <span class="action-btn-url-preview">${node.attrs.url && node.attrs.url !== "#" ? node.attrs.url : "No Link"}</span>
+        <button type="button" class="action-btn-del-trigger" title="Delete button">✕</button>
+      `;
+
+      const editBtn = bar.querySelector(".action-btn-edit-trigger");
+      editBtn?.addEventListener("click", triggerEdit);
+
+      const delBtn = bar.querySelector(".action-btn-del-trigger");
+      delBtn?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const pos = typeof getPos === "function" ? getPos() : null;
+        window.dispatchEvent(new CustomEvent("delete-action-button", { detail: { pos } }));
+      });
+
+      inner.appendChild(btn);
+      inner.appendChild(bar);
+      wrapper.appendChild(inner);
+
+      return {
+        dom: wrapper,
+        update: (updatedNode) => {
+          if (updatedNode.type.name !== "actionButton") return false;
+          node = updatedNode;
+          const uAlign = node.attrs.align || "center";
+          wrapper.setAttribute("data-style", node.attrs.style || "indigo");
+          wrapper.setAttribute("data-size", node.attrs.size || "md");
+          wrapper.setAttribute("data-align", uAlign);
+          wrapper.style.textAlign = uAlign === "full" ? "center" : uAlign;
+          btn.className = `stylish-btn btn-${node.attrs.style || "indigo"} btn-${node.attrs.size || "md"} ${uAlign === "full" ? "btn-full" : ""}`;
+          btn.textContent = node.attrs.text || "Click Here";
+          btn.title = `Link: ${node.attrs.url || "#"} (Click to edit text & link)`;
+          const urlPreview = bar.querySelector(".action-btn-url-preview");
+          if (urlPreview) {
+            urlPreview.textContent = node.attrs.url && node.attrs.url !== "#" ? node.attrs.url : "No Link";
+          }
+          return true;
+        }
+      };
     };
   },
 });
@@ -1235,6 +1315,14 @@ function TableModal({ onInsert, onClose }: { onInsert: (rows: number, cols: numb
 
 // ─── Stylish Button Modal ───────────────────────────────────────────────────
 interface ButtonModalProps {
+  initialData?: {
+    text: string;
+    url: string;
+    style: "indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline";
+    size: "sm" | "md" | "lg";
+    align: "left" | "center" | "right" | "full";
+    newTab: boolean;
+  } | null;
   onInsert: (data: {
     text: string;
     url: string;
@@ -1246,13 +1334,13 @@ interface ButtonModalProps {
   onClose: () => void;
 }
 
-function ButtonModal({ onInsert, onClose }: ButtonModalProps) {
-  const [text, setText] = useState("🚀 Get Instant Access");
-  const [url, setUrl] = useState("#");
-  const [style, setStyle] = useState<"indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline">("indigo");
-  const [size, setSize] = useState<"sm" | "md" | "lg">("md");
-  const [align, setAlign] = useState<"left" | "center" | "right" | "full">("center");
-  const [newTab, setNewTab] = useState(true);
+function ButtonModal({ initialData, onInsert, onClose }: ButtonModalProps) {
+  const [text, setText] = useState(initialData?.text || "🚀 Get Instant Access");
+  const [url, setUrl] = useState(initialData?.url || "#");
+  const [style, setStyle] = useState<"indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline">(initialData?.style || "indigo");
+  const [size, setSize] = useState<"sm" | "md" | "lg">(initialData?.size || "md");
+  const [align, setAlign] = useState<"left" | "center" | "right" | "full">(initialData?.align || "center");
+  const [newTab, setNewTab] = useState(initialData?.newTab !== false);
 
   const PRESETS = [
     { label: "🚀 Buy Now", text: "🚀 Buy Now" },
@@ -1281,8 +1369,12 @@ function ButtonModal({ onInsert, onClose }: ButtonModalProps) {
               <MousePointerClick className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Insert Stylish Action Button (CTA)</h3>
-              <p className="text-xs text-slate-500">Design high-converting buttons for checkout, downloads, and chat.</p>
+              <h3 className="text-base font-bold text-slate-900">
+                {initialData ? "Edit Stylish Action Button" : "Insert Stylish Action Button (CTA)"}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {initialData ? "Update button label, target destination URL, style theme, and alignment." : "Design high-converting buttons for checkout, downloads, and chat."}
+              </p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg">
@@ -1442,7 +1534,7 @@ function ButtonModal({ onInsert, onClose }: ButtonModalProps) {
             }}
             className="flex items-center gap-1.5 px-5 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 font-medium transition-all shadow-sm disabled:opacity-50"
           >
-            <MousePointerClick className="w-4 h-4" /> Insert Stylish Button
+            <MousePointerClick className="w-4 h-4" /> {initialData ? "Save Button Changes" : "Insert Stylish Button"}
           </button>
         </div>
       </div>
@@ -1463,6 +1555,17 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
   const [showPreview, setShowPreview] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [editingButton, setEditingButton] = useState<{
+    pos: number | null;
+    attrs: {
+      text: string;
+      url: string;
+      style: "indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline";
+      size: "sm" | "md" | "lg";
+      align: "left" | "center" | "right" | "full";
+      newTab: boolean;
+    };
+  } | null>(null);
   const hiddenRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -1563,6 +1666,44 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
       attrs: data,
     }).run();
   }, [editor]);
+
+  useEffect(() => {
+    const handleEditBtn = (e: Event) => {
+      const ce = e as CustomEvent;
+      if (ce.detail) {
+        setEditingButton({ pos: ce.detail.pos, attrs: ce.detail.attrs });
+        setShowButtonModal(true);
+      }
+    };
+    const handleDeleteBtn = (e: Event) => {
+      const ce = e as CustomEvent;
+      if (ce.detail && ce.detail.pos !== null && editor) {
+        editor.commands.deleteRange({ from: ce.detail.pos, to: ce.detail.pos + 1 });
+      }
+    };
+    window.addEventListener("edit-action-button", handleEditBtn);
+    window.addEventListener("delete-action-button", handleDeleteBtn);
+    return () => {
+      window.removeEventListener("edit-action-button", handleEditBtn);
+      window.removeEventListener("delete-action-button", handleDeleteBtn);
+    };
+  }, [editor]);
+
+  const handleSaveActionButton = useCallback((data: {
+    text: string;
+    url: string;
+    style: "indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline";
+    size: "sm" | "md" | "lg";
+    align: "left" | "center" | "right" | "full";
+    newTab: boolean;
+  }) => {
+    if (editingButton && editingButton.pos !== null && editor) {
+      editor.chain().focus().setNodeSelection(editingButton.pos).updateAttributes("actionButton", data).run();
+      setEditingButton(null);
+    } else {
+      insertActionButton(data);
+    }
+  }, [editingButton, editor, insertActionButton]);
 
   const insertComparisonTable = useCallback(() => {
     editor?.chain().focus().insertContent(`
@@ -1860,7 +2001,7 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
 
   const wrapClass = isFullscreen
     ? "fixed inset-0 z-50 flex flex-col bg-white"
-    : "border rounded-xl overflow-hidden bg-white shadow-sm focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary/50 transition-all";
+    : "border rounded-xl bg-white shadow-sm focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary/50 transition-all";
 
   return (
     <>
@@ -1868,8 +2009,8 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
       <input type="hidden" name={name} ref={hiddenRef} defaultValue={defaultValue} />
 
       <div className={wrapClass}>
-        {/* ─ Toolbar ─ */}
-        <div className={`flex flex-wrap items-center gap-1 p-2 border-b bg-slate-50/80 backdrop-blur-sm sticky top-0 z-10 ${isFullscreen ? "border-b-2" : ""}`}>
+        {/* ─ Sticky Toolbar ─ */}
+        <div className={`flex flex-wrap items-center gap-1 p-2 border-b bg-white/95 backdrop-blur-md sticky top-0 z-30 shadow-sm rounded-t-xl transition-all ${isFullscreen ? "border-b-2" : ""}`}>
 
           {/* Headings / Format */}
           <DropMenu label="Format" icon={<Type className="w-4 h-4" />}>
@@ -2153,9 +2294,16 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
       {showVideo && <VideoModal onInsert={insertVideo} onClose={() => setShowVideo(false)} />}
       {showLink && <LinkModal currentUrl={editor.getAttributes("link").href} onInsert={insertLink} onClose={() => setShowLink(false)} />}
       {showHtml && <HtmlModal html={editor.getHTML()} onApply={html => { editor.chain().focus().setContent(html).run(); if (hiddenRef.current) hiddenRef.current.value = editor.getHTML(); }} onClose={() => setShowHtml(false)} />}
-      {showTable && <TableModal onInsert={insertTable} onClose={() => setShowTable(false)} />}
-      {showButtonModal && <ButtonModal onInsert={insertActionButton} onClose={() => setShowButtonModal(false)} />}
-      {showTemplates && <TemplatesModal onApply={handleApplyTemplate} onClose={() => setShowTemplates(false)} />}
+      {showButtonModal && (
+        <ButtonModal
+          initialData={editingButton?.attrs}
+          onInsert={handleSaveActionButton}
+          onClose={() => {
+            setShowButtonModal(false);
+            setEditingButton(null);
+          }}
+        />
+      )}
       {showPreview && <PreviewModal html={editor.getHTML()} onClose={() => setShowPreview(false)} />}
 
       {/* Fullscreen backdrop click to close */}

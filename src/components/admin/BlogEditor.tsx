@@ -19,13 +19,20 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
   
   const initialTags: string[] = (() => {
     if (!initialData?.tags) return [];
-    if (Array.isArray(initialData.tags)) return initialData.tags;
-    try {
-      const parsed = JSON.parse(initialData.tags);
-      return Array.isArray(parsed) ? parsed : [String(parsed)];
-    } catch {
-      return String(initialData.tags).split(",").map(t => t.trim()).filter(Boolean);
+    let list: any[] = [];
+    if (Array.isArray(initialData.tags)) list = initialData.tags;
+    else {
+      try {
+        const parsed = JSON.parse(initialData.tags);
+        list = Array.isArray(parsed) ? parsed : [String(parsed)];
+      } catch {
+        list = String(initialData.tags).split(",");
+      }
     }
+    return list
+      .flatMap(item => typeof item === "string" ? item.split(",") : [])
+      .map(t => t.trim().replace(/^#+/, ""))
+      .filter(Boolean);
   })();
 
   const [tags, setTags] = useState<string[]>(initialTags);
@@ -45,14 +52,24 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
     }
   };
 
+  const addTagsFromString = (input: string) => {
+    const rawSegments = input.split(",");
+    const segments = rawSegments
+      .map(t => t.trim().replace(/^#+/, ""))
+      .filter(t => t.length > 0);
+    
+    if (segments.length > 0) {
+      setTags(prev => Array.from(new Set([...prev, ...segments])));
+    }
+    setTagInput("");
+  };
+
   const handleAddTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
     if (e && 'key' in e && e.key !== 'Enter' && e.key !== ',') return;
     if (e && 'preventDefault' in e) e.preventDefault();
-    const trimmed = tagInput.trim().replace(/^,+|,+$/g, '');
-    if (trimmed && !tags.includes(trimmed)) {
-      setTags([...tags, trimmed]);
+    if (tagInput.trim()) {
+      addTagsFromString(tagInput);
     }
-    setTagInput("");
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
@@ -261,20 +278,27 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                 <input
                   type="text"
                   value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val.includes(",")) {
+                      addTagsFromString(val);
+                    } else {
+                      setTagInput(val);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === ",") {
                       e.preventDefault();
                       handleAddTag(e);
                     }
                   }}
-                  placeholder="Add SEO keyword and press Enter"
+                  placeholder="Paste comma-separated keywords (e.g. proxy, socks5, vpn) or press Enter"
                   className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <button
                   type="button"
                   onClick={() => handleAddTag()}
-                  className="px-3 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 flex items-center gap-1"
+                  className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Add
                 </button>
