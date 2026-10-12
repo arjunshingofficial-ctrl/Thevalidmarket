@@ -106,7 +106,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     : "0.0";
 
   const metadata = product.metadata ? (typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata) : {};
-  const image = metadata.image || null;
+  const image = metadata.image || product.course?.thumbnailUrl || null;
   const badge = metadata.badge || null;
   const specs = metadata.specs || null;
 

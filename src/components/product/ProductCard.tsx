@@ -32,7 +32,7 @@ export default function ProductCard({ product }: { product: any }) {
   };
 
   const metadata = product.metadata ? (typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata) : {};
-  const image = metadata.image || null;
+  const image = metadata.image || product.course?.thumbnailUrl || null;
   // Account for both populated category relation (product.category.name) and raw format (product.category)
   const categoryName = product.category?.name || (typeof product.category === 'string' ? product.category : "Product");
   const price = product.salePrice ?? product.price ?? 0;

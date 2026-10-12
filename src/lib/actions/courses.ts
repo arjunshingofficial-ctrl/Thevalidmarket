@@ -131,12 +131,29 @@ export async function updateCourseAction(courseId: string, data: {
           ...(data.thumbnailUrl !== undefined && { thumbnailUrl: data.thumbnailUrl || null }),
         }
       });
+
+      if (data.thumbnailUrl !== undefined) {
+        let meta: any = {};
+        try {
+          if (course.product?.metadata) {
+            meta = JSON.parse(course.product.metadata);
+          }
+        } catch (e) {}
+        meta.image = data.thumbnailUrl || "";
+        await tx.product.update({
+          where: { id: course.productId },
+          data: { metadata: JSON.stringify(meta) },
+        });
+      }
     }
   });
 
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/admin/courses");
   revalidatePath("/store");
+  if (course.product?.slug) {
+    revalidatePath(`/product/${course.product.slug}`);
+  }
 
   return { success: true };
 }
