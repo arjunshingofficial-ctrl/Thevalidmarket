@@ -4,11 +4,12 @@ import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { 
-  ArrowLeft, Calendar, Clock, Tag, Share2, 
-  CheckCircle2, Sparkles, BookOpen, ShieldCheck 
+  ArrowLeft, Calendar, Clock, Tag, 
+  CheckCircle2, ShieldCheck 
 } from "lucide-react";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
+import BlogShareButton from "@/components/blog/BlogShareButton";
 import { normalizeImageUrl } from "@/lib/storage/client";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  // 1. Fetch current post with category and approved comments only
+  // 1. Fetch current post
   const post = await prisma.blogPost.findUnique({
     where: { slug },
     include: {
@@ -67,85 +68,109 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         },
       },
     },
+  }).catch(async (err) => {
+    console.error("Error fetching post with comments:", err);
+    // Fallback without comments relation if model migration isn't recognized
+    return prisma.blogPost.findUnique({
+      where: { slug },
+      include: { category: true },
+    });
   });
 
   if (!post || post.status !== "PUBLISHED") {
     notFound();
   }
 
-  // 2. Fetch Recent Posts
-  const recentPosts = await prisma.blogPost.findMany({
-    where: {
-      status: "PUBLISHED",
-      NOT: { id: post.id },
-    },
-    orderBy: { publishDate: "desc" },
-    take: 4,
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      featuredImage: true,
-      publishDate: true,
-      createdAt: true,
-      category: { select: { name: true, slug: true } },
-    },
-  });
+  // 2. Fetch Recent Posts with safe fallback
+  let recentPosts: any[] = [];
+  try {
+    recentPosts = await prisma.blogPost.findMany({
+      where: {
+        status: "PUBLISHED",
+        NOT: { id: post.id },
+      },
+      orderBy: [{ publishDate: "desc" }, { createdAt: "desc" }],
+      take: 4,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        featuredImage: true,
+        publishDate: true,
+        createdAt: true,
+        category: { select: { name: true, slug: true } },
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching recent blog posts:", err);
+  }
 
-  // 3. Fetch Popular Tools & Products
-  const popularProducts = await prisma.product.findMany({
-    where: { status: "PUBLISHED" },
-    orderBy: { createdAt: "desc" },
-    take: 4,
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      price: true,
-      salePrice: true,
-      type: true,
-      metadata: true,
-    },
-  });
+  // 3. Fetch Popular Tools & Products with safe fallback
+  let popularProducts: any[] = [];
+  try {
+    popularProducts = await prisma.product.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        salePrice: true,
+        type: true,
+        metadata: true,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching popular products:", err);
+  }
 
-  // 4. Fetch Featured Courses
-  const coursesRaw = await prisma.course.findMany({
-    where: { status: "ACTIVE" },
-    take: 2,
-    include: {
-      product: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          price: true,
+  // 4. Fetch Featured Courses with safe fallback
+  let featuredCourses: any[] = [];
+  try {
+    const coursesRaw = await prisma.course.findMany({
+      where: { status: "ACTIVE" },
+      take: 2,
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            price: true,
+          },
         },
       },
-    },
-  });
-
-  let featuredCourses = coursesRaw.map((c) => ({
-    id: c.id,
-    title: c.product.name,
-    slug: c.product.slug,
-    price: c.product.price,
-    imageUrl: c.thumbnailUrl,
-    level: "All Levels",
-  }));
-
-  if (featuredCourses.length === 0) {
-    const fallbackCourseProducts = await prisma.product.findMany({
-      where: { status: "PUBLISHED", type: "COURSE" },
-      take: 2,
     });
-    featuredCourses = fallbackCourseProducts.map((p) => ({
-      id: p.id,
-      title: p.name,
-      slug: p.slug,
-      price: p.price,
-      imageUrl: null,
-      level: "Masterclass",
-    }));
+
+    featuredCourses = coursesRaw
+      .filter((c) => c && c.product)
+      .map((c) => ({
+        id: c.id,
+        title: c.product.name,
+        slug: c.product.slug,
+        price: c.product.price,
+        imageUrl: c.thumbnailUrl,
+        level: "All Levels",
+      }));
+
+    if (featuredCourses.length === 0) {
+      const fallbackCourseProducts = await prisma.product.findMany({
+        where: { status: "PUBLISHED", type: "COURSE" },
+        take: 2,
+      });
+      featuredCourses = fallbackCourseProducts.map((p) => ({
+        id: p.id,
+        title: p.name,
+        slug: p.slug,
+        price: p.price,
+        imageUrl: null,
+        level: "Masterclass",
+      }));
+    }
+  } catch (err) {
+    console.error("Error fetching featured courses:", err);
   }
 
   // Calculate reading time
@@ -162,6 +187,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       parsedTags = post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
     }
   }
+
+  const approvedComments = (post as any).comments || [];
 
   return (
     <div className="min-h-screen bg-slate-50/60 py-10 sm:py-14">
@@ -253,18 +280,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    title="Share this article"
-                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200"
-                    onClick={() => {
-                      if (typeof window !== "undefined" && navigator?.clipboard) {
-                        navigator.clipboard.writeText(window.location.href);
-                      }
-                    }}
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
+                  <BlogShareButton title={post.title} />
                 </div>
               </div>
 
@@ -329,7 +345,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {/* ─ Comments Section Component ─ */}
             <BlogCommentsSection
               postId={post.id}
-              initialComments={post.comments}
+              initialComments={approvedComments}
             />
           </article>
 
