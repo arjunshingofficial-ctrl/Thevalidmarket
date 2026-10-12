@@ -4,9 +4,9 @@ export const dynamic = "force-dynamic";
 
 export default function AdminLocations() {
   const regions = [
-    { name: "Bangladesh (Primary)", currency: "BDT (৳)", status: "Active", defaultGateways: "bKash, Nagad, Rocket, Upay" },
-    { name: "Global International", currency: "USD ($)", status: "Active", defaultGateways: "Stripe, Crypto, PayPal" },
-    { name: "India & South Asia", currency: "USD", status: "Active", defaultGateways: "Cards, Crypto" },
+    { name: "Global International (Primary)", currency: "USD ($)", status: "Active", defaultGateways: "Stripe, Crypto, Cards, PayPal" },
+    { name: "Bangladesh & South Asia", currency: "BDT (৳) / USD", status: "Active", defaultGateways: "bKash, Nagad, Rocket, Upay" },
+    { name: "India & Regional", currency: "INR (₹) / USD", status: "Active", defaultGateways: "UPI, Cards, Crypto" },
   ];
 
   return (

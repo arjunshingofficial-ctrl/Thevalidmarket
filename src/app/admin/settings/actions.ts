@@ -26,3 +26,39 @@ export async function updateTelegramUrl(formData: FormData) {
   revalidatePath("/login");
   revalidatePath("/admin/settings");
 }
+
+export async function updateGeneralSettings(formData: FormData) {
+  const storeName = formData.get("storeName")?.toString() || "Asia D Market";
+  const supportEmail = formData.get("supportEmail")?.toString() || "support@asiadmarket.com";
+  const primaryCurrency = formData.get("primaryCurrency")?.toString() || "USD";
+  const defaultOrderStatus = formData.get("defaultOrderStatus")?.toString() || "COMPLETED";
+
+  let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+  if (!settings) {
+    settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
+  }
+
+  let fxConfig: any = {};
+  try {
+    fxConfig = settings.fxConfig ? JSON.parse(settings.fxConfig) : {};
+  } catch (e) {}
+
+  fxConfig = { 
+    ...fxConfig, 
+    primaryCurrency,
+    defaultOrderStatus
+  };
+
+  await prisma.siteSettings.update({
+    where: { id: "GLOBAL" },
+    data: { 
+      siteName: storeName,
+      fxConfig: JSON.stringify(fxConfig)
+    }
+  });
+
+  revalidatePath("/admin/settings");
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/admin/dashboard");
+}
