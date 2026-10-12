@@ -5,11 +5,6 @@ import { authOptions } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { code } = await req.json();
     if (!code) {
       return NextResponse.json({ error: "Coupon code required" }, { status: 400 });

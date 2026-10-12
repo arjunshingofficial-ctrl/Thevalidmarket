@@ -31,7 +31,7 @@ export default function CartIcon() {
   }, []);
 
   return (
-    <Link href="/checkout" className="relative p-2 text-muted-foreground hover:text-primary">
+    <Link href="/cart" className="relative p-2 text-muted-foreground hover:text-primary" title="View Shopping Cart">
       <ShoppingCart className="h-5 w-5" />
       {itemCount > 0 && (
         <span className="absolute top-1 right-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-primary-foreground">
