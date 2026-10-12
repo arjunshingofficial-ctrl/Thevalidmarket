@@ -38,7 +38,56 @@ const getCachedProduct = unstable_cache(
   { revalidate: 300, tags: ["products"] }
 );
 
+import type { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getCachedProduct(slug);
+
+  if (!product || product.status !== "PUBLISHED") {
+    return {
+      title: "Product Not Found",
+      robots: { index: false, follow: false }
+    };
+  }
+
+  const metadata = product.metadata ? (typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata) : {};
+  const image = metadata.image || product.course?.thumbnailUrl || "/og-image.jpg";
+  const desc = product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on Asia D Market with instant delivery and secure payment.`;
+  const canonicalUrl = `/product/${product.slug}`;
+
+  return {
+    title: product.seoTitle || `${product.name} - Buy Online`,
+    description: product.seoDescription || desc,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: product.seoTitle || product.name,
+      description: product.seoDescription || desc,
+      url: canonicalUrl,
+      type: "website",
+      images: [
+        {
+          url: image,
+          alt: product.name,
+        }
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.seoTitle || product.name,
+      description: product.seoDescription || desc,
+      images: [image],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    }
+  };
+}
 
 export default async function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -118,8 +167,42 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const isSale = product.salePrice !== null && product.salePrice < product.price;
   const discountAmount = isSale ? (product.price - product.salePrice!) : 0;
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": product.name,
+    "description": product.shortDesc || product.description || product.name,
+    "image": image ? (image.startsWith("http") ? image : `${siteUrl}${image}`) : undefined,
+    "sku": product.sku || product.id,
+    "offers": {
+      "@type": "Offer",
+      "url": `${siteUrl}/product/${product.slug}`,
+      "priceCurrency": "USD",
+      "price": price,
+      "availability": product.stock === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      "seller": {
+        "@type": "Organization",
+        "name": "Asia D Market"
+      }
+    },
+    ...(reviews.length > 0 && {
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": avgRating,
+        "reviewCount": reviews.length,
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    })
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       {/* Dynamic Hero Section */}
       <div className="bg-white border-b border-slate-200/60 pb-16 pt-8 relative overflow-hidden">
         {/* Subtle background glow */}

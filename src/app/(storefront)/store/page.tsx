@@ -11,6 +11,20 @@ import StoreFilterToolbar from "./StoreFilterToolbar";
 import { shuffleHourly, shuffleWithSeed } from "@/lib/utils/shuffle";
 
 import { unstable_cache } from "next/cache";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Store - Browse Digital Products, Software & Tools",
+  description: "Explore our complete digital catalog: Software licenses, verified tools, courses, proxies, and digital assets with instant automatic delivery.",
+  alternates: {
+    canonical: "/store",
+  },
+  openGraph: {
+    title: "Store - Browse Digital Products, Software & Tools | Asia D Market",
+    description: "Explore our complete digital catalog with instant delivery and secure payment.",
+    url: "/store",
+  },
+};
 
 const getCachedProducts = unstable_cache(
   async (category: string | undefined, q: string | undefined, needsFieldValues: boolean, whereClause: any) => {

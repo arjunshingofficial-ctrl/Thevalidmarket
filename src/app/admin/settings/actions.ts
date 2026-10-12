@@ -62,3 +62,27 @@ export async function updateGeneralSettings(formData: FormData) {
   revalidatePath("/store");
   revalidatePath("/admin/dashboard");
 }
+
+export async function updateGlobalSEOSettings(formData: FormData) {
+  const siteName = formData.get("siteName")?.toString() || "Asia D Market";
+  const siteDescription = formData.get("siteDescription")?.toString() || "";
+  const defaultOgImage = formData.get("defaultOgImage")?.toString() || "";
+
+  let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+  if (!settings) {
+    settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
+  }
+
+  await prisma.siteSettings.update({
+    where: { id: "GLOBAL" },
+    data: {
+      siteName,
+      siteDescription,
+      defaultOgImage,
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/admin/settings/seo");
+}
