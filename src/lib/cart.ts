@@ -84,6 +84,15 @@ export function addToCart(newItem: Omit<CartItem, 'quantity'> & { quantity?: num
   }
   
   saveCart(cart);
+  if (typeof window !== "undefined") {
+    try {
+      window.dispatchEvent(new CustomEvent("item-added-to-cart", { 
+        detail: { item: { ...newItem, quantity: newItem.quantity || 1 } } 
+      }));
+    } catch {
+      // Fallback in older environments
+    }
+  }
 }
 
 export function updateQuantity(id: string, quantity: number) {

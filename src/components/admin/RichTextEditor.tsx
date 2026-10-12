@@ -20,7 +20,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import CharacterCount from "@tiptap/extension-character-count";
-import { Extension, Node as TipTapNode, mergeAttributes } from "@tiptap/core";
+import { Extension, Node as TipTapNode, Mark, mergeAttributes } from "@tiptap/core";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 import {
@@ -35,7 +35,7 @@ import {
   Lightbulb, CheckCircle, AlertTriangle, Columns, Grid3X3,
   Pilcrow, Palette, Type, LayoutGrid, Plus, Trash2,
   PanelTop, Image as ImgIcon, Sparkles, Smartphone, Monitor,
-  HelpCircle, ShieldCheck, Zap
+  HelpCircle, ShieldCheck, Zap, MousePointerClick, ExternalLink
 } from "lucide-react";
 
 // ─── Custom extension: YouTube / Vimeo embed ─────────────────────────────────
@@ -99,12 +99,263 @@ const Callout = TipTapNode.create({
   },
 });
 
+// ─── Custom Action Button Node ────────────────────────────────────────────────
+const ActionButton = TipTapNode.create({
+  name: "actionButton",
+  group: "block",
+  atom: true,
+  addAttributes() {
+    return {
+      text: { default: "🚀 Buy Now" },
+      url: { default: "#" },
+      style: { default: "indigo" }, // indigo | carbon | emerald | gold | neon | outline
+      size: { default: "md" }, // sm | md | lg
+      align: { default: "center" }, // left | center | right | full
+      newTab: { default: true },
+    };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: "div[data-action-button]",
+        getAttrs: (element) => {
+          if (typeof element === "string") return false;
+          const el = element as HTMLElement;
+          const a = el.querySelector("a");
+          let style = el.getAttribute("data-style") || "indigo";
+          let size = el.getAttribute("data-size") || "md";
+          const align = el.getAttribute("data-align") || "center";
+          const text = a?.textContent || el.textContent || "Click Here";
+          const url = a?.getAttribute("href") || "#";
+          const newTab = a?.getAttribute("target") === "_blank";
+
+          if (a?.className) {
+            const mStyle = a.className.match(/btn-(indigo|carbon|emerald|gold|neon|outline)/);
+            if (mStyle) style = mStyle[1];
+            const mSize = a.className.match(/btn-(sm|md|lg)/);
+            if (mSize) size = mSize[1];
+          }
+
+          return { text, url, style, size, align, newTab };
+        },
+      },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    const align = HTMLAttributes.align || "center";
+    const style = HTMLAttributes.style || "indigo";
+    const size = HTMLAttributes.size || "md";
+    const text = HTMLAttributes.text || "Click Here";
+    const url = HTMLAttributes.url || "#";
+    const newTab = HTMLAttributes.newTab !== false;
+
+    return [
+      "div",
+      mergeAttributes({ "data-action-button": "" }, {
+        "data-style": style,
+        "data-size": size,
+        "data-align": align,
+        class: `btn-container text-${align === "full" ? "center" : align}`,
+        style: `text-align: ${align === "full" ? "center" : align}; margin: 1.5rem 0; width: 100%;`
+      }),
+      [
+        "a",
+        {
+          href: url,
+          class: `stylish-btn btn-${style} btn-${size} ${align === "full" ? "btn-full" : ""}`,
+          target: newTab ? "_blank" : "_self",
+          rel: "noopener noreferrer",
+        },
+        text
+      ]
+    ];
+  },
+  addNodeView() {
+    return ({ node }) => {
+      const wrapper = document.createElement("div");
+      wrapper.setAttribute("data-action-button", "");
+      wrapper.setAttribute("data-style", node.attrs.style || "indigo");
+      wrapper.setAttribute("data-size", node.attrs.size || "md");
+      wrapper.setAttribute("data-align", node.attrs.align || "center");
+      wrapper.setAttribute("contenteditable", "false");
+      const align = node.attrs.align || "center";
+      wrapper.style.cssText = `text-align: ${align === "full" ? "center" : align}; margin: 1.5rem 0; width: 100%;`;
+
+      const btn = document.createElement("a");
+      btn.href = node.attrs.url || "#";
+      btn.className = `stylish-btn btn-${node.attrs.style || "indigo"} btn-${node.attrs.size || "md"} ${align === "full" ? "btn-full" : ""}`;
+      btn.textContent = node.attrs.text || "Click Here";
+      if (node.attrs.newTab !== false) {
+        btn.target = "_blank";
+        btn.rel = "noopener noreferrer";
+      }
+
+      wrapper.appendChild(btn);
+      return { dom: wrapper };
+    };
+  },
+});
+
+// ─── Custom Table Cell & Header (Preserves Highlight & Styling Classes) ──────
+const CustomTableCell = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: element => element.getAttribute("class"),
+        renderHTML: attributes => (attributes.class ? { class: attributes.class } : {}),
+      },
+      style: {
+        default: null,
+        parseHTML: element => element.getAttribute("style"),
+        renderHTML: attributes => (attributes.style ? { style: attributes.style } : {}),
+      },
+    };
+  },
+});
+
+const CustomTableHeader = TableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: element => element.getAttribute("class"),
+        renderHTML: attributes => (attributes.class ? { class: attributes.class } : {}),
+      },
+      style: {
+        default: null,
+        parseHTML: element => element.getAttribute("style"),
+        renderHTML: attributes => (attributes.style ? { style: attributes.style } : {}),
+      },
+    };
+  },
+});
+
+// ─── Custom Span Mark (Preserves Status Badges & Pill Classes) ────────────────
+const CustomSpan = Mark.create({
+  name: "customSpan",
+  addAttributes() {
+    return {
+      class: {
+        default: null,
+        parseHTML: element => element.getAttribute("class"),
+        renderHTML: attributes => (attributes.class ? { class: attributes.class } : {}),
+      },
+      style: {
+        default: null,
+        parseHTML: element => element.getAttribute("style"),
+        renderHTML: attributes => (attributes.style ? { style: attributes.style } : {}),
+      },
+    };
+  },
+  parseHTML() {
+    return [
+      {
+        tag: "span",
+        getAttrs: element => {
+          if (typeof element === "string") return false;
+          return element.hasAttribute("class") || element.hasAttribute("style") ? {} : false;
+        },
+      },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["span", mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+// ─── Custom Details & Summary (FAQ Accordions) ────────────────────────────────
+const Details = TipTapNode.create({
+  name: "details",
+  group: "block",
+  content: "summary block+",
+  defining: true,
+  addAttributes() {
+    return {
+      open: {
+        default: true,
+        parseHTML: element => element.hasAttribute("open"),
+        renderHTML: attributes => (attributes.open ? { open: "" } : {}),
+      },
+    };
+  },
+  parseHTML() { return [{ tag: "details" }]; },
+  renderHTML({ HTMLAttributes }) {
+    return ["details", mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+const Summary = TipTapNode.create({
+  name: "summary",
+  group: "block",
+  content: "inline*",
+  defining: true,
+  parseHTML() { return [{ tag: "summary" }]; },
+  renderHTML({ HTMLAttributes }) {
+    return ["summary", mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+// ─── Custom Visual Grid & Card Nodes ──────────────────────────────────────────
+const VisualGrid = TipTapNode.create({
+  name: "visualGrid",
+  group: "block",
+  content: "block+",
+  defining: true,
+  isolating: true,
+  addAttributes() {
+    return {
+      cols: { default: "3" },
+    };
+  },
+  parseHTML() {
+    return [
+      { tag: "div[data-visual-grid]" },
+      {
+        tag: "div",
+        getAttrs: element => {
+          if (typeof element === "string") return false;
+          const el = element as HTMLElement;
+          if (el.className?.includes("visual-grid") || (el.style.display === "grid" && el.querySelector(".stat-card, [data-visual-card]"))) {
+            return {};
+          }
+          return false;
+        },
+      },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes({ "data-visual-grid": "" }, HTMLAttributes), 0];
+  },
+});
+
+const VisualCard = TipTapNode.create({
+  name: "visualCard",
+  group: "block",
+  content: "block+",
+  defining: true,
+  isolating: true,
+  parseHTML() {
+    return [
+      { tag: "div[data-visual-card]" },
+      { tag: "div.stat-card", getAttrs: () => ({}) },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes({ "data-visual-card": "" }, HTMLAttributes), 0];
+  },
+});
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface RichTextEditorProps {
   name: string;
   defaultValue?: string;
   placeholder?: string;
+  onChange?: (html: string) => void;
 }
+
 
 type CalloutType = "info" | "warning" | "success" | "tip" | "error";
 const CALLOUT_STYLES: Record<CalloutType, { bg: string; border: string; icon: React.ReactNode; label: string }> = {
@@ -451,77 +702,183 @@ function HtmlModal({ html, onApply, onClose }: { html: string; onApply: (html: s
 // ─── Templates Definition ──────────────────────────────────────────────────
 const PRODUCT_TEMPLATES = [
   {
-    id: "software",
-    title: "Software & Digital Tools",
-    icon: "💻",
-    description: "Overview, 3-column features, specifications table, setup guide, and FAQs.",
-    html: `<h2>🚀 Overview & Core Highlights</h2>
-<p>Get instant access to this high-performance software designed to streamline your workflow and deliver unmatched reliability.</p>
+    id: "subscription",
+    title: "Subscription, Account & VPN",
+    icon: "🔑",
+    description: "Visual stat cards, plan comparison table, rules table, FAQs, and stylish CTA buttons.",
+    html: `<h2>⭐ Premium Subscription Details</h2>
+<p>Unlock uninterrupted premium access with our verified subscription accounts. Enjoy high-speed performance, 4K streaming quality, and maximum privacy.</p>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin:1.5rem 0">
-  <div style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
-    <div style="font-size:1.5rem;margin-bottom:0.5rem">⚡</div>
-    <h4 style="font-weight:700;margin:0 0 0.25rem">High Performance</h4>
-    <p style="font-size:0.875rem;color:#64748b;margin:0">Engineered for speed, efficiency, and minimal resource consumption.</p>
+<div data-visual-grid="">
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">⚡</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#6366f1;margin:0 0 0.25rem">Instant Delivery</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Automated credentials dispatch in &lt;60s</p>
   </div>
-  <div style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
-    <div style="font-size:1.5rem;margin-bottom:0.5rem">🛡️</div>
-    <h4 style="font-weight:700;margin:0 0 0.25rem">100% Virus-Free & Safe</h4>
-    <p style="font-size:0.875rem;color:#64748b;margin:0">Clean files verified and tested prior to immediate delivery.</p>
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">🔒</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#10b981;margin:0 0 0.25rem">100% Private</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Genuine personal uninterrupted account</p>
   </div>
-  <div style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
-    <div style="font-size:1.5rem;margin-bottom:0.5rem">🔄</div>
-    <h4 style="font-weight:700;margin:0 0 0.25rem">Regular Updates</h4>
-    <p style="font-size:0.875rem;color:#64748b;margin:0">Receive continuous updates and improvements through your dashboard.</p>
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">🛡️</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#f59e0b;margin:0 0 0.25rem">24/7 Warranty</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Instant replacement support anytime</p>
   </div>
 </div>
 
-<h2>📋 System Requirements & Compatibility</h2>
+<div data-action-button="" data-style="indigo" data-size="lg" data-align="center">
+  <a href="#" class="stylish-btn btn-indigo btn-lg">⚡ Get Instant Subscription Access</a>
+</div>
+
+<h2>📊 Subscription Plans &amp; Features Comparison</h2>
 <table>
   <thead>
     <tr>
-      <th>Specification</th>
+      <th>Feature &amp; Benefit</th>
+      <th>Standard Tier</th>
+      <th class="highlight">⭐ Premium VIP Tier</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Streaming &amp; Connection Quality</td>
+      <td>Full HD 1080p</td>
+      <td class="highlight"><span class="badge-speed">⚡ Ultra 4K HDR + Dolby</span></td>
+    </tr>
+    <tr>
+      <td>Simultaneous Device Screens</td>
+      <td>1 Device</td>
+      <td class="highlight"><span class="badge-vip">⭐ Up to 4 Screens</span></td>
+    </tr>
+    <tr>
+      <td>Ad-Free Experience</td>
+      <td><span class="badge-check">✅ Included</span></td>
+      <td class="highlight"><span class="badge-check">✅ 100% Zero Ads</span></td>
+    </tr>
+    <tr>
+      <td>Offline Downloads</td>
+      <td>Limited (5 items)</td>
+      <td class="highlight"><span class="badge-vip">⭐ Unlimited Offline</span></td>
+    </tr>
+    <tr>
+      <td>Replacement Warranty</td>
+      <td>Standard 30 Days</td>
+      <td class="highlight"><span class="badge-check">✅ Full Period Guaranteed</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>📌 Usage Guidelines &amp; Account Rules</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Allowed Guidelines ✅</th>
+      <th>Prohibited Actions ❌</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="badge-check">✅</span> Login on allowed device count</td>
+      <td><span class="badge-cross">❌</span> Do NOT change account email or profile password</td>
+    </tr>
+    <tr>
+      <td><span class="badge-check">✅</span> Download content for personal offline viewing</td>
+      <td><span class="badge-cross">❌</span> Do NOT share login credentials publicly</td>
+    </tr>
+    <tr>
+      <td><span class="badge-check">✅</span> Enjoy all premium library titles without restriction</td>
+      <td><span class="badge-cross">❌</span> Do NOT add extra unauthorized payment methods</td>
+    </tr>
+  </tbody>
+</table>
+
+<div data-action-button="" data-style="emerald" data-size="md" data-align="center">
+  <a href="#" class="stylish-btn btn-emerald btn-md">💬 24/7 WhatsApp &amp; Telegram Support</a>
+</div>
+
+<h2>❓ Frequently Asked Questions</h2>
+<details open="">
+  <summary>How fast will I receive my account credentials?</summary>
+  <p>Delivery is 100% automated. Your login credentials and instructions will appear immediately on the order confirmation screen and in your email within 60 seconds of checkout.</p>
+</details>
+<details>
+  <summary>What should I do if my account ever experiences an issue?</summary>
+  <p>You are fully covered by our comprehensive replacement guarantee. Simply message our 24/7 priority live support with your order number for an immediate replacement.</p>
+</details>`
+  },
+  {
+    id: "software",
+    title: "Software & Digital Tools",
+    icon: "💻",
+    description: "Overview, visual feature cards, specifications table, setup guide, and action buttons.",
+    html: `<h2>🚀 Overview &amp; Core Highlights</h2>
+<p>Get instant access to this high-performance software designed to streamline your workflow and deliver unmatched reliability.</p>
+
+<div data-visual-grid="">
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">⚡</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#6366f1;margin:0 0 0.25rem">High Performance</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Engineered for speed, low CPU usage, and high throughput.</p>
+  </div>
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">🛡️</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#10b981;margin:0 0 0.25rem">100% Clean &amp; Safe</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">VirusTotal checked and tested prior to immediate dispatch.</p>
+  </div>
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">🔄</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#f59e0b;margin:0 0 0.25rem">Continuous Updates</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Receive all new builds and patches through your client dashboard.</p>
+  </div>
+</div>
+
+<div data-action-button="" data-style="carbon" data-size="lg" data-align="center">
+  <a href="#" class="stylish-btn btn-carbon btn-lg">🚀 Download Software &amp; Get Activation Key</a>
+</div>
+
+<h2>📋 System Requirements &amp; Compatibility</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Specification Parameter</th>
       <th>Minimum Requirement</th>
-      <th>Recommended</th>
+      <th class="highlight">⭐ Recommended Setup</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>Operating System</td>
       <td>Windows 10 / macOS 11+</td>
-      <td>Windows 11 / macOS 14+</td>
+      <td class="highlight"><span class="badge-vip">Windows 11 / macOS 14+</span></td>
     </tr>
     <tr>
-      <td>RAM</td>
+      <td>Memory (RAM)</td>
       <td>4 GB</td>
-      <td>8 GB or higher</td>
+      <td class="highlight"><span class="badge-speed">8 GB or higher</span></td>
     </tr>
     <tr>
       <td>Internet Connection</td>
       <td>Required for activation</td>
-      <td>Stable broadband connection</td>
+      <td class="highlight"><span class="badge-check">Stable Broadband</span></td>
+    </tr>
+    <tr>
+      <td>License Validity</td>
+      <td>Single Machine Key</td>
+      <td class="highlight"><span class="badge-gold">⭐ Lifetime Key + Free Updates</span></td>
     </tr>
   </tbody>
 </table>
 
 <h2>🛠️ Quick 3-Step Setup Guide</h2>
-<div style="margin:1.5rem 0">
-  <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem">
-    <div style="width:2rem;height:2rem;background:#6366f1;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">1</div>
-    <div><h4 style="margin:0 0 0.25rem;font-weight:700">Download the Files</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Grab the installer instantly from your order confirmation email or dashboard.</p></div>
-  </div>
-  <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem">
-    <div style="width:2rem;height:2rem;background:#6366f1;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">2</div>
-    <div><h4 style="margin:0 0 0.25rem;font-weight:700">Install & Enter License</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Run the setup wizard and paste your genuine activation key.</p></div>
-  </div>
-  <div style="display:flex;align-items:flex-start;gap:1rem">
-    <div style="width:2rem;height:2rem;background:#6366f1;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">3</div>
-    <div><h4 style="margin:0 0 0.25rem;font-weight:700">Ready to Use</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Enjoy all premium features unlocked with peace of mind.</p></div>
-  </div>
-</div>
+<ol style="padding-left:1.5rem;line-height:2">
+  <li><strong>Download the Installer:</strong> Click your secure order link to grab the latest official installer.</li>
+  <li><strong>Launch &amp; Enter Key:</strong> Open the setup wizard and paste your genuine Asia D Market license key.</li>
+  <li><strong>Ready to Use:</strong> Enjoy all pro features fully unlocked with 100% working guarantee.</li>
+</ol>
 
 <h2>❓ Frequently Asked Questions</h2>
-<details open>
+<details open="">
   <summary>How fast will I receive the license key?</summary>
   <p>Delivery is fully automated. You will receive your license key and download link instantly after checkout.</p>
 </details>
@@ -530,137 +887,134 @@ const PRODUCT_TEMPLATES = [
   <p>Yes, your license can be deactivated and transferred to another computer anytime via customer support.</p>
 </details>
 
-<div data-callout="success" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#f0fdf4;border-left:4px solid #22c55e">
-  <p style="margin:0;font-weight:600;color:#166534">🔒 100% Working Guarantee</p>
-  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#15803d">If your key fails to activate or you experience any issues, our 24/7 team will replace it immediately.</p>
+<div data-callout="success">
+  <p style="margin:0;font-weight:700;color:#166534">🔒 100% Working Guarantee</p>
+  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#15803d">If your key fails to activate or you experience any technical difficulties, our 24/7 team will replace it immediately.</p>
 </div>`
   },
   {
     id: "course",
     title: "Video Course & Masterclass",
     icon: "🎓",
-    description: "Course curriculum, key learning outcomes, syllabus breakdown, and guarantees.",
+    description: "Curriculum breakdown table, learning outcomes, guarantee box, and enroll button.",
     html: `<h2>🎯 Masterclass Overview</h2>
 <p>Transform your expertise with this step-by-step masterclass packed with actionable insights, real-world projects, and downloadable resources.</p>
 
-<h2>✨ What You Will Master</h2>
-<ul style="padding-left:1.5rem;line-height:1.8">
-  <li>Fundamental concepts and core foundations explained clearly</li>
-  <li>Advanced techniques used by top industry professionals</li>
-  <li>Live walkthroughs and hands-on practical exercises</li>
-  <li>Time-saving shortcuts, workflows, and insider secrets</li>
-  <li>Full access to downloadable templates and project files</li>
-</ul>
+<div data-visual-grid="">
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">⏱️</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#6366f1;margin:0 0 0.25rem">12+ Hours Content</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Comprehensive modules with high-def video</p>
+  </div>
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">📁</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#10b981;margin:0 0 0.25rem">Project Files</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Downloadable templates &amp; cheatsheets</p>
+  </div>
+  <div data-visual-card="">
+    <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">🎓</p>
+    <h3 style="font-size:1.15rem;font-weight:800;color:#f59e0b;margin:0 0 0.25rem">Lifetime Access</h3>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Watch anytime on desktop, tablet, or phone</p>
+  </div>
+</div>
 
-<h2>📚 Course Syllabus & Modules</h2>
+<div data-action-button="" data-style="indigo" data-size="lg" data-align="center">
+  <a href="#" class="stylish-btn btn-indigo btn-lg">🎓 Enroll Now &amp; Get Lifetime Access</a>
+</div>
+
+<h2>📚 Course Syllabus &amp; Modules</h2>
 <table>
   <thead>
     <tr>
       <th>Module</th>
-      <th>Topics Covered</th>
+      <th>Key Topics Covered</th>
       <th>Format</th>
+      <th>Access</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>Module 1: Foundations</td>
       <td>Setup, key terminology, and essential tools</td>
-      <td>Video + PDF Guide</td>
+      <td><span class="badge-vip">Video + PDF</span></td>
+      <td><span class="badge-check">✅ Unlocked</span></td>
     </tr>
     <tr>
-      <td>Module 2: Core Practical Work</td>
-      <td>Step-by-step execution and live demonstrations</td>
-      <td>Interactive Video</td>
+      <td>Module 2: Practical Execution</td>
+      <td>Step-by-step live demonstrations and real projects</td>
+      <td><span class="badge-speed">Interactive Video</span></td>
+      <td><span class="badge-check">✅ Unlocked</span></td>
     </tr>
     <tr>
-      <td>Module 3: Advanced Strategies</td>
-      <td>Scaling up, automation, and maximizing results</td>
-      <td>Video + Source Files</td>
+      <td>Module 3: Advanced Scaling</td>
+      <td>Automation workflows, optimization, and insider secrets</td>
+      <td><span class="badge-gold">Video + Source Code</span></td>
+      <td><span class="badge-check">✅ Unlocked</span></td>
     </tr>
   </tbody>
 </table>
 
-<div data-callout="info" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#eff6ff;border-left:4px solid #3b82f6">
-  <p style="margin:0;font-weight:600;color:#1e40af">🎓 Lifetime Access & Continuous Updates Included</p>
-  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#1d4ed8">Enroll once and access anytime from desktop, tablet, or mobile. Future curriculum updates are included at no extra charge.</p>
+<div data-callout="info">
+  <p style="margin:0;font-weight:700;color:#1e40af">🎓 Lifetime Access &amp; Continuous Curriculum Updates</p>
+  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#1d4ed8">Enroll once and access anytime. All future curriculum updates, new modules, and bonus materials are included automatically.</p>
 </div>`
-  },
-  {
-    id: "subscription",
-    title: "Subscription, Account & VPN",
-    icon: "🔑",
-    description: "Account specs, stat cards, dos & don'ts rules, and replacement warranty.",
-    html: `<h2>⭐ Premium Subscription Details</h2>
-<p>Unlock uninterrupted premium access with our verified subscription accounts. Enjoy high-speed performance and maximum privacy.</p>
-
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;margin:1.5rem 0">
-  <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
-    <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#6366f1">⚡ Instant</div>
-    <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Automated Delivery</div>
-  </div>
-  <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
-    <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#22c55e">100%</div>
-    <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Private & Secure</div>
-  </div>
-  <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
-    <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#f59e0b">24/7</div>
-    <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Replacement Warranty</div>
-  </div>
-</div>
-
-<h2>📌 Account Rules & Guidelines</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0">
-  <div style="padding:1rem;background:#f0fdf4;border-left:4px solid #22c55e;border-radius:8px">
-    <h4 style="color:#16a34a;margin:0 0 0.5rem;font-weight:700">✅ Allowed</h4>
-    <ul style="margin:0;padding-left:1.25rem;font-size:0.875rem">
-      <li>Login on allowed device count</li>
-      <li>Use for personal streaming or browsing</li>
-      <li>Download content for offline use</li>
-    </ul>
-  </div>
-  <div style="padding:1rem;background:#fef2f2;border-left:4px solid #ef4444;border-radius:8px">
-    <h4 style="color:#dc2626;margin:0 0 0.5rem;font-weight:700">❌ Prohibited</h4>
-    <ul style="margin:0;padding-left:1.25rem;font-size:0.875rem">
-      <li>Do not change account email or password</li>
-      <li>Do not share credentials publicly</li>
-    </ul>
-  </div>
-</div>
-
-<h2>❓ Frequently Asked Questions</h2>
-<details open>
-  <summary>How will I receive the account details?</summary>
-  <p>The login credentials and setup instructions are sent directly to your email and order screen right after payment.</p>
-</details>
-<details>
-  <summary>What should I do if the account stops working?</summary>
-  <p>Our warranty covers the entire duration of your plan. Contact our 24/7 support anytime for an immediate replacement.</p>
-</details>`
   },
   {
     id: "gaming",
     title: "Game Keys & Gift Cards",
     icon: "🎮",
-    description: "Region warnings, platform activation steps, and buyer security assurance.",
+    description: "Region compatibility notice, platform specs table, redemption steps, and CTA button.",
     html: `<h2>🎮 Product Overview</h2>
 <p>Purchase genuine, region-verified digital activation codes with zero wait time. Codes are sourced directly from authorized channels.</p>
 
-<div data-callout="warning" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#fffbeb;border-left:4px solid #f59e0b">
-  <p style="margin:0;font-weight:600;color:#b45309">⚠️ Region Compatibility Notice</p>
+<div data-callout="warning">
+  <p style="margin:0;font-weight:700;color:#b45309">⚠️ Region Compatibility Notice</p>
   <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#92400e">Please ensure your account country matches before redemption. Digital keys once delivered cannot be returned if purchased for an incompatible region.</p>
 </div>
 
+<div data-action-button="" data-style="gold" data-size="lg" data-align="center">
+  <a href="#" class="stylish-btn btn-gold btn-lg">🎮 Redeem Digital Code Now</a>
+</div>
+
+<h2>📋 Platform Compatibility &amp; Requirements</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Platform Requirement</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Platform</td>
+      <td>Steam / Epic Games / PlayStation / Xbox</td>
+      <td><span class="badge-check">✅ Verified</span></td>
+    </tr>
+    <tr>
+      <td>Region Lock</td>
+      <td>Worldwide / Global</td>
+      <td><span class="badge-gold">🌍 Global</span></td>
+    </tr>
+    <tr>
+      <td>Delivery Format</td>
+      <td>16-Digit Genuine Activation Code</td>
+      <td><span class="badge-speed">⚡ Automated Instant</span></td>
+    </tr>
+  </tbody>
+</table>
+
 <h2>🚀 Step-by-Step Activation Instructions</h2>
-<ol style="padding-left:1.5rem;line-height:1.8">
+<ol style="padding-left:1.5rem;line-height:2">
   <li>Log in to your platform account (Steam, Epic Games, PlayStation, Xbox, etc.).</li>
   <li>Navigate to <strong>Activate a Product Code</strong> or <strong>Redeem Code</strong>.</li>
   <li>Enter your unique code received from Asia D Market.</li>
   <li>Confirm activation and start downloading your game immediately!</li>
 </ol>
 
-<div data-callout="success" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#f0fdf4;border-left:4px solid #22c55e">
-  <p style="margin:0;font-weight:600;color:#166534">✅ 100% Genuine Working Key</p>
-  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#15803d">Every code is verified unused before delivery. Instant delivery guaranteed 24 hours a day.</p>
+<div data-callout="success">
+  <p style="margin:0;font-weight:700;color:#166534">✅ 100% Genuine Working Key Guarantee</p>
+  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#15803d">Every code is verified unused before delivery. Instant automated delivery guaranteed 24 hours a day.</p>
 </div>`
   }
 ];
@@ -879,13 +1233,232 @@ function TableModal({ onInsert, onClose }: { onInsert: (rows: number, cols: numb
   );
 }
 
+// ─── Stylish Button Modal ───────────────────────────────────────────────────
+interface ButtonModalProps {
+  onInsert: (data: {
+    text: string;
+    url: string;
+    style: "indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline";
+    size: "sm" | "md" | "lg";
+    align: "left" | "center" | "right" | "full";
+    newTab: boolean;
+  }) => void;
+  onClose: () => void;
+}
+
+function ButtonModal({ onInsert, onClose }: ButtonModalProps) {
+  const [text, setText] = useState("🚀 Get Instant Access");
+  const [url, setUrl] = useState("#");
+  const [style, setStyle] = useState<"indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline">("indigo");
+  const [size, setSize] = useState<"sm" | "md" | "lg">("md");
+  const [align, setAlign] = useState<"left" | "center" | "right" | "full">("center");
+  const [newTab, setNewTab] = useState(true);
+
+  const PRESETS = [
+    { label: "🚀 Buy Now", text: "🚀 Buy Now" },
+    { label: "⚡ Instant Access", text: "⚡ Get Instant Access" },
+    { label: "💬 WhatsApp Support", text: "💬 24/7 WhatsApp Support" },
+    { label: "📥 Download Setup", text: "📥 Download Installer & Guide" },
+    { label: "🔑 Claim Key", text: "🔑 Claim Genuine License Key" },
+    { label: "⭐ View Demo", text: "⭐ Watch Live Demo" },
+  ];
+
+  const STYLES: { id: "indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline"; name: string; desc: string; previewClass: string }[] = [
+    { id: "indigo", name: "Royal Indigo", desc: "Purple/Indigo glow", previewClass: "bg-gradient-to-r from-indigo-600 to-purple-600 text-white" },
+    { id: "carbon", name: "Midnight Carbon", desc: "Obsidian dark", previewClass: "bg-slate-900 text-white border border-slate-700" },
+    { id: "emerald", name: "Emerald Verified", desc: "Trust green gradient", previewClass: "bg-gradient-to-r from-emerald-600 to-teal-600 text-white" },
+    { id: "gold", name: "Cyber Gold", desc: "Luxury amber gold", previewClass: "bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-extrabold" },
+    { id: "neon", name: "Neon Violet", desc: "Electric pink/violet", previewClass: "bg-gradient-to-r from-pink-500 to-purple-600 text-white" },
+    { id: "outline", name: "Frosted Outline", desc: "Clean dark outline", previewClass: "bg-white text-slate-900 border-2 border-slate-900" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 rounded-lg text-primary">
+              <MousePointerClick className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Insert Stylish Action Button (CTA)</h3>
+              <p className="text-xs text-slate-500">Design high-converting buttons for checkout, downloads, and chat.</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Live Button Preview Box */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">Live Button Preview</label>
+            <div className="p-6 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center min-h-[90px]">
+              <div className={`w-full flex ${align === "left" ? "justify-start" : align === "right" ? "justify-end" : "justify-center"}`}>
+                <span className={`stylish-btn btn-${style} btn-${size} ${align === "full" ? "btn-full" : ""}`}>
+                  {text || "Button Label"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick presets */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">Quick Presets</label>
+            <div className="flex flex-wrap gap-1.5">
+              {PRESETS.map(p => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setText(p.text)}
+                  className="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-medium border border-slate-200/80"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Label & URL */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1">Button Label *</label>
+              <input
+                type="text"
+                value={text}
+                onChange={e => setText(e.target.value)}
+                placeholder="e.g. 🚀 Buy Now"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1">Target Link / URL *</label>
+              <input
+                type="text"
+                value={url}
+                onChange={e => setUrl(e.target.value)}
+                placeholder="e.g. #checkout or https://wa.me/..."
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+          </div>
+
+          {/* Style Themes */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-2">Style Theme</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {STYLES.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setStyle(s.id)}
+                  className={`p-2.5 rounded-xl border text-left transition-all ${
+                    style === s.id
+                      ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <div className={`w-full py-1.5 px-2 rounded-lg text-xs text-center font-bold mb-1.5 ${s.previewClass}`}>
+                    Demo
+                  </div>
+                  <div className="text-xs font-bold text-slate-800">{s.name}</div>
+                  <div className="text-[10px] text-slate-400 leading-tight">{s.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Size & Alignment */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1">Button Size</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {[
+                  { id: "sm", label: "Small" },
+                  { id: "md", label: "Medium" },
+                  { id: "lg", label: "Large" },
+                ].map(sz => (
+                  <button
+                    key={sz.id}
+                    type="button"
+                    onClick={() => setSize(sz.id as any)}
+                    className={`py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                      size === sz.id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {sz.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1">Alignment</label>
+              <div className="grid grid-cols-4 gap-1">
+                {[
+                  { id: "left", label: "Left" },
+                  { id: "center", label: "Center" },
+                  { id: "right", label: "Right" },
+                  { id: "full", label: "Full" },
+                ].map(al => (
+                  <button
+                    key={al.id}
+                    type="button"
+                    onClick={() => setAlign(al.id as any)}
+                    className={`py-1.5 text-xs rounded-lg border font-medium transition-colors ${
+                      align === al.id ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {al.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* New Tab */}
+          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={newTab}
+              onChange={e => setNewTab(e.target.checked)}
+              className="rounded border-slate-300 text-primary focus:ring-primary"
+            />
+            <span>Open in new tab (recommended for external links)</span>
+          </label>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-slate-50">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border hover:bg-slate-100 transition-colors">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={!text}
+            onClick={() => {
+              onInsert({ text, url: url || "#", style, size, align, newTab });
+              onClose();
+            }}
+            className="flex items-center gap-1.5 px-5 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 font-medium transition-all shadow-sm disabled:opacity-50"
+          >
+            <MousePointerClick className="w-4 h-4" /> Insert Stylish Button
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function RichTextEditor({ name, defaultValue = "", placeholder }: RichTextEditorProps) {
+
+export default function RichTextEditor({ name, defaultValue = "", placeholder, onChange }: RichTextEditorProps) {
   const [showImage, setShowImage] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [showLink, setShowLink] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
   const [showTable, setShowTable] = useState(false);
+  const [showButtonModal, setShowButtonModal] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -909,8 +1482,9 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
       Link.configure({ openOnClick: false, HTMLAttributes: { rel: "noopener noreferrer" } }),
       Table.configure({ resizable: true }),
       TableRow,
-      TableHeader,
-      TableCell,
+      CustomTableHeader,
+      CustomTableCell,
+      CustomSpan,
       TaskList,
       TaskItem.configure({ nested: true }),
       Subscript,
@@ -918,6 +1492,11 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
       CharacterCount,
       VideoEmbed,
       Callout,
+      Details,
+      Summary,
+      ActionButton,
+      VisualGrid,
+      VisualCard,
     ],
     content: defaultValue || "",
     immediatelyRender: false,
@@ -932,6 +1511,7 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
       if (hiddenRef.current) hiddenRef.current.value = html;
       const text = editor.getText();
       setWordCount(text.split(/\s+/).filter(Boolean).length);
+      onChange?.(html);
     },
   });
 
@@ -970,32 +1550,236 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
     editor?.chain().focus().insertTable({ rows, cols, withHeaderRow: header }).run();
   }, [editor]);
 
-  const insertTwoCol = useCallback(() => {
+  const insertActionButton = useCallback((data: {
+    text: string;
+    url: string;
+    style: "indigo" | "carbon" | "emerald" | "gold" | "neon" | "outline";
+    size: "sm" | "md" | "lg";
+    align: "left" | "center" | "right" | "full";
+    newTab: boolean;
+  }) => {
+    editor?.chain().focus().insertContent({
+      type: "actionButton",
+      attrs: data,
+    }).run();
+  }, [editor]);
+
+  const insertComparisonTable = useCallback(() => {
     editor?.chain().focus().insertContent(`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:1.5rem 0">
-        <div style="padding:1rem;border:1px solid #e2e8f0;border-radius:8px"><p>Left column content</p></div>
-        <div style="padding:1rem;border:1px solid #e2e8f0;border-radius:8px"><p>Right column content</p></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Features &amp; Benefits</th>
+            <th>Standard Plan</th>
+            <th class="highlight">⭐ Premium VIP Tier</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Resolution &amp; Streaming</td>
+            <td>Full HD 1080p</td>
+            <td class="highlight"><span class="badge-speed">⚡ Ultra 4K HDR</span></td>
+          </tr>
+          <tr>
+            <td>Simultaneous Devices</td>
+            <td>1 Screen</td>
+            <td class="highlight"><span class="badge-vip">⭐ Up to 4 Screens</span></td>
+          </tr>
+          <tr>
+            <td>Ad-Free Experience</td>
+            <td><span class="badge-check">✅ Included</span></td>
+            <td class="highlight"><span class="badge-check">✅ 100% Zero Ads</span></td>
+          </tr>
+          <tr>
+            <td>Offline Downloads</td>
+            <td>Limited</td>
+            <td class="highlight"><span class="badge-vip">⭐ Unlimited Offline</span></td>
+          </tr>
+          <tr>
+            <td>Replacement Warranty</td>
+            <td>Standard 30 Days</td>
+            <td class="highlight"><span class="badge-check">✅ Full Period Guaranteed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    `).run();
+  }, [editor]);
+
+  const insertSpecsTable = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <table>
+        <thead>
+          <tr>
+            <th>Specification Parameter</th>
+            <th>Minimum Requirement</th>
+            <th class="highlight">⭐ Recommended Setup</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Operating System</td>
+            <td>Windows 10 / macOS 11+</td>
+            <td class="highlight"><span class="badge-vip">Windows 11 / macOS 14+</span></td>
+          </tr>
+          <tr>
+            <td>Memory (RAM)</td>
+            <td>4 GB</td>
+            <td class="highlight"><span class="badge-speed">8 GB or higher</span></td>
+          </tr>
+          <tr>
+            <td>Internet Connection</td>
+            <td>Required for activation</td>
+            <td class="highlight"><span class="badge-check">Stable Broadband</span></td>
+          </tr>
+          <tr>
+            <td>License Validity</td>
+            <td>Single Machine Key</td>
+            <td class="highlight"><span class="badge-gold">⭐ Lifetime Key + Free Updates</span></td>
+          </tr>
+        </tbody>
+      </table>
+    `).run();
+  }, [editor]);
+
+  const insertPricingTable = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <table>
+        <thead>
+          <tr>
+            <th>Plan Tier</th>
+            <th>Duration</th>
+            <th>Included Features</th>
+            <th class="highlight">⭐ Pricing &amp; Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1 Month Plan</strong></td>
+            <td>30 Days</td>
+            <td>1 Device · Automated Instant dispatch</td>
+            <td class="highlight">Standard Price</td>
+          </tr>
+          <tr>
+            <td><strong>3 Months Plan</strong></td>
+            <td>90 Days</td>
+            <td>2 Devices · Priority live support</td>
+            <td class="highlight"><span class="badge-speed">Save 20%</span></td>
+          </tr>
+          <tr>
+            <td><strong>1 Year VIP Plan</strong></td>
+            <td>365 Days</td>
+            <td>4 Devices · VIP replacement warranty</td>
+            <td class="highlight"><span class="badge-gold">⭐ Best Value · Save 50%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    `).run();
+  }, [editor]);
+
+  const insertRulesTable = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <table>
+        <thead>
+          <tr>
+            <th>Allowed Guidelines ✅</th>
+            <th>Prohibited Actions ❌</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge-check">✅</span> Login on allowed device count</td>
+            <td><span class="badge-cross">❌</span> Do NOT change account email or password</td>
+          </tr>
+          <tr>
+            <td><span class="badge-check">✅</span> Download content for personal offline viewing</td>
+            <td><span class="badge-cross">❌</span> Do NOT share login credentials publicly</td>
+          </tr>
+          <tr>
+            <td><span class="badge-check">✅</span> Enjoy all premium library titles without restriction</td>
+            <td><span class="badge-cross">❌</span> Do NOT add unauthorized payment methods</td>
+          </tr>
+        </tbody>
+      </table>
+    `).run();
+  }, [editor]);
+
+  const insertBadge = useCallback((badgeClass: string, label: string) => {
+    editor?.chain().focus().insertContent(`<span class="${badgeClass}">${label}</span> `).run();
+  }, [editor]);
+
+  const toggleCellHighlight = useCallback(() => {
+    if (!editor) return;
+    const isHeader = editor.isActive("tableHeader");
+    const isCell = editor.isActive("tableCell");
+    if (!isHeader && !isCell) return;
+
+    const currentClass = isHeader
+      ? editor.getAttributes("tableHeader").class || ""
+      : editor.getAttributes("tableCell").class || "";
+
+    const hasHighlight = currentClass.includes("highlight");
+    const nextClass = hasHighlight
+      ? currentClass.replace(/\bhighlight\b/, "").trim() || null
+      : `${currentClass} highlight`.trim();
+
+    if (isHeader) {
+      editor.chain().focus().updateAttributes("tableHeader", { class: nextClass }).run();
+    } else {
+      editor.chain().focus().updateAttributes("tableCell", { class: nextClass }).run();
+    }
+  }, [editor]);
+
+  const insertStatCards = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <div data-visual-grid="">
+        <div data-visual-card="">
+          <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">⚡</p>
+          <h3 style="font-size:1.15rem;font-weight:800;color:#6366f1;margin:0 0 0.25rem">Instant Delivery</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Automated dispatch 24/7</p>
+        </div>
+        <div data-visual-card="">
+          <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">🔒</p>
+          <h3 style="font-size:1.15rem;font-weight:800;color:#10b981;margin:0 0 0.25rem">100% Guaranteed</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Genuine verified license</p>
+        </div>
+        <div data-visual-card="">
+          <p style="font-size:2rem;margin:0 0 0.25rem;line-height:1">⭐</p>
+          <h3 style="font-size:1.15rem;font-weight:800;color:#f59e0b;margin:0 0 0.25rem">5-Star Rated</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Top customer satisfaction</p>
+        </div>
       </div>
     `).run();
   }, [editor]);
 
   const insertFeatureGrid = useCallback(() => {
     editor?.chain().focus().insertContent(`
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1.5rem 0">
-        <div style="padding:1.25rem;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <div style="font-size:1.5rem;margin-bottom:0.5rem">⚡</div>
-          <h4 style="font-weight:700;margin:0 0 0.5rem">Feature Title</h4>
-          <p style="font-size:0.875rem;color:#64748b;margin:0">Feature description goes here.</p>
+      <div data-visual-grid="">
+        <div data-visual-card="">
+          <h3 style="font-size:1.1rem;font-weight:700;margin:0 0 0.5rem">🚀 High Performance</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Optimized for maximum speed, stability, and zero throttling.</p>
         </div>
-        <div style="padding:1.25rem;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <div style="font-size:1.5rem;margin-bottom:0.5rem">🔒</div>
-          <h4 style="font-weight:700;margin:0 0 0.5rem">Feature Title</h4>
-          <p style="font-size:0.875rem;color:#64748b;margin:0">Feature description goes here.</p>
+        <div data-visual-card="">
+          <h3 style="font-size:1.1rem;font-weight:700;margin:0 0 0.5rem">🛡️ Safe &amp; Secure</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Protected by standard encryption and private connection channels.</p>
         </div>
-        <div style="padding:1.25rem;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;text-align:center">
-          <div style="font-size:1.5rem;margin-bottom:0.5rem">🚀</div>
-          <h4 style="font-weight:700;margin:0 0 0.5rem">Feature Title</h4>
-          <p style="font-size:0.875rem;color:#64748b;margin:0">Feature description goes here.</p>
+        <div data-visual-card="">
+          <h3 style="font-size:1.1rem;font-weight:700;margin:0 0 0.5rem">💬 24/7 Support</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Direct access to our dedicated live support team anytime.</p>
+        </div>
+      </div>
+    `).run();
+  }, [editor]);
+
+  const insertTwoCol = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <div data-visual-grid="" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))">
+        <div data-visual-card="">
+          <h3 style="font-size:1.1rem;font-weight:700;margin:0 0 0.5rem">Column 1: Key Advantage</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Add your first set of details, features, or product highlights here.</p>
+        </div>
+        <div data-visual-card="">
+          <h3 style="font-size:1.1rem;font-weight:700;margin:0 0 0.5rem">Column 2: Value Proposition</h3>
+          <p style="font-size:0.875rem;color:#64748b;margin:0">Add your second set of details, comparisons, or instructions here.</p>
         </div>
       </div>
     `).run();
@@ -1003,89 +1787,63 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
 
   const insertProsConsList = useCallback(() => {
     editor?.chain().focus().insertContent(`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0">
-        <div style="padding:1rem;background:#f0fdf4;border-left:4px solid #22c55e;border-radius:8px">
-          <h4 style="color:#16a34a;margin:0 0 0.75rem;font-weight:700">✅ Pros</h4>
-          <ul style="margin:0;padding-left:1.25rem">
-            <li>Advantage one</li>
-            <li>Advantage two</li>
-            <li>Advantage three</li>
-          </ul>
-        </div>
-        <div style="padding:1rem;background:#fef2f2;border-left:4px solid #ef4444;border-radius:8px">
-          <h4 style="color:#dc2626;margin:0 0 0.75rem;font-weight:700">❌ Cons</h4>
-          <ul style="margin:0;padding-left:1.25rem">
-            <li>Limitation one</li>
-            <li>Limitation two</li>
-          </ul>
-        </div>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Why You'll Love This ✅</th>
+            <th>Things to Keep in Mind ⚠️</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="badge-check">✅</span> Genuine &amp; authentic product</td>
+            <td><span class="badge-vip">ℹ️</span> Requires internet connection</td>
+          </tr>
+          <tr>
+            <td><span class="badge-check">✅</span> Instant automated dispatch</td>
+            <td><span class="badge-vip">ℹ️</span> Follow activation guide strictly</td>
+          </tr>
+          <tr>
+            <td><span class="badge-check">✅</span> Dedicated 24/7 technical support</td>
+            <td><span class="badge-cross">❌</span> Do not share license key publicly</td>
+          </tr>
+        </tbody>
+      </table>
     `).run();
   }, [editor]);
 
   const insertSteps = useCallback(() => {
     editor?.chain().focus().insertContent(`
-      <div style="margin:1.5rem 0;space-y:1rem">
-        <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem">
-          <div style="width:2rem;height:2rem;background:var(--color-primary,#6366f1);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">1</div>
-          <div><h4 style="margin:0 0 0.25rem;font-weight:700">Step One Title</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Describe what to do in this step.</p></div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem">
-          <div style="width:2rem;height:2rem;background:var(--color-primary,#6366f1);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">2</div>
-          <div><h4 style="margin:0 0 0.25rem;font-weight:700">Step Two Title</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Describe what to do in this step.</p></div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:1rem">
-          <div style="width:2rem;height:2rem;background:var(--color-primary,#6366f1);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">3</div>
-          <div><h4 style="margin:0 0 0.25rem;font-weight:700">Step Three Title</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Describe what to do in this step.</p></div>
-        </div>
-      </div>
+      <ol style="padding-left:1.5rem;line-height:2">
+        <li><strong>Step 1 — Purchase:</strong> Complete your order and receive instant credentials via email/dashboard.</li>
+        <li><strong>Step 2 — Download &amp; Setup:</strong> Follow the included step-by-step installation instructions.</li>
+        <li><strong>Step 3 — Activate &amp; Enjoy:</strong> Enter your unique key and unlock full premium benefits.</li>
+      </ol>
     `).run();
   }, [editor]);
 
   const insertFaqAccordion = useCallback(() => {
     editor?.chain().focus().insertContent(`
-      <h2>❓ Frequently Asked Questions</h2>
-      <details open>
-        <summary>How do I receive my product after purchase?</summary>
-        <p>You will receive instant access with your download links and license keys delivered directly to your email and Asia D Market dashboard immediately after payment.</p>
+      <details open="">
+        <summary>How fast will I receive my order?</summary>
+        <p>Delivery is 100% automated. You will receive your access details immediately upon payment confirmation.</p>
       </details>
       <details>
-        <summary>What is your replacement or warranty policy?</summary>
-        <p>We provide a 100% working guarantee. If you encounter any issue, contact our 24/7 priority support for an instant replacement or technical assistance.</p>
+        <summary>What if I need help setting it up?</summary>
+        <p>Our 24/7 support team is available via live chat and ticket system to assist you with installation anytime.</p>
       </details>
-      <details>
-        <summary>Can I request customer support if I need help?</summary>
-        <p>Yes, our customer support team is available around the clock via live chat and ticket support to ensure a seamless experience.</p>
-      </details>
-    `).run();
-  }, [editor]);
-
-  const insertStatCards = useCallback(() => {
-    editor?.chain().focus().insertContent(`
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;margin:1.5rem 0">
-        <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
-          <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:var(--color-primary,#6366f1)">⚡ Instant</div>
-          <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Automated Delivery</div>
-        </div>
-        <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
-          <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#22c55e">100%</div>
-          <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Genuine & Verified</div>
-        </div>
-        <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
-          <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#f59e0b">24/7</div>
-          <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Priority Support</div>
-        </div>
-      </div>
     `).run();
   }, [editor]);
 
   const insertGuaranteeBanner = useCallback(() => {
-    editor?.chain().focus().insertContent(`
-      <div data-callout="success" style="border-radius:12px;padding:1.25rem;margin:1.5rem 0;background:#f0fdf4;border-left:4px solid #22c55e">
-        <h4 style="margin:0 0 0.25rem;font-weight:700;color:#166534">🔒 100% Working Guarantee & Buyer Protection</h4>
-        <p style="margin:0;font-size:0.875rem;color:#15803d">Every product is verified prior to dispatch. If you experience any technical defect or delivery issue, our dedicated team will resolve it or provide an immediate replacement.</p>
-      </div>
-    `).run();
+    editor?.chain().focus().insertContent({
+      type: "callout",
+      attrs: { type: "success" },
+      content: [{
+        type: "paragraph",
+        content: [{ type: "text", text: "🔒 100% Working Guarantee: Every purchase includes full replacement protection and 24/7 dedicated support." }]
+      }]
+    }).run();
   }, [editor]);
 
   const handleApplyTemplate = useCallback((html: string, replace: boolean) => {
@@ -1226,11 +1984,26 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
 
           <Divider />
 
+          {/* Action Button (CTA) */}
+          <ToolbarBtn onClick={() => setShowButtonModal(true)} title="Insert Stylish Action Button (CTA)">
+            <MousePointerClick className="w-4 h-4 text-primary" />
+          </ToolbarBtn>
+
+          <Divider />
+
           {/* Table */}
           <DropMenu label="Table" icon={<TableIcon className="w-4 h-4" />}>
-            <MenuItem onClick={() => setShowTable(true)} icon={<Plus className="w-4 h-4" />} label="Insert Table" />
+            <p className="px-3 py-1 text-xs text-slate-400 font-semibold uppercase tracking-wider">Visual Tables</p>
+            <MenuItem onClick={insertComparisonTable} icon={<Sparkles className="w-4 h-4 text-primary" />} label="⭐ Comparison Table" />
+            <MenuItem onClick={insertSpecsTable} icon={<Grid3X3 className="w-4 h-4 text-primary" />} label="📋 Specifications Table" />
+            <MenuItem onClick={insertPricingTable} icon={<Zap className="w-4 h-4 text-primary" />} label="💰 Pricing & Plans Table" />
+            <MenuItem onClick={insertRulesTable} icon={<ShieldCheck className="w-4 h-4 text-primary" />} label="📌 Guidelines & Rules Table" />
+            <div className="border-t border-slate-100 my-1" />
+            <MenuItem onClick={() => setShowTable(true)} icon={<Plus className="w-4 h-4" />} label="Custom Grid Table..." />
             {editor.isActive("table") && (
               <>
+                <div className="border-t border-slate-100 my-1" />
+                <MenuItem onClick={toggleCellHighlight} icon={<Sparkles className="w-4 h-4 text-amber-500" />} label="⭐ Toggle Cell/Header Highlight" />
                 <div className="border-t border-slate-100 my-1" />
                 <MenuItem onClick={() => editor.chain().focus().addColumnBefore().run()} label="Add Column Before" />
                 <MenuItem onClick={() => editor.chain().focus().addColumnAfter().run()} label="Add Column After" />
@@ -1250,7 +2023,22 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
 
           {/* Insert Blocks */}
           <DropMenu label="Insert" icon={<LayoutGrid className="w-4 h-4" />}>
-            <MenuItem onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={<Minus className="w-4 h-4" />} label="Divider" />
+            <MenuItem onClick={() => setShowButtonModal(true)} icon={<MousePointerClick className="w-4 h-4 text-primary" />} label="Stylish Action Button (CTA)" />
+            <div className="border-t border-slate-100 my-1" />
+            <p className="px-3 py-1 text-xs text-slate-400 font-semibold uppercase tracking-wider">Visual Tables</p>
+            <MenuItem onClick={insertComparisonTable} icon={<Sparkles className="w-4 h-4 text-primary" />} label="⭐ Comparison Table" />
+            <MenuItem onClick={insertSpecsTable} icon={<Grid3X3 className="w-4 h-4 text-primary" />} label="📋 Specifications Table" />
+            <MenuItem onClick={insertPricingTable} icon={<Zap className="w-4 h-4 text-primary" />} label="💰 Pricing & Plans Table" />
+            <MenuItem onClick={insertRulesTable} icon={<ShieldCheck className="w-4 h-4 text-primary" />} label="📌 Guidelines Table" />
+            <div className="border-t border-slate-100 my-1" />
+            <p className="px-3 py-1 text-xs text-slate-400 font-semibold uppercase tracking-wider">Status Badges</p>
+            <div className="px-3 py-1 flex flex-wrap gap-1">
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); insertBadge("badge-check", "✅ Verified"); }} className="badge-check cursor-pointer hover:opacity-80">✅ Verified</button>
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); insertBadge("badge-vip", "⭐ VIP Tier"); }} className="badge-vip cursor-pointer hover:opacity-80">⭐ VIP Tier</button>
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); insertBadge("badge-speed", "⚡ Ultra Fast"); }} className="badge-speed cursor-pointer hover:opacity-80">⚡ Ultra Fast</button>
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); insertBadge("badge-gold", "🏆 Best Value"); }} className="badge-gold cursor-pointer hover:opacity-80">🏆 Best Value</button>
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); insertBadge("badge-cross", "❌ Prohibited"); }} className="badge-cross cursor-pointer hover:opacity-80">❌ Prohibited</button>
+            </div>
             <div className="border-t border-slate-100 my-1" />
             <p className="px-3 py-1 text-xs text-slate-400 font-semibold uppercase tracking-wider">Callouts</p>
             {(["info","success","warning","tip","error"] as CalloutType[]).map(t => (
@@ -1258,13 +2046,14 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
             ))}
             <div className="border-t border-slate-100 my-1" />
             <p className="px-3 py-1 text-xs text-slate-400 font-semibold uppercase tracking-wider">Layout Blocks</p>
-            <MenuItem onClick={insertTwoCol} icon={<Columns className="w-4 h-4" />} label="Two Columns" />
+            <MenuItem onClick={insertStatCards} icon={<Zap className="w-4 h-4" />} label="Visual Stat Cards" />
             <MenuItem onClick={insertFeatureGrid} icon={<Grid3X3 className="w-4 h-4" />} label="Feature Cards (3-col)" />
+            <MenuItem onClick={insertTwoCol} icon={<Columns className="w-4 h-4" />} label="Two Columns" />
             <MenuItem onClick={insertProsConsList} icon={<Check className="w-4 h-4" />} label="Pros & Cons" />
             <MenuItem onClick={insertSteps} icon={<ListOrdered className="w-4 h-4" />} label="Numbered Steps" />
             <MenuItem onClick={insertFaqAccordion} icon={<HelpCircle className="w-4 h-4" />} label="FAQ Accordion" />
-            <MenuItem onClick={insertStatCards} icon={<Zap className="w-4 h-4" />} label="Key Stats Row" />
             <MenuItem onClick={insertGuaranteeBanner} icon={<ShieldCheck className="w-4 h-4" />} label="Guarantee Banner" />
+            <MenuItem onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={<Minus className="w-4 h-4" />} label="Divider Line" />
           </DropMenu>
 
           {/* Templates Quick Button */}
@@ -1365,6 +2154,7 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
       {showLink && <LinkModal currentUrl={editor.getAttributes("link").href} onInsert={insertLink} onClose={() => setShowLink(false)} />}
       {showHtml && <HtmlModal html={editor.getHTML()} onApply={html => { editor.chain().focus().setContent(html).run(); if (hiddenRef.current) hiddenRef.current.value = editor.getHTML(); }} onClose={() => setShowHtml(false)} />}
       {showTable && <TableModal onInsert={insertTable} onClose={() => setShowTable(false)} />}
+      {showButtonModal && <ButtonModal onInsert={insertActionButton} onClose={() => setShowButtonModal(false)} />}
       {showTemplates && <TemplatesModal onApply={handleApplyTemplate} onClose={() => setShowTemplates(false)} />}
       {showPreview && <PreviewModal html={editor.getHTML()} onClose={() => setShowPreview(false)} />}
 

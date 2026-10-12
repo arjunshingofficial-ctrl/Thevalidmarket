@@ -51,6 +51,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
   
   const [name, setName] = useState((initialData?.name as string) || "");
   const [slug, setSlug] = useState((initialData?.slug as string) || "");
+  const [description, setDescription] = useState((initialData?.description as string) || "");
 
   const initialMetadata = initialData?.metadata ? JSON.parse(initialData.metadata as string) : {};
   const [featuredImage, setFeaturedImage] = useState<string>(initialMetadata.image || "");
@@ -137,6 +138,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
     setSaving(true);
     setError(null);
     if (publishStatus) formData.set("status", publishStatus);
+    if (description) formData.set("description", description);
     formData.set("gallery", JSON.stringify(gallery));
     formData.set("tags", JSON.stringify(tags));
 
@@ -442,7 +444,15 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                 </div>
               </div>
               <div className="space-y-2">
-                <RichTextEditor name="description" defaultValue={initialData?.description as string || ""} placeholder="Write comprehensive product description, specs, instructions, and embed media..." />
+                <RichTextEditor
+                  name="description"
+                  defaultValue={description}
+                  onChange={(html) => {
+                    setDescription(html);
+                    setIsDirty(true);
+                  }}
+                  placeholder="Write comprehensive product description, specs, instructions, and embed media..."
+                />
               </div>
             </div>
 

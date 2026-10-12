@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import QuickCheckoutToast from "@/components/cart/QuickCheckoutToast";
 
 export default function StorefrontLayout({
   children,
@@ -13,6 +14,7 @@ export default function StorefrontLayout({
         {children}
       </main>
       <Footer />
+      <QuickCheckoutToast />
     </>
   );
 }
