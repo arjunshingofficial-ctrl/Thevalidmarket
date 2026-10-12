@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import DashboardFilters from "./DashboardFilters";
 import RevenueChart from "@/components/admin/RevenueChart";
+import AdminSectionsHub from "./AdminSectionsHub";
 import { getUsdToInrRate } from "@/lib/fx";
 
 export const dynamic = "force-dynamic";
@@ -115,6 +116,9 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
           </div>
         ))}
       </div>
+
+      {/* Complete Admin Sections & Modules Hub */}
+      <AdminSectionsHub />
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Recent Orders Table */}
