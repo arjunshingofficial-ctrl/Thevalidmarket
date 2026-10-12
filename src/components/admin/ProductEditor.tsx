@@ -110,27 +110,32 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, publishStatus?: string) => {
     e.preventDefault();
     const form = e.currentTarget;
+    const formData = new FormData(form);
     
-    if (!form.checkValidity()) {
-      const invalidElement = form.querySelector(':invalid') as HTMLElement;
-      if (invalidElement) {
-        const tabDiv = invalidElement.closest('[data-tab-id]') as HTMLElement;
-        if (tabDiv) {
-          const tabId = tabDiv.getAttribute('data-tab-id');
-          if (tabId) {
-             setActiveTab(tabId);
-             setTimeout(() => form.reportValidity(), 100);
-          }
-        }
-      } else {
-        form.reportValidity();
-      }
+    // Validate required fields
+    const prodName = (formData.get("name") as string)?.trim();
+    if (!prodName) {
+      setActiveTab("general");
+      setError("Product Name is required.");
+      return;
+    }
+
+    const prodCategory = (formData.get("categoryId") as string)?.trim();
+    if (!prodCategory) {
+      setActiveTab("general");
+      setError("Please select a Category.");
+      return;
+    }
+
+    const priceRaw = parseFloat(formData.get("price") as string);
+    if (publishStatus === "PUBLISHED" && (isNaN(priceRaw) || priceRaw < 0)) {
+      setActiveTab("pricing");
+      setError("Please enter a valid price before publishing.");
       return;
     }
 
     setSaving(true);
     setError(null);
-    const formData = new FormData(form);
     if (publishStatus) formData.set("status", publishStatus);
     formData.set("gallery", JSON.stringify(gallery));
     formData.set("tags", JSON.stringify(tags));
@@ -161,7 +166,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
   };
 
   return (
-    <form onChange={handleChange} onSubmit={(e) => handleSubmit(e)} noValidate={false} className="space-y-6 pb-20 relative">
+    <form onChange={handleChange} onSubmit={(e) => handleSubmit(e)} noValidate className="space-y-6 pb-20 relative">
       <div className="sticky top-0 z-20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/90 backdrop-blur-md p-4 border rounded-xl shadow-sm mt-2">
         <div>
           <h1 className="text-xl font-bold text-slate-900">
@@ -172,11 +177,10 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
         <div className="flex items-center gap-3 flex-wrap">
           {error && <span className="text-sm text-red-600 font-medium mr-2">{error}</span>}
           <button
-            type="submit"
-            name="action" value="draft"
+            type="button"
             disabled={saving}
             onClick={(e) => {
-              const form = e.currentTarget.closest("form") as HTMLFormElement;
+              const form = (e.currentTarget.closest("form") || document.querySelector("form")) as HTMLFormElement;
               handleSubmit({ currentTarget: form, preventDefault: () => {} } as React.FormEvent<HTMLFormElement>, "DRAFT");
             }}
             className="px-4 py-2 border rounded-md text-sm font-medium bg-white hover:bg-slate-50 text-slate-700 shadow-sm disabled:opacity-50"
@@ -318,7 +322,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">Price ($) *</label>
-                    <input name="price" type="number" step="0.01" min="0" required defaultValue={initialData?.price as number}
+                    <input name="price" type="number" step="0.01" min="0" defaultValue={initialData?.price as number}
                       className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
                   </div>
                   <div className="space-y-2">

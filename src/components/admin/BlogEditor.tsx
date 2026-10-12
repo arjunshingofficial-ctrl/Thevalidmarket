@@ -32,6 +32,17 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
   const [tagInput, setTagInput] = useState("");
   const router = useRouter();
 
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [slug, setSlug] = useState(initialData?.slug || "");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+    if (mode === "create" && !initialData?.slug) {
+      setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""));
+    }
+  };
+
   const handleAddTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
     if (e && 'key' in e && e.key !== 'Enter' && e.key !== ',') return;
     if (e && 'preventDefault' in e) e.preventDefault();
@@ -49,24 +60,39 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
+    setError(null);
     const formData = new FormData(e.currentTarget);
     formData.set("tags", JSON.stringify(tags));
     
     const endpoint = mode === "create" ? "/api/admin/blog" : `/api/admin/blog/${postId}`;
     const method = mode === "create" ? "POST" : "PUT";
     
-    const res = await fetch(endpoint, { method, body: formData });
-    if (res.ok) {
-      router.push("/admin/blog");
-      router.refresh();
-    } else {
-      alert("Error saving blog post");
+    try {
+      const res = await fetch(endpoint, { method, body: formData });
+      if (res.ok) {
+        router.push("/admin/blog");
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.error || "Failed to save blog post.";
+        setError(msg);
+        alert(`Error saving blog post: ${msg}`);
+      }
+    } catch (err: any) {
+      setError(err.message || "Network error while saving.");
+    } finally {
       setSaving(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium flex items-center justify-between">
+          <span>⚠️ {error}</span>
+          <button type="button" onClick={() => setError(null)} className="text-red-500 hover:text-red-700 font-bold ml-2">×</button>
+        </div>
+      )}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">{mode === "create" ? "New Post" : "Edit Post"}</h1>
         <button type="submit" disabled={saving} className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm">
@@ -85,11 +111,11 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Title</label>
-                <input name="title" required defaultValue={initialData?.title} className="w-full border rounded p-2" />
+                <input name="title" required value={title} onChange={handleTitleChange} className="w-full border rounded p-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Slug</label>
-                <input name="slug" required defaultValue={initialData?.slug} className="w-full border rounded p-2" />
+                <input name="slug" required value={slug} onChange={e => setSlug(e.target.value)} className="w-full border rounded p-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Category</label>
