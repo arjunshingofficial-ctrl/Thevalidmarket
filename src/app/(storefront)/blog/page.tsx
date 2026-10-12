@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Metadata } from "next";
 import { Clock, ArrowRight, Sparkles, Newspaper, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import { normalizeImageUrl } from "@/lib/storage/client";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 
 export const dynamic = "force-dynamic";
@@ -133,11 +135,12 @@ export default async function BlogIndexPage() {
                         style={{ aspectRatio: "16 / 9" }}
                       >
                         {post.featuredImage ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={post.featuredImage}
+                          <Image
+                            src={normalizeImageUrl(post.featuredImage)}
                             alt={post.title}
-                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 420px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-slate-300 bg-slate-100 font-bold text-xs uppercase tracking-widest">

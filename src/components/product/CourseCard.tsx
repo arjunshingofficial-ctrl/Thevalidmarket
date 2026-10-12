@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ShoppingCart, Star, Check, Heart, User } from "lucide-react";
 import { useState } from "react";
 import { addToCart } from "@/lib/cart";
@@ -87,8 +88,13 @@ export default function CourseCard({ course }: { course: any }) {
       {/* Image Container (16:9) */}
       <Link href={`/product/${course.slug}`} className="relative aspect-video bg-slate-100 block overflow-hidden border-b border-slate-100">
         {image ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={normalizeImageUrl(image)} alt={course.name} className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105" />
+          <Image
+            src={normalizeImageUrl(image)}
+            alt={course.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
+          />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-slate-200 to-slate-100 transition-transform duration-700 group-hover:scale-105">
             <div className="h-10 w-10 rounded-full bg-white/50 flex items-center justify-center mb-2 shadow-sm">

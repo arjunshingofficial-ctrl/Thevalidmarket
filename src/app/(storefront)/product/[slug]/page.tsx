@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, Check, Shield, Download, ShieldCheck, ChevronRight, Zap, TrendingUp, SlidersHorizontal, BookOpen, Sparkles, ArrowRight, Newspaper, Calendar, Tag } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
 import ProductGallery from "@/components/product/ProductGallery";
@@ -576,10 +577,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                       >
                         <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200/80 overflow-hidden shrink-0 relative">
                           {pImage ? (
-                            <img
+                            <Image
                               src={normalizeImageUrl(pImage)}
                               alt={p.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              fill
+                              sizes="56px"
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-slate-300 text-[10px] font-bold">
@@ -629,10 +632,12 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                       <div className="flex items-start gap-3.5">
                         {post.featuredImage && (
                           <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200/80 overflow-hidden shrink-0 relative">
-                            <img
+                            <Image
                               src={normalizeImageUrl(post.featuredImage)}
                               alt={post.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              fill
+                              sizes="56px"
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                         )}

@@ -4,6 +4,7 @@ import {
   Flame, BookOpen, Sparkles, MessageCircle, ArrowRight, 
   Clock, ShieldCheck, ChevronRight, ShoppingBag 
 } from "lucide-react";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 interface RecentPost {
   id: string;
@@ -83,7 +84,7 @@ export default function BlogSidebar({
                   <div className="relative w-12 h-12 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden border border-slate-200/60 flex items-center justify-center">
                     {image ? (
                       <Image
-                        src={image}
+                        src={normalizeImageUrl(image)}
                         alt={prod.name}
                         fill
                         sizes="48px"

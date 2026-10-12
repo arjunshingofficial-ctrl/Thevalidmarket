@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export const dynamic = "force-dynamic";
 
@@ -267,14 +268,16 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 </div>
               </div>
 
-              {/* Featured Image */}
+              {/* Featured Image - Optimized with Next.js Image */}
               {post.featuredImage && (
                 <div className="mb-8 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 w-full aspect-video relative bg-slate-100">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={post.featuredImage}
+                  <Image
+                    src={normalizeImageUrl(post.featuredImage)}
                     alt={post.title}
-                    className="object-cover w-full h-full"
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 768px, 860px"
+                    className="object-cover"
                   />
                 </div>
               )}

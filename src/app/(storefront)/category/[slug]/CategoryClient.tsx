@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { normalizeImageUrl } from "@/lib/storage/client";
 import { useRouter } from "next/navigation";
 import { Search, ShoppingCart, ChevronLeft, ChevronRight, Check, Filter, PackageSearch } from "lucide-react";
 import ProductCard from "@/components/product/ProductCard";
@@ -80,7 +82,15 @@ export default function CategoryClient({ category, categories, products, total, 
       return (
         <Link href={`/product/${product.slug}`} className="flex items-center gap-4 group">
           {image ? (
-            <img src={image} alt={product.name} className="w-12 h-12 object-cover rounded-xl border shadow-sm group-hover:shadow-md transition-all" />
+            <div className="relative w-12 h-12 shrink-0">
+              <Image 
+                src={normalizeImageUrl(image)} 
+                alt={product.name} 
+                fill
+                sizes="48px"
+                className="object-cover rounded-xl border shadow-sm group-hover:shadow-md transition-all" 
+              />
+            </div>
           ) : (
             <div className="w-12 h-12 bg-slate-50 border rounded-xl flex items-center justify-center text-[10px] text-slate-400 font-medium">IMG</div>
           )}

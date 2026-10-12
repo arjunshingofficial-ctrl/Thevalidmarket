@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Check, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { addToCart } from "@/lib/cart";
@@ -47,11 +48,12 @@ export default function RDPProductCard({ product }: { product: any }) {
       {/* Image Container 16:9 */}
       <Link href={`/product/${product.slug}`} className="relative w-full aspect-video bg-slate-900 block overflow-hidden border-b border-slate-100" style={{ aspectRatio: "16 / 9" }}>
         {image ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img 
+          <Image 
             src={normalizeImageUrl(image)} 
             alt={product.name} 
-            className="object-cover object-center w-full h-full opacity-90 transition-transform duration-700 group-hover:scale-105 group-hover:opacity-100" 
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+            className="object-cover object-center opacity-90 transition-transform duration-700 group-hover:scale-105 group-hover:opacity-100" 
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-800 transition-transform duration-700 group-hover:scale-105">

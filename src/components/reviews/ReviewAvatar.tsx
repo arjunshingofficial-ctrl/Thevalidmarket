@@ -34,6 +34,8 @@ export function ReviewAvatar({ seed, name, size = 56, className = "", fallbackIm
         alt={name ? `${name}'s avatar` : "Reviewer avatar"} 
         width={size} 
         height={size} 
+        loading="lazy"
+        decoding="async"
         className={`rounded-full object-cover shrink-0 ${className}`}
         style={{ width: size, height: size }}
       />

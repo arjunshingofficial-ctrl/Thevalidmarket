@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   Search, ShoppingCart, ChevronLeft, ChevronRight, Filter,
@@ -119,8 +120,13 @@ function CCProductRow({ product, index }: { product: any; index: number }) {
         <div className="flex items-center gap-2 md:gap-3 group/link">
           <div className="shrink-0 w-16 md:w-24 aspect-video rounded-md md:rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-sm relative" style={{ aspectRatio: "16 / 9" }}>
             {image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={normalizeImageUrl(image)} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+              <Image
+                src={normalizeImageUrl(image)}
+                alt={product.name}
+                fill
+                sizes="(max-width: 768px) 64px, 96px"
+                className="object-cover transition-transform group-hover:scale-105"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-300">
                 <Package className="h-4 w-4 md:h-5 md:w-5" />

@@ -258,7 +258,7 @@ export default function CommunityChatClient({ user, isAdmin }: { user: any, isAd
                 {/* Avatar */}
                 <div className="shrink-0 mt-0.5 relative">
                   <div className={`w-8 h-8 rounded bg-slate-800 overflow-hidden border ${isSystemAdmin ? 'border-amber-500/50' : 'border-slate-700/50'}`}>
-                    <img src={generateAvatar(avatarSeed)} alt="avatar" className="w-full h-full object-cover" />
+                    <img src={generateAvatar(avatarSeed)} alt="avatar" width={32} height={32} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
                 </div>
 

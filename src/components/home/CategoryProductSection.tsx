@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ShoppingCart, Star } from "lucide-react";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { formatUsd } from "@/lib/currency";
@@ -33,10 +34,11 @@ function CategoryProductCard({ product }: { product: any }) {
       {/* Image */}
       <Link href={`/product/${product.slug}`} className="relative block overflow-hidden bg-slate-50 w-full aspect-video" style={{ aspectRatio: "16 / 9" }}>
         {image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={normalizeImageUrl(image)}
             alt={product.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

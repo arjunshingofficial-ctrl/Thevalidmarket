@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { normalizeImageUrl } from "@/lib/storage/client";
 
@@ -23,14 +24,20 @@ export default function ProductGallery({ image, gallery, productName }: ProductG
 
   return (
     <div className="space-y-4">
-      {/* Main Image - 16:9 YouTube Thumbnail ratio */}
+      {/* Main Image - Optimized with Next.js Image */}
       <div 
         className="w-full aspect-video bg-slate-100 rounded-2xl overflow-hidden border flex items-center justify-center relative shadow-sm"
         style={{ aspectRatio: "16 / 9" }}
       >
         {mainImage ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img src={normalizeImageUrl(mainImage)} alt={productName} className="object-cover w-full h-full transition-all" />
+          <Image
+            src={normalizeImageUrl(mainImage)}
+            alt={productName}
+            fill
+            priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 700px, 800px"
+            className="object-cover transition-all"
+          />
         ) : (
           <div className="flex flex-col items-center justify-center text-slate-400">
             <ImageIcon className="h-12 w-12 mb-2 opacity-20" />
@@ -39,18 +46,24 @@ export default function ProductGallery({ image, gallery, productName }: ProductG
         )}
       </div>
 
-      {/* Gallery Thumbnails - 16:9 YouTube Thumbnail ratio */}
+      {/* Gallery Thumbnails */}
       {allImages.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {allImages.map((img, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => setMainImage(img)}
-              className={`flex-shrink-0 w-24 aspect-video rounded-lg overflow-hidden border-2 transition-all ${mainImage === img ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-slate-300'}`}
+              className={`flex-shrink-0 w-24 aspect-video rounded-lg overflow-hidden border-2 transition-all relative ${mainImage === img ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-slate-300'}`}
               style={{ aspectRatio: "16 / 9" }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={normalizeImageUrl(img)} alt={`${productName} - thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+              <Image
+                src={normalizeImageUrl(img)}
+                alt={`${productName} - thumbnail ${idx + 1}`}
+                fill
+                sizes="96px"
+                className="object-cover"
+              />
             </button>
           ))}
         </div>

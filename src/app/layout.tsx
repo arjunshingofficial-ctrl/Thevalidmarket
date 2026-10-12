@@ -5,7 +5,11 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import ProgressBarProvider from "@/components/providers/ProgressBarProvider";
 import Script from "next/script";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ 
+  subsets: ["latin"], 
+  display: "swap",
+  preload: true 
+});
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
 
@@ -116,6 +120,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <head>
+        <link rel="preconnect" href="https://dvtmzispblbufuzoimkk.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://dvtmzispblbufuzoimkk.supabase.co" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

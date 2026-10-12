@@ -41,7 +41,7 @@ export default function AccountDropdown({ user, walletBalance }: { user: { name?
         className="flex items-center gap-2 rounded-full border bg-white p-1 pr-3 shadow-sm hover:shadow-md transition-all hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/20"
       >
         {user.image ? (
-          <img src={user.image} alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+          <img src={user.image} alt="Avatar" width={32} height={32} loading="lazy" decoding="async" className="w-8 h-8 rounded-full object-cover" />
         ) : (
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
             {firstName.charAt(0).toUpperCase()}

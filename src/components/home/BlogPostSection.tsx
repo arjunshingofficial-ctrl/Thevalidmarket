@@ -1,5 +1,7 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Calendar, User } from "lucide-react";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 function BlogPostCard({ post }: { post: any }) {
   if (!post?.id) return null;
@@ -17,10 +19,11 @@ function BlogPostCard({ post }: { post: any }) {
       {/* Featured Image */}
       <Link href={href} className="relative block overflow-hidden bg-slate-100 w-full aspect-video" style={{ aspectRatio: "16 / 9" }}>
         {post.featuredImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={post.featuredImage}
+          <Image
+            src={normalizeImageUrl(post.featuredImage)}
             alt={post.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (

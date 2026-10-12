@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { BookOpen, PlayCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export const dynamic = "force-dynamic";
 
@@ -83,8 +85,13 @@ export default async function DashboardCoursesPage() {
               <div key={ent.id} className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
                 <div className="aspect-video bg-slate-100 relative">
                   {ent.product.metadata && JSON.parse(ent.product.metadata).image ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img src={JSON.parse(ent.product.metadata).image} alt={ent.product.name} className="w-full h-full object-cover" />
+                    <Image 
+                      src={normalizeImageUrl(JSON.parse(ent.product.metadata).image)} 
+                      alt={ent.product.name} 
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 380px"
+                      className="object-cover" 
+                    />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-br from-slate-100 to-slate-200">
                       <BookOpen className="h-10 w-10 text-slate-400 mb-1" />
