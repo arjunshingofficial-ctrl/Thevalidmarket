@@ -9,6 +9,7 @@ import { authOptions } from "@/lib/auth";
 import { ReviewAvatar } from "@/components/reviews/ReviewAvatar";
 import { trackProductView } from "@/lib/analytics";
 import { normalizeImageUrl } from "@/lib/storage/client";
+import { formatUsd } from "@/lib/currency";
 
 import { unstable_cache } from "next/cache";
 
@@ -115,7 +116,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
   const price = product.salePrice ?? product.price;
   const isSale = product.salePrice !== null && product.salePrice < product.price;
-  const discountAmount = isSale ? (product.price - product.salePrice!).toFixed(2) : "0.00";
+  const discountAmount = isSale ? (product.price - product.salePrice!) : 0;
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -186,18 +187,18 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               <div className="flex items-end gap-4 mb-8 pb-8 border-b border-slate-100">
                 <div className="flex flex-col">
                   {isSale && (
-                    <span className="text-lg text-slate-400 line-through decoration-slate-300 font-semibold mb-1">${product.price.toFixed(2)}</span>
+                    <span className="text-lg text-slate-400 line-through decoration-slate-300 font-semibold mb-1">{formatUsd(product.price)}</span>
                   )}
                   <div className="flex items-baseline gap-1">
                     <span className="text-5xl font-black text-slate-900 tracking-tighter">
-                      ${price.toFixed(2)}
+                      {formatUsd(price)}
                     </span>
                     {metadata.billing && <span className="text-slate-500 font-medium">{metadata.billing}</span>}
                   </div>
                 </div>
                 {isSale && (
                   <div className="flex items-center gap-1 text-sm font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md mb-2">
-                    <TrendingUp className="w-3.5 h-3.5" /> Save ${discountAmount}
+                    <TrendingUp className="w-3.5 h-3.5" /> Save {formatUsd(discountAmount)}
                   </div>
                 )}
               </div>
@@ -483,7 +484,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                             {p.name}
                           </h4>
                           <span className="text-sm font-black text-slate-900">
-                            ${pPrice.toFixed(2)}
+                            {formatUsd(pPrice)}
                           </span>
                         </div>
                       </Link>

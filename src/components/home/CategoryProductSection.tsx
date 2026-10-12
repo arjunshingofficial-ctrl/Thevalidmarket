@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ShoppingCart, Star } from "lucide-react";
 import { normalizeImageUrl } from "@/lib/storage/client";
+import { formatUsd } from "@/lib/currency";
 
 function ProductRating({ reviews }: { reviews: Array<{ rating: number }> }) {
   if (!reviews || reviews.length === 0) {
@@ -69,9 +70,9 @@ function CategoryProductCard({ product }: { product: any }) {
         <div className="mt-auto pt-3 flex items-center justify-between border-t border-slate-100">
           <div className="flex flex-col">
             {product.salePrice && (
-              <span className="text-xs text-slate-400 line-through">${product.price.toFixed(2)}</span>
+              <span className="text-xs text-slate-400 line-through">{formatUsd(product.price)}</span>
             )}
-            <span className="font-bold text-slate-900">${price.toFixed(2)}</span>
+            <span className="font-bold text-slate-900">{formatUsd(price)}</span>
           </div>
           <Link
             href={`/product/${product.slug}`}

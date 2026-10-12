@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, Shield, Download, Star, ShieldCheck, Box, CreditCard, Lock, Mail, Users, TrendingUp } from "lucide-react";
 import ProductCard from "@/components/product/ProductCard";
 import { ReviewAvatar } from "@/components/reviews/ReviewAvatar";
+import { formatUsd } from "@/lib/currency";
 
 export function HeroSection({ config, products }: { config: any, products: any[] }) {
   // Take up to 3 products for the floating cards visual
@@ -60,7 +61,7 @@ export function HeroSection({ config, products }: { config: any, products: any[]
                   </div>
                 </div>
                 <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/10">
-                  <div className="font-bold text-lg">${p.price?.toFixed(2)}</div>
+                  <div className="font-bold text-lg">{formatUsd(p.price || 0)}</div>
                   <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-xs">→</div>
                 </div>
               </div>
