@@ -12,6 +12,17 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const existing = await prisma.blogPost.findUnique({ where: { id }, select: { status: true, publishDate: true } });
     const isPublishing = existing?.status !== "PUBLISHED" && formData.get("status") === "PUBLISHED";
     
+    const rawTags = formData.get("tags");
+    let tagsJson: string | null = null;
+    if (typeof rawTags === "string" && rawTags.trim()) {
+      try {
+        const parsed = JSON.parse(rawTags);
+        tagsJson = Array.isArray(parsed) ? JSON.stringify(parsed) : JSON.stringify([parsed]);
+      } catch {
+        tagsJson = JSON.stringify(rawTags.split(",").map(t => t.trim()).filter(Boolean));
+      }
+    }
+    
     const post = await prisma.blogPost.update({
       where: { id },
       data: {
@@ -22,6 +33,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         featuredImage: formData.get("featuredImage") as string,
         categoryId: (formData.get("categoryId") as string) || null,
         status: formData.get("status") as any,
+        tags: tagsJson,
         seoTitle: formData.get("seoTitle") as string,
         metaDescription: formData.get("metaDescription") as string,
         canonicalUrl: formData.get("canonicalUrl") as string,

@@ -14,9 +14,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return { title: "Post Not Found" };
   }
 
+  let keywords: string[] = [];
+  if (post.tags) {
+    try {
+      const parsed = JSON.parse(post.tags);
+      if (Array.isArray(parsed)) keywords = parsed;
+      else if (typeof parsed === "string") keywords = [parsed];
+    } catch {
+      keywords = post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+    }
+  }
+
   return {
     title: post.seoTitle || post.title,
     description: post.metaDescription || post.excerpt,
+    keywords: keywords.length > 0 ? keywords : undefined,
     alternates: {
       canonical: post.canonicalUrl || `/blog/${post.slug}`
     },
@@ -80,15 +92,26 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
         
-        {post.tags && (
-          <div className="mt-12 pt-8 border-t flex flex-wrap gap-2">
-            {JSON.parse(post.tags).map((tag: string) => (
-              <span key={tag} className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm font-medium">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
+        {post.tags && (() => {
+          let parsedTags: string[] = [];
+          try {
+            const parsed = JSON.parse(post.tags);
+            parsedTags = Array.isArray(parsed) ? parsed : [String(parsed)];
+          } catch {
+            parsedTags = post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+          }
+          if (parsedTags.length === 0) return null;
+          return (
+            <div className="mt-12 pt-8 border-t flex flex-wrap gap-2 items-center">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mr-1">Tags:</span>
+              {parsedTags.map((tag: string) => (
+                <span key={tag} className="bg-slate-100 hover:bg-primary/10 hover:text-primary transition-colors text-slate-700 px-3 py-1 rounded-full text-xs font-medium border border-slate-200/80">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

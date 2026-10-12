@@ -56,7 +56,29 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     gallery = JSON.parse((data.get("gallery") as string) || "[]");
   } catch (e) {}
 
-  const metadata = JSON.stringify({ image, gallery, specifications });
+  let tags: string[] = [];
+  const rawTags = data.get("tags") as string || "";
+  try {
+    tags = rawTags.startsWith("[") ? JSON.parse(rawTags) : rawTags.split(",").map(t => t.trim()).filter(Boolean);
+  } catch (e) {
+    tags = rawTags.split(",").map(t => t.trim()).filter(Boolean);
+  }
+
+  const seoTitle = (data.get("seoTitle") as string) || "";
+  const metaDescription = (data.get("metaDescription") as string) || "";
+  const canonicalUrl = (data.get("canonicalUrl") as string) || "";
+  const robots = (data.get("robots") as string) || "index,follow";
+
+  const metadata = JSON.stringify({ 
+    image, 
+    gallery, 
+    specifications,
+    tags,
+    seoTitle,
+    metaDescription,
+    canonicalUrl,
+    robots
+  });
 
   const product = await prisma.product.update({
     where: { id },

@@ -7,6 +7,17 @@ export async function POST(req: Request) {
     const session = await requireAdmin("Content", "Manage");
     const formData = await req.formData();
     
+    const rawTags = formData.get("tags");
+    let tagsJson: string | null = null;
+    if (typeof rawTags === "string" && rawTags.trim()) {
+      try {
+        const parsed = JSON.parse(rawTags);
+        tagsJson = Array.isArray(parsed) ? JSON.stringify(parsed) : JSON.stringify([parsed]);
+      } catch {
+        tagsJson = JSON.stringify(rawTags.split(",").map(t => t.trim()).filter(Boolean));
+      }
+    }
+    
     const post = await prisma.blogPost.create({
       data: {
         title: formData.get("title") as string,
@@ -16,6 +27,7 @@ export async function POST(req: Request) {
         featuredImage: formData.get("featuredImage") as string,
         categoryId: (formData.get("categoryId") as string) || null,
         status: formData.get("status") as any,
+        tags: tagsJson,
         seoTitle: formData.get("seoTitle") as string,
         metaDescription: formData.get("metaDescription") as string,
         canonicalUrl: formData.get("canonicalUrl") as string,

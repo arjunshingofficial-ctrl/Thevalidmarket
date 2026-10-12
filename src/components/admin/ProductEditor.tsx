@@ -6,6 +6,7 @@ import RichTextEditor from "./RichTextEditor";
 import ProductFileUploader from "./ProductFileUploader";
 import MediaSelector from "./MediaSelector";
 import { normalizeImageUrl } from "@/lib/storage/client";
+import { X, Tag, Plus } from "lucide-react";
 
 type Tab = {
   id: string;
@@ -55,6 +56,14 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
   const [featuredImage, setFeaturedImage] = useState<string>(initialMetadata.image || "");
   const [gallery, setGallery] = useState<string[]>(initialMetadata.gallery || []);
   const [mediaTarget, setMediaTarget] = useState<"featured" | "gallery">("featured");
+  const [tags, setTags] = useState<string[]>(
+    Array.isArray(initialMetadata.tags) 
+      ? initialMetadata.tags 
+      : typeof initialMetadata.tags === "string" && initialMetadata.tags.length > 0 
+        ? initialMetadata.tags.split(",").map((t: string) => t.trim()) 
+        : []
+  );
+  const [tagInput, setTagInput] = useState("");
   
   const router = useRouter();
 
@@ -80,6 +89,22 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
       setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""));
     }
     handleChange();
+  };
+
+  const handleAddTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
+    if (e && 'key' in e && e.key !== 'Enter' && e.key !== ',') return;
+    if (e && 'preventDefault' in e) e.preventDefault();
+    const trimmed = tagInput.trim().replace(/^,+|,+$/g, '');
+    if (trimmed && !tags.includes(trimmed)) {
+      setTags([...tags, trimmed]);
+      setIsDirty(true);
+    }
+    setTagInput("");
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
+    setIsDirty(true);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>, publishStatus?: string) => {
@@ -108,6 +133,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
     const formData = new FormData(form);
     if (publishStatus) formData.set("status", publishStatus);
     formData.set("gallery", JSON.stringify(gallery));
+    formData.set("tags", JSON.stringify(tags));
 
     const endpoint = mode === "create" ? "/api/admin/products" : `/api/admin/products/${productId}`;
     const method = mode === "create" ? "POST" : "PUT";
@@ -429,6 +455,59 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                     <option value="noindex,follow">noindex, follow</option>
                     <option value="noindex,nofollow">noindex, nofollow</option>
                   </select>
+                </div>
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="text-sm font-medium text-slate-700 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5"><Tag className="w-4 h-4 text-primary" /> Product Tags & SEO Keywords</span>
+                    <span className="text-xs text-slate-400">Helps search engine indexing & ranking</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === ",") {
+                          e.preventDefault();
+                          handleAddTag(e);
+                        }
+                      }}
+                      placeholder="Add SEO tag (e.g. windows 11, pro license, instant delivery) and press Enter"
+                      className="flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddTag()}
+                      className="px-3 py-2 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 flex items-center gap-1 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" /> Add Tag
+                    </button>
+                  </div>
+                  {tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 pt-2">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                        >
+                          #{tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            className="hover:text-red-600 transition-colors ml-0.5"
+                            title="Remove tag"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 italic">No tags added yet. Add keywords relevant to your product.</p>
+                  )}
+                  <p className="text-xs text-slate-500">
+                    Press Enter or comma to add. These tags will be embedded in metadata keywords and improve ranking.
+                  </p>
                 </div>
               </div>
             </div>

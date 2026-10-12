@@ -75,6 +75,7 @@ export default async function StorePage({
       { name: { contains: q.trim() } },
       { shortDesc: { contains: q.trim() } },
       { description: { contains: q.trim() } },
+      { metadata: { contains: q.trim() } },
     ];
   }
 

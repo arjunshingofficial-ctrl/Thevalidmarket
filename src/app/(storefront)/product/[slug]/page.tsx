@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Star, Check, Shield, Download, ShieldCheck, ChevronRight, Zap, TrendingUp, SlidersHorizontal, BookOpen, Sparkles, ArrowRight, Newspaper, Calendar } from "lucide-react";
+import { Star, Check, Shield, Download, ShieldCheck, ChevronRight, Zap, TrendingUp, SlidersHorizontal, BookOpen, Sparkles, ArrowRight, Newspaper, Calendar, Tag } from "lucide-react";
 import AddToCartButton from "./AddToCartButton";
 import ProductGallery from "@/components/product/ProductGallery";
 import { getServerSession } from "next-auth/next";
@@ -54,6 +54,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const metadata = product.metadata ? (typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata) : {};
+  const tags: string[] = Array.isArray(metadata.tags)
+    ? metadata.tags
+    : typeof metadata.tags === 'string' && metadata.tags.trim()
+      ? metadata.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+      : [];
   const image = metadata.image || product.course?.thumbnailUrl || "/og-image.jpg";
   const desc = product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on Asia D Market with instant delivery and secure payment.`;
   const canonicalUrl = `/product/${product.slug}`;
@@ -61,6 +66,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: product.seoTitle || `${product.name} - Buy Online`,
     description: product.seoDescription || desc,
+    keywords: tags.length > 0 ? tags : undefined,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -156,6 +162,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     : "0.0";
 
   const metadata = product.metadata ? (typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata) : {};
+  const tags: string[] = Array.isArray(metadata.tags)
+    ? metadata.tags
+    : typeof metadata.tags === 'string' && metadata.tags.trim()
+      ? metadata.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
+      : [];
   const image = metadata.image || product.course?.thumbnailUrl || null;
   const badge = metadata.badge || null;
   const specs = metadata.specs || null;
@@ -175,6 +186,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     "description": product.shortDesc || product.description || product.name,
     "image": image ? (image.startsWith("http") ? image : `${siteUrl}${image}`) : undefined,
     "sku": product.sku || product.id,
+    ...(tags.length > 0 ? { "keywords": tags.join(", ") } : {}),
     "offers": {
       "@type": "Offer",
       "url": `${siteUrl}/product/${product.slug}`,
@@ -262,9 +274,26 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-4 text-slate-900 leading-[1.1]">{product.name}</h1>
               
               {product.shortDesc && (
-                <p className="text-slate-500 mb-8 text-base leading-relaxed">
+                <p className="text-slate-500 mb-6 text-base leading-relaxed">
                   {product.shortDesc}
                 </p>
+              )}
+
+              {tags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mb-8">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+                    <Tag className="w-3 h-3 text-primary" /> Tags:
+                  </span>
+                  {tags.map((tag) => (
+                    <Link
+                      key={tag}
+                      href={`/store?q=${encodeURIComponent(tag)}`}
+                      className="inline-flex items-center text-xs font-medium bg-slate-100 hover:bg-primary/10 hover:text-primary text-slate-600 px-2.5 py-0.5 rounded-full border border-slate-200/80 transition-colors"
+                    >
+                      #{tag}
+                    </Link>
+                  ))}
+                </div>
               )}
 
               <div className="flex items-end gap-4 mb-8 pb-8 border-b border-slate-100">
