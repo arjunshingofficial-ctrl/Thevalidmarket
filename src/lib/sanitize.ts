@@ -31,8 +31,8 @@ export function sanitizeHtml(dirty: string): string {
       "allowfullscreen", "frameborder", "allow",
       // custom data attributes for content blocks
       "data-video-embed", "data-callout", "type",
-      // layout / style (limited)
-      "style",
+      // layout / style / details accordion
+      "style", "open",
     ],
     ALLOW_DATA_ATTR: true,
     FORCE_BODY: false,

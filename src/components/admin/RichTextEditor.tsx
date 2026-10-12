@@ -34,7 +34,8 @@ import {
   Eye, Code as HtmlIcon, ChevronDown, AlertCircle, Info,
   Lightbulb, CheckCircle, AlertTriangle, Columns, Grid3X3,
   Pilcrow, Palette, Type, LayoutGrid, Plus, Trash2,
-  PanelTop, Image as ImgIcon
+  PanelTop, Image as ImgIcon, Sparkles, Smartphone, Monitor,
+  HelpCircle, ShieldCheck, Zap
 } from "lucide-react";
 
 // ─── Custom extension: YouTube / Vimeo embed ─────────────────────────────────
@@ -447,6 +448,398 @@ function HtmlModal({ html, onApply, onClose }: { html: string; onApply: (html: s
   );
 }
 
+// ─── Templates Definition ──────────────────────────────────────────────────
+const PRODUCT_TEMPLATES = [
+  {
+    id: "software",
+    title: "Software & Digital Tools",
+    icon: "💻",
+    description: "Overview, 3-column features, specifications table, setup guide, and FAQs.",
+    html: `<h2>🚀 Overview & Core Highlights</h2>
+<p>Get instant access to this high-performance software designed to streamline your workflow and deliver unmatched reliability.</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin:1.5rem 0">
+  <div style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
+    <div style="font-size:1.5rem;margin-bottom:0.5rem">⚡</div>
+    <h4 style="font-weight:700;margin:0 0 0.25rem">High Performance</h4>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Engineered for speed, efficiency, and minimal resource consumption.</p>
+  </div>
+  <div style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
+    <div style="font-size:1.5rem;margin-bottom:0.5rem">🛡️</div>
+    <h4 style="font-weight:700;margin:0 0 0.25rem">100% Virus-Free & Safe</h4>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Clean files verified and tested prior to immediate delivery.</p>
+  </div>
+  <div style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
+    <div style="font-size:1.5rem;margin-bottom:0.5rem">🔄</div>
+    <h4 style="font-weight:700;margin:0 0 0.25rem">Regular Updates</h4>
+    <p style="font-size:0.875rem;color:#64748b;margin:0">Receive continuous updates and improvements through your dashboard.</p>
+  </div>
+</div>
+
+<h2>📋 System Requirements & Compatibility</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Specification</th>
+      <th>Minimum Requirement</th>
+      <th>Recommended</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Operating System</td>
+      <td>Windows 10 / macOS 11+</td>
+      <td>Windows 11 / macOS 14+</td>
+    </tr>
+    <tr>
+      <td>RAM</td>
+      <td>4 GB</td>
+      <td>8 GB or higher</td>
+    </tr>
+    <tr>
+      <td>Internet Connection</td>
+      <td>Required for activation</td>
+      <td>Stable broadband connection</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>🛠️ Quick 3-Step Setup Guide</h2>
+<div style="margin:1.5rem 0">
+  <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem">
+    <div style="width:2rem;height:2rem;background:#6366f1;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">1</div>
+    <div><h4 style="margin:0 0 0.25rem;font-weight:700">Download the Files</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Grab the installer instantly from your order confirmation email or dashboard.</p></div>
+  </div>
+  <div style="display:flex;align-items:flex-start;gap:1rem;margin-bottom:1rem">
+    <div style="width:2rem;height:2rem;background:#6366f1;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">2</div>
+    <div><h4 style="margin:0 0 0.25rem;font-weight:700">Install & Enter License</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Run the setup wizard and paste your genuine activation key.</p></div>
+  </div>
+  <div style="display:flex;align-items:flex-start;gap:1rem">
+    <div style="width:2rem;height:2rem;background:#6366f1;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;flex-shrink:0">3</div>
+    <div><h4 style="margin:0 0 0.25rem;font-weight:700">Ready to Use</h4><p style="margin:0;color:#64748b;font-size:0.875rem">Enjoy all premium features unlocked with peace of mind.</p></div>
+  </div>
+</div>
+
+<h2>❓ Frequently Asked Questions</h2>
+<details open>
+  <summary>How fast will I receive the license key?</summary>
+  <p>Delivery is fully automated. You will receive your license key and download link instantly after checkout.</p>
+</details>
+<details>
+  <summary>Can I transfer my license to a new PC?</summary>
+  <p>Yes, your license can be deactivated and transferred to another computer anytime via customer support.</p>
+</details>
+
+<div data-callout="success" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#f0fdf4;border-left:4px solid #22c55e">
+  <p style="margin:0;font-weight:600;color:#166534">🔒 100% Working Guarantee</p>
+  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#15803d">If your key fails to activate or you experience any issues, our 24/7 team will replace it immediately.</p>
+</div>`
+  },
+  {
+    id: "course",
+    title: "Video Course & Masterclass",
+    icon: "🎓",
+    description: "Course curriculum, key learning outcomes, syllabus breakdown, and guarantees.",
+    html: `<h2>🎯 Masterclass Overview</h2>
+<p>Transform your expertise with this step-by-step masterclass packed with actionable insights, real-world projects, and downloadable resources.</p>
+
+<h2>✨ What You Will Master</h2>
+<ul style="padding-left:1.5rem;line-height:1.8">
+  <li>Fundamental concepts and core foundations explained clearly</li>
+  <li>Advanced techniques used by top industry professionals</li>
+  <li>Live walkthroughs and hands-on practical exercises</li>
+  <li>Time-saving shortcuts, workflows, and insider secrets</li>
+  <li>Full access to downloadable templates and project files</li>
+</ul>
+
+<h2>📚 Course Syllabus & Modules</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Module</th>
+      <th>Topics Covered</th>
+      <th>Format</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Module 1: Foundations</td>
+      <td>Setup, key terminology, and essential tools</td>
+      <td>Video + PDF Guide</td>
+    </tr>
+    <tr>
+      <td>Module 2: Core Practical Work</td>
+      <td>Step-by-step execution and live demonstrations</td>
+      <td>Interactive Video</td>
+    </tr>
+    <tr>
+      <td>Module 3: Advanced Strategies</td>
+      <td>Scaling up, automation, and maximizing results</td>
+      <td>Video + Source Files</td>
+    </tr>
+  </tbody>
+</table>
+
+<div data-callout="info" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#eff6ff;border-left:4px solid #3b82f6">
+  <p style="margin:0;font-weight:600;color:#1e40af">🎓 Lifetime Access & Continuous Updates Included</p>
+  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#1d4ed8">Enroll once and access anytime from desktop, tablet, or mobile. Future curriculum updates are included at no extra charge.</p>
+</div>`
+  },
+  {
+    id: "subscription",
+    title: "Subscription, Account & VPN",
+    icon: "🔑",
+    description: "Account specs, stat cards, dos & don'ts rules, and replacement warranty.",
+    html: `<h2>⭐ Premium Subscription Details</h2>
+<p>Unlock uninterrupted premium access with our verified subscription accounts. Enjoy high-speed performance and maximum privacy.</p>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;margin:1.5rem 0">
+  <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+    <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#6366f1">⚡ Instant</div>
+    <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Automated Delivery</div>
+  </div>
+  <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+    <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#22c55e">100%</div>
+    <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Private & Secure</div>
+  </div>
+  <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+    <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#f59e0b">24/7</div>
+    <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Replacement Warranty</div>
+  </div>
+</div>
+
+<h2>📌 Account Rules & Guidelines</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0">
+  <div style="padding:1rem;background:#f0fdf4;border-left:4px solid #22c55e;border-radius:8px">
+    <h4 style="color:#16a34a;margin:0 0 0.5rem;font-weight:700">✅ Allowed</h4>
+    <ul style="margin:0;padding-left:1.25rem;font-size:0.875rem">
+      <li>Login on allowed device count</li>
+      <li>Use for personal streaming or browsing</li>
+      <li>Download content for offline use</li>
+    </ul>
+  </div>
+  <div style="padding:1rem;background:#fef2f2;border-left:4px solid #ef4444;border-radius:8px">
+    <h4 style="color:#dc2626;margin:0 0 0.5rem;font-weight:700">❌ Prohibited</h4>
+    <ul style="margin:0;padding-left:1.25rem;font-size:0.875rem">
+      <li>Do not change account email or password</li>
+      <li>Do not share credentials publicly</li>
+    </ul>
+  </div>
+</div>
+
+<h2>❓ Frequently Asked Questions</h2>
+<details open>
+  <summary>How will I receive the account details?</summary>
+  <p>The login credentials and setup instructions are sent directly to your email and order screen right after payment.</p>
+</details>
+<details>
+  <summary>What should I do if the account stops working?</summary>
+  <p>Our warranty covers the entire duration of your plan. Contact our 24/7 support anytime for an immediate replacement.</p>
+</details>`
+  },
+  {
+    id: "gaming",
+    title: "Game Keys & Gift Cards",
+    icon: "🎮",
+    description: "Region warnings, platform activation steps, and buyer security assurance.",
+    html: `<h2>🎮 Product Overview</h2>
+<p>Purchase genuine, region-verified digital activation codes with zero wait time. Codes are sourced directly from authorized channels.</p>
+
+<div data-callout="warning" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#fffbeb;border-left:4px solid #f59e0b">
+  <p style="margin:0;font-weight:600;color:#b45309">⚠️ Region Compatibility Notice</p>
+  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#92400e">Please ensure your account country matches before redemption. Digital keys once delivered cannot be returned if purchased for an incompatible region.</p>
+</div>
+
+<h2>🚀 Step-by-Step Activation Instructions</h2>
+<ol style="padding-left:1.5rem;line-height:1.8">
+  <li>Log in to your platform account (Steam, Epic Games, PlayStation, Xbox, etc.).</li>
+  <li>Navigate to <strong>Activate a Product Code</strong> or <strong>Redeem Code</strong>.</li>
+  <li>Enter your unique code received from Asia D Market.</li>
+  <li>Confirm activation and start downloading your game immediately!</li>
+</ol>
+
+<div data-callout="success" style="border-radius:10px;padding:1rem 1.25rem;margin:1.5rem 0;background:#f0fdf4;border-left:4px solid #22c55e">
+  <p style="margin:0;font-weight:600;color:#166534">✅ 100% Genuine Working Key</p>
+  <p style="margin:0.25rem 0 0;font-size:0.875rem;color:#15803d">Every code is verified unused before delivery. Instant delivery guaranteed 24 hours a day.</p>
+</div>`
+  }
+];
+
+// ─── Templates Modal ─────────────────────────────────────────────────────────
+function TemplatesModal({ onApply, onClose }: { onApply: (html: string, replace: boolean) => void; onClose: () => void }) {
+  const [selected, setSelected] = useState<string>("software");
+  const [replace, setReplace] = useState(false);
+
+  const activeTpl = PRODUCT_TEMPLATES.find(t => t.id === selected) || PRODUCT_TEMPLATES[0];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-3 sm:p-6">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" /> Professional Product Templates
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">Select a pre-designed layout optimized for digital sales, software, courses, and accounts.</p>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-3">
+          {/* Template Selector List */}
+          <div className="border-r border-slate-200 p-4 space-y-2 overflow-y-auto bg-slate-50/50">
+            {PRODUCT_TEMPLATES.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSelected(t.id)}
+                className={`w-full text-left p-3.5 rounded-xl border transition-all ${
+                  selected === t.id
+                    ? "bg-white border-primary shadow-sm ring-2 ring-primary/20"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xl">{t.icon}</span>
+                  <span className="font-bold text-sm text-slate-900">{t.title}</span>
+                </div>
+                <p className="text-xs text-slate-500 line-clamp-2">{t.description}</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Template Live Preview */}
+          <div className="md:col-span-2 p-6 overflow-y-auto bg-white flex flex-col">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b">
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-primary">Template Preview</span>
+                <h4 className="font-bold text-slate-900 text-base">{activeTpl.title}</h4>
+              </div>
+              <span className="text-2xl">{activeTpl.icon}</span>
+            </div>
+            <div
+              className="product-description flex-1 overflow-auto border rounded-xl p-5 bg-slate-50/40 text-sm max-h-[420px]"
+              dangerouslySetInnerHTML={{ __html: activeTpl.html }}
+            />
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t bg-slate-50">
+          <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={replace}
+              onChange={e => setReplace(e.target.checked)}
+              className="rounded border-slate-300 text-primary focus:ring-primary"
+            />
+            <span>Replace current editor content (uncheck to insert at cursor)</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border hover:bg-slate-100 transition-colors">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => { onApply(activeTpl.html, replace); onClose(); }}
+              className="flex items-center gap-1.5 px-5 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 font-medium transition-all shadow-sm"
+            >
+              <Sparkles className="w-4 h-4" /> {replace ? "Apply Template (Replace)" : "Insert Template"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Live Preview Modal ───────────────────────────────────────────────────────
+function PreviewModal({ html, onClose }: { html: string; onClose: () => void }) {
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const words = html.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+  const readTime = Math.max(1, Math.ceil(words / 200));
+  const images = (html.match(/<img\b/gi) || []).length;
+  const headings = (html.match(/<h[1-6]\b/gi) || []).length;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-md p-3 sm:p-6">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50/80">
+          <div className="flex items-center gap-3">
+            <h3 className="text-base font-bold text-slate-900">Storefront Content Preview</h3>
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">Live Simulation</span>
+          </div>
+
+          {/* Device Toggles */}
+          <div className="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setDevice("desktop")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                device === "desktop" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Monitor className="w-3.5 h-3.5" /> Desktop
+            </button>
+            <button
+              type="button"
+              onClick={() => setDevice("mobile")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                device === "mobile" ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Smartphone className="w-3.5 h-3.5" /> Mobile (375px)
+            </button>
+          </div>
+
+          <button type="button" onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-slate-600" />
+          </button>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto bg-slate-100/70 p-4 sm:p-8 flex justify-center items-start">
+          {device === "desktop" ? (
+            <div className="w-full max-w-4xl bg-white rounded-2xl p-8 sm:p-12 shadow-sm border border-slate-200/80 min-h-full">
+              <div
+                className="product-description"
+                dangerouslySetInnerHTML={{ __html: html || "<p class='text-slate-400 italic text-center py-10'>No content to preview yet. Start typing or insert a template.</p>" }}
+              />
+            </div>
+          ) : (
+            <div className="w-[375px] bg-white rounded-[40px] shadow-2xl border-[10px] border-slate-900 overflow-hidden flex flex-col my-auto shrink-0">
+              <div className="bg-slate-900 h-6 flex justify-center items-center">
+                <div className="w-24 h-4 bg-black rounded-b-xl" />
+              </div>
+              <div className="p-5 overflow-y-auto max-h-[640px]">
+                <div
+                  className="product-description text-sm"
+                  dangerouslySetInnerHTML={{ __html: html || "<p class='text-slate-400 italic text-center py-8 text-xs'>No content to preview.</p>" }}
+                />
+              </div>
+              <div className="bg-slate-900 h-3 flex justify-center items-center" />
+            </div>
+          )}
+        </div>
+
+        {/* Footer with SEO stats */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 border-t bg-slate-50 text-xs text-slate-500">
+          <div className="flex items-center gap-4">
+            <span><strong>{words}</strong> words</span>
+            <span>⏱️ <strong>~{readTime}</strong> min read</span>
+            <span><strong>{headings}</strong> headings</span>
+            <span><strong>{images}</strong> images</span>
+          </div>
+          <button type="button" onClick={onClose} className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-medium hover:bg-slate-800 transition-colors">
+            Close Preview
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Table Modal ──────────────────────────────────────────────────────────────
 function TableModal({ onInsert, onClose }: { onInsert: (rows: number, cols: number, header: boolean) => void; onClose: () => void }) {
   const [rows, setRows] = useState(3);
@@ -493,6 +886,8 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
   const [showLink, setShowLink] = useState(false);
   const [showHtml, setShowHtml] = useState(false);
   const [showTable, setShowTable] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const hiddenRef = useRef<HTMLInputElement>(null);
@@ -645,6 +1040,62 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
         </div>
       </div>
     `).run();
+  }, [editor]);
+
+  const insertFaqAccordion = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <h2>❓ Frequently Asked Questions</h2>
+      <details open>
+        <summary>How do I receive my product after purchase?</summary>
+        <p>You will receive instant access with your download links and license keys delivered directly to your email and Asia D Market dashboard immediately after payment.</p>
+      </details>
+      <details>
+        <summary>What is your replacement or warranty policy?</summary>
+        <p>We provide a 100% working guarantee. If you encounter any issue, contact our 24/7 priority support for an instant replacement or technical assistance.</p>
+      </details>
+      <details>
+        <summary>Can I request customer support if I need help?</summary>
+        <p>Yes, our customer support team is available around the clock via live chat and ticket support to ensure a seamless experience.</p>
+      </details>
+    `).run();
+  }, [editor]);
+
+  const insertStatCards = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;margin:1.5rem 0">
+        <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+          <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:var(--color-primary,#6366f1)">⚡ Instant</div>
+          <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Automated Delivery</div>
+        </div>
+        <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+          <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#22c55e">100%</div>
+          <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Genuine & Verified</div>
+        </div>
+        <div class="stat-card" style="padding:1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+          <div class="stat-number" style="font-size:1.75rem;font-weight:800;color:#f59e0b">24/7</div>
+          <div class="stat-label" style="font-size:0.875rem;color:#64748b;margin-top:0.25rem">Priority Support</div>
+        </div>
+      </div>
+    `).run();
+  }, [editor]);
+
+  const insertGuaranteeBanner = useCallback(() => {
+    editor?.chain().focus().insertContent(`
+      <div data-callout="success" style="border-radius:12px;padding:1.25rem;margin:1.5rem 0;background:#f0fdf4;border-left:4px solid #22c55e">
+        <h4 style="margin:0 0 0.25rem;font-weight:700;color:#166534">🔒 100% Working Guarantee & Buyer Protection</h4>
+        <p style="margin:0;font-size:0.875rem;color:#15803d">Every product is verified prior to dispatch. If you experience any technical defect or delivery issue, our dedicated team will resolve it or provide an immediate replacement.</p>
+      </div>
+    `).run();
+  }, [editor]);
+
+  const handleApplyTemplate = useCallback((html: string, replace: boolean) => {
+    if (!editor) return;
+    if (replace) {
+      editor.chain().focus().setContent(html).run();
+    } else {
+      editor.chain().focus().insertContent(html).run();
+    }
+    if (hiddenRef.current) hiddenRef.current.value = editor.getHTML();
   }, [editor]);
 
   if (!editor) return null;
@@ -811,7 +1262,21 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
             <MenuItem onClick={insertFeatureGrid} icon={<Grid3X3 className="w-4 h-4" />} label="Feature Cards (3-col)" />
             <MenuItem onClick={insertProsConsList} icon={<Check className="w-4 h-4" />} label="Pros & Cons" />
             <MenuItem onClick={insertSteps} icon={<ListOrdered className="w-4 h-4" />} label="Numbered Steps" />
+            <MenuItem onClick={insertFaqAccordion} icon={<HelpCircle className="w-4 h-4" />} label="FAQ Accordion" />
+            <MenuItem onClick={insertStatCards} icon={<Zap className="w-4 h-4" />} label="Key Stats Row" />
+            <MenuItem onClick={insertGuaranteeBanner} icon={<ShieldCheck className="w-4 h-4" />} label="Guarantee Banner" />
           </DropMenu>
+
+          {/* Templates Quick Button */}
+          <button
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); setShowTemplates(true); }}
+            title="Browse pre-designed e-commerce product templates"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-primary to-indigo-600 text-white font-medium text-xs shadow-sm hover:opacity-90 transition-all select-none ml-0.5"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+            <span className="hidden sm:inline">Templates</span>
+          </button>
 
           <Divider />
 
@@ -825,6 +1290,11 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
 
           {/* Spacer */}
           <div className="flex-1" />
+
+          {/* Preview Button */}
+          <ToolbarBtn onClick={() => setShowPreview(true)} title="Live Storefront Preview (Desktop & Mobile)">
+            <Eye className="w-4 h-4 text-primary" />
+          </ToolbarBtn>
 
           {/* HTML source */}
           <ToolbarBtn onClick={() => setShowHtml(true)} title="Edit HTML Source">
@@ -863,9 +1333,26 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
         </div>
 
         {/* ─ Status Bar ─ */}
-        <div className="flex items-center justify-between px-4 py-2 border-t bg-slate-50/80 text-xs text-slate-400">
-          <span>{editor.storage.characterCount?.characters?.() ?? 0} chars · {wordCount} words</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 border-t bg-slate-50/80 text-xs text-slate-500">
           <div className="flex items-center gap-3">
+            <span>{editor.storage.characterCount?.characters?.() ?? 0} chars · <strong>{wordCount}</strong> words</span>
+            <span>⏱️ ~{Math.max(1, Math.round(wordCount / 180))} min read</span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${
+              wordCount >= 250 ? "bg-green-100 text-green-700" :
+              wordCount >= 100 ? "bg-blue-100 text-blue-700" :
+              "bg-amber-100 text-amber-700"
+            }`}>
+              {wordCount >= 250 ? "● Optimal for SEO" : wordCount >= 100 ? "● Good Length" : "● Short (Add details for SEO)"}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowPreview(true)}
+              className="text-primary hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+            >
+              <Eye className="w-3.5 h-3.5" /> Preview Storefront
+            </button>
             {editor.isActive("table") && <span className="text-primary font-medium">Table selected</span>}
             {editor.isActive("link") && <span className="text-blue-500 font-medium">Link active</span>}
           </div>
@@ -878,6 +1365,8 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder }:
       {showLink && <LinkModal currentUrl={editor.getAttributes("link").href} onInsert={insertLink} onClose={() => setShowLink(false)} />}
       {showHtml && <HtmlModal html={editor.getHTML()} onApply={html => { editor.chain().focus().setContent(html).run(); if (hiddenRef.current) hiddenRef.current.value = editor.getHTML(); }} onClose={() => setShowHtml(false)} />}
       {showTable && <TableModal onInsert={insertTable} onClose={() => setShowTable(false)} />}
+      {showTemplates && <TemplatesModal onApply={handleApplyTemplate} onClose={() => setShowTemplates(false)} />}
+      {showPreview && <PreviewModal html={editor.getHTML()} onClose={() => setShowPreview(false)} />}
 
       {/* Fullscreen backdrop click to close */}
       {isFullscreen && (
