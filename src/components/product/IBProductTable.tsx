@@ -103,24 +103,12 @@ function IBProductRow({ product, index }: { product: any; index: number }) {
   return (
     <tr onClick={handleRowClick} className={`group transition-all duration-200 cursor-pointer ${loading ? 'opacity-75 pointer-events-none' : ''}`}>
       <td className="px-2 md:px-5 py-3 md:py-4 bg-white border-y border-l border-slate-200 rounded-l-xl group-hover:border-violet-300 group-hover:bg-violet-50/50 shadow-sm">
-        <div className="flex items-center gap-2 md:gap-3 group/link">
-          <div className="shrink-0 w-16 md:w-24 aspect-video rounded-md md:rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-sm relative" style={{ aspectRatio: "16 / 9" }}>
-            {image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={normalizeImageUrl(image)} alt={product.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-300">
-                <Package className="h-4 w-4 md:h-5 md:w-5" />
-              </div>
-            )}
+        <div className="min-w-0">
+          <div className="font-bold text-violet-950 group-hover:text-violet-600 transition-colors line-clamp-2 md:line-clamp-1 text-[11px] md:text-sm leading-tight">
+            {product.name}
           </div>
-          <div className="min-w-0">
-            <div className="font-bold text-violet-950 group-hover/link:text-violet-600 transition-colors line-clamp-2 md:line-clamp-1 text-[11px] md:text-sm leading-tight">
-              {product.name}
-            </div>
-            <div className="hidden sm:block">
-              {product.reviews && <ProductRating reviews={product.reviews} />}
-            </div>
+          <div className="hidden sm:block mt-0.5">
+            {product.reviews && <ProductRating reviews={product.reviews} />}
           </div>
         </div>
       </td>
