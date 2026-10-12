@@ -60,19 +60,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ? metadata.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
       : [];
   const image = metadata.image || product.course?.thumbnailUrl || "/og-image.jpg";
-  const desc = product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on Asia D Market with instant delivery and secure payment.`;
-  const canonicalUrl = `/product/${product.slug}`;
+  const desc = metadata.seoDescription || product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on Asia D Market with instant delivery and secure payment.`;
+  const title = metadata.seoTitle || `${product.name} - Buy Online`;
+  const canonicalUrl = metadata.canonicalUrl || `/product/${product.slug}`;
 
   return {
-    title: product.seoTitle || `${product.name} - Buy Online`,
-    description: product.seoDescription || desc,
+    title,
+    description: desc,
     keywords: tags.length > 0 ? tags : undefined,
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title: product.seoTitle || product.name,
-      description: product.seoDescription || desc,
+      title,
+      description: desc,
       url: canonicalUrl,
       type: "website",
       images: [
@@ -84,13 +85,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     },
     twitter: {
       card: "summary_large_image",
-      title: product.seoTitle || product.name,
-      description: product.seoDescription || desc,
+      title,
+      description: desc,
       images: [image],
     },
     robots: {
-      index: true,
-      follow: true,
+      index: metadata.robots?.includes("noindex") ? false : true,
+      follow: metadata.robots?.includes("nofollow") ? false : true,
     }
   };
 }
@@ -377,7 +378,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                 <BookOpen className="w-6 h-6 text-primary" /> Product Overview
               </h2>
               <div 
-                className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-a:text-primary hover:prose-a:text-primary/80 prose-img:rounded-2xl"
+                className="product-description"
                 dangerouslySetInnerHTML={{ __html: product.description || "<p>No description provided.</p>" }}
               />
             </div>

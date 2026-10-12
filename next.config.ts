@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // @ts-expect-error Next.js 16 type definition compatibility
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors. (Fixes Vercel build crashes caused by WP scripts)

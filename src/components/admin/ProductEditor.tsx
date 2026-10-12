@@ -423,9 +423,22 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
             </div>
 
             <div data-tab-id="description" className={activeTab === "description" ? "block" : "hidden"}>
-              <h2 className="text-lg font-semibold text-slate-900 mb-6">Full Description</h2>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5 pb-4 border-b">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-slate-900">Product Content & Description Studio</h2>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary">Visual Editor</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Design rich product descriptions, feature comparison tables, callout banners, and embed YouTube/Vimeo videos.
+                  </p>
+                </div>
+                <div className="text-xs text-slate-400 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 hidden sm:block">
+                  💡 Tip: Click Fullscreen for a distraction-free writing experience
+                </div>
+              </div>
               <div className="space-y-2">
-                <RichTextEditor name="description" defaultValue={initialData?.description as string || ""} placeholder="Full product description..." />
+                <RichTextEditor name="description" defaultValue={initialData?.description as string || ""} placeholder="Write comprehensive product description, specs, instructions, and embed media..." />
               </div>
             </div>
 

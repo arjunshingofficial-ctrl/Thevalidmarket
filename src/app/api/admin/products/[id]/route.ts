@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/actions/admin";
 import { revalidatePath } from "next/cache";
+import { sanitizeHtml } from "@/lib/sanitize";
 import type { Session } from "next-auth";
 
 function requireAdminSession(session: Session | null) {
@@ -40,7 +41,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const salePrice = data.get("salePrice") ? parseFloat(data.get("salePrice") as string) : null;
   const status = data.get("status") as string || "DRAFT";
   const shortDesc = data.get("shortDesc") as string;
-  const description = data.get("description") as string;
+  const rawDescription = data.get("description") as string;
+  const description = sanitizeHtml(rawDescription || "");
   const sku = data.get("sku") as string;
   const unlimitedStock = data.get("unlimitedStock") === "true";
   const stock = unlimitedStock ? -1 : parseInt(data.get("stock") as string || "0");

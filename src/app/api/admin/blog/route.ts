@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/actions/admin";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export async function POST(req: Request) {
   try {
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
         title: formData.get("title") as string,
         slug: formData.get("slug") as string,
         excerpt: formData.get("excerpt") as string,
-        content: formData.get("content") as string,
+        content: sanitizeHtml((formData.get("content") as string) || ""),
         featuredImage: formData.get("featuredImage") as string,
         categoryId: (formData.get("categoryId") as string) || null,
         status: formData.get("status") as any,

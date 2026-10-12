@@ -88,7 +88,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         )}
 
         <div 
-          className="prose prose-slate prose-lg md:prose-xl max-w-none prose-headings:font-bold prose-a:text-primary hover:prose-a:text-primary/80"
+          className="product-description"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
         
