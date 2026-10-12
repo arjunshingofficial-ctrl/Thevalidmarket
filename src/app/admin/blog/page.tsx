@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Plus, Folders, BookOpen } from "lucide-react";
+import { Plus, Folders, BookOpen, MessageSquare } from "lucide-react";
 import { requireAdmin } from "@/lib/actions/admin";
 import BlogPostsTable from "@/components/admin/BlogPostsTable";
 
@@ -35,6 +35,13 @@ export default async function AdminBlog() {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link
+            href="/admin/blog/comments"
+            className="flex-1 sm:flex-initial bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-slate-50 shadow-xs transition-colors"
+          >
+            <MessageSquare className="h-4 w-4 text-slate-500" />
+            <span>Comments</span>
+          </Link>
           <Link
             href="/admin/blog/categories"
             className="flex-1 sm:flex-initial bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-slate-50 shadow-xs transition-colors"

@@ -2,7 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import Image from "next/image";
+import { 
+  ArrowLeft, Calendar, Clock, Tag, Share2, 
+  CheckCircle2, Sparkles, BookOpen, ShieldCheck 
+} from "lucide-react";
+import BlogSidebar from "@/components/blog/BlogSidebar";
+import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   
   if (!post || post.status !== "PUBLISHED") {
-    return { title: "Post Not Found" };
+    return { title: "Post Not Found - Asia D Market" };
   }
 
   let keywords: string[] = [];
@@ -26,92 +32,317 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return {
-    title: post.seoTitle || post.title,
-    description: post.metaDescription || post.excerpt,
+    title: `${post.seoTitle || post.title} | Asia D Market Blog`,
+    description: post.metaDescription || post.excerpt || undefined,
     keywords: keywords.length > 0 ? keywords : undefined,
     alternates: {
-      canonical: post.canonicalUrl || `/blog/${post.slug}`
+      canonical: post.canonicalUrl || `/blog/${post.slug}`,
     },
     robots: post.robots || "index, follow",
     openGraph: {
       title: post.ogTitle || post.seoTitle || post.title,
       description: post.ogDescription || post.metaDescription || post.excerpt || undefined,
-      images: post.ogImage || post.featuredImage ? [{ url: (post.ogImage || post.featuredImage) as string }] : undefined
-    }
+      images: post.ogImage || post.featuredImage ? [{ url: (post.ogImage || post.featuredImage) as string }] : undefined,
+    },
   };
 }
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+
+  // 1. Fetch current post with category and approved comments only
   const post = await prisma.blogPost.findUnique({
     where: { slug },
-    include: { category: true }
+    include: {
+      category: true,
+      comments: {
+        where: { status: "APPROVED" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          authorName: true,
+          content: true,
+          createdAt: true,
+        },
+      },
+    },
   });
 
   if (!post || post.status !== "PUBLISHED") {
     notFound();
   }
 
+  // 2. Fetch Recent Posts
+  const recentPosts = await prisma.blogPost.findMany({
+    where: {
+      status: "PUBLISHED",
+      NOT: { id: post.id },
+    },
+    orderBy: { publishDate: "desc" },
+    take: 4,
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      featuredImage: true,
+      publishDate: true,
+      createdAt: true,
+      category: { select: { name: true, slug: true } },
+    },
+  });
+
+  // 3. Fetch Popular Tools & Products
+  const popularProducts = await prisma.product.findMany({
+    where: { status: "PUBLISHED" },
+    orderBy: { createdAt: "desc" },
+    take: 4,
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      price: true,
+      salePrice: true,
+      type: true,
+      metadata: true,
+    },
+  });
+
+  // 4. Fetch Featured Courses
+  const coursesRaw = await prisma.course.findMany({
+    where: { status: "ACTIVE" },
+    take: 2,
+    include: {
+      product: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          price: true,
+        },
+      },
+    },
+  });
+
+  let featuredCourses = coursesRaw.map((c) => ({
+    id: c.id,
+    title: c.product.name,
+    slug: c.product.slug,
+    price: c.product.price,
+    imageUrl: c.thumbnailUrl,
+    level: "All Levels",
+  }));
+
+  if (featuredCourses.length === 0) {
+    const fallbackCourseProducts = await prisma.product.findMany({
+      where: { status: "PUBLISHED", type: "COURSE" },
+      take: 2,
+    });
+    featuredCourses = fallbackCourseProducts.map((p) => ({
+      id: p.id,
+      title: p.name,
+      slug: p.slug,
+      price: p.price,
+      imageUrl: null,
+      level: "Masterclass",
+    }));
+  }
+
+  // Calculate reading time
+  const wordCount = post.content ? post.content.replace(/<[^>]+>/g, "").split(/\s+/).length : 0;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  // Parse tags
+  let parsedTags: string[] = [];
+  if (post.tags) {
+    try {
+      const parsed = JSON.parse(post.tags);
+      parsedTags = Array.isArray(parsed) ? parsed : [String(parsed)];
+    } catch {
+      parsedTags = post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+    }
+  }
+
   return (
-    <div className="min-h-screen py-16 bg-white">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50/60 py-10 sm:py-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="mb-8">
-          <Link href="/blog" className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-primary transition-colors">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back to blog
+        {/* ─ Breadcrumbs & Navigation ─ */}
+        <div className="flex items-center justify-between gap-4 mb-8">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-500 hover:text-primary transition-colors bg-white px-3.5 py-1.5 rounded-full border border-slate-200/80 shadow-xs"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to All Articles</span>
           </Link>
+
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span className="hidden sm:inline">Updated</span>
+            <span className="font-semibold text-slate-700">
+              {post.publishDate
+                ? new Date(post.publishDate).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : new Date(post.createdAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+            </span>
+          </div>
         </div>
 
-        <header className="mb-12 text-center">
-          {post.category && (
-            <span className="text-sm font-bold text-primary uppercase tracking-widest mb-4 block">
-              {post.category.name}
-            </span>
-          )}
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-6">
-            {post.title}
-          </h1>
-          <div className="text-slate-500 flex items-center justify-center gap-4 text-sm">
-            <span>By Admin</span>
-            <span>&bull;</span>
-            <time dateTime={post.publishDate?.toISOString() || post.createdAt.toISOString()}>
-              {post.publishDate ? new Date(post.publishDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : new Date(post.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-            </time>
-          </div>
-        </header>
-
-        {post.featuredImage && (
-          <div className="mb-12 rounded-2xl overflow-hidden shadow-lg border border-slate-100 w-full aspect-video relative" style={{ aspectRatio: "16 / 9" }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={post.featuredImage} alt={post.title} className="object-cover w-full h-full" />
-          </div>
-        )}
-
-        <div 
-          className="product-description"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
-        
-        {post.tags && (() => {
-          let parsedTags: string[] = [];
-          try {
-            const parsed = JSON.parse(post.tags);
-            parsedTags = Array.isArray(parsed) ? parsed : [String(parsed)];
-          } catch {
-            parsedTags = post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
-          }
-          if (parsedTags.length === 0) return null;
-          return (
-            <div className="mt-12 pt-8 border-t flex flex-wrap gap-2 items-center">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mr-1">Tags:</span>
-              {parsedTags.map((tag: string) => (
-                <span key={tag} className="bg-slate-100 hover:bg-primary/10 hover:text-primary transition-colors text-slate-700 px-3 py-1 rounded-full text-xs font-medium border border-slate-200/80">
-                  #{tag}
+        {/* ─ Main Layout Grid ─ */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+          
+          {/* ══ Article Main Column (lg:col-span-8) ══ */}
+          <article className="lg:col-span-8 space-y-8">
+            
+            <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-10 shadow-xs">
+              {/* Category & Read Time */}
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                {post.category && (
+                  <span className="text-xs font-extrabold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-wider">
+                    {post.category.name}
+                  </span>
+                )}
+                <span className="text-xs text-slate-500 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{readingTime} min read</span>
                 </span>
-              ))}
+                <span className="text-xs text-slate-300">•</span>
+                <span className="text-xs text-slate-500 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>
+                    {post.publishDate
+                      ? new Date(post.publishDate).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : new Date(post.createdAt).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                  </span>
+                </span>
+              </div>
+
+              {/* Title */}
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">
+                {post.title}
+              </h1>
+
+              {/* Author & Editorial Badge */}
+              <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100 flex-wrap gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-primary to-indigo-700 text-white font-extrabold flex items-center justify-center shadow-sm">
+                    ADM
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-extrabold text-slate-900">Asia D Market Research</span>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <p className="text-xs text-slate-400">Verified Technical Editorial Team</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    title="Share this article"
+                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors border border-slate-200"
+                    onClick={() => {
+                      if (typeof window !== "undefined" && navigator?.clipboard) {
+                        navigator.clipboard.writeText(window.location.href);
+                      }
+                    }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Featured Image */}
+              {post.featuredImage && (
+                <div className="mb-8 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 w-full aspect-video relative bg-slate-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={post.featuredImage}
+                    alt={post.title}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              )}
+
+              {/* Excerpt callout if present */}
+              {post.excerpt && (
+                <div className="p-5 rounded-2xl bg-slate-50 border-l-4 border-primary text-slate-700 text-base italic leading-relaxed mb-8">
+                  &ldquo;{post.excerpt}&rdquo;
+                </div>
+              )}
+
+              {/* Article HTML Content */}
+              <div
+                className="product-description text-slate-800 leading-relaxed text-base"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+              />
+
+              {/* Article Tags */}
+              {parsedTags.length > 0 && (
+                <div className="mt-10 pt-6 border-t border-slate-100 flex flex-wrap gap-2 items-center">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1 mr-1">
+                    <Tag className="w-3.5 h-3.5" /> Tags:
+                  </span>
+                  {parsedTags.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="bg-slate-100 hover:bg-primary/10 hover:text-primary transition-colors text-slate-700 px-3 py-1 rounded-full text-xs font-semibold border border-slate-200"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Editorial Guarantee Footnote */}
+              <div className="mt-10 p-5 rounded-2xl bg-slate-900 text-white flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="text-xs">
+                  <p className="font-bold text-white mb-0.5">Verified Knowledge Base Guarantee</p>
+                  <p className="text-slate-400">
+                    All guides, scripts, and product configurations on Asia D Market are tested for safety, zero backdoors, and maximum performance.
+                  </p>
+                </div>
+              </div>
             </div>
-          );
-        })()}
+
+            {/* ─ Comments Section Component ─ */}
+            <BlogCommentsSection
+              postId={post.id}
+              initialComments={post.comments}
+            />
+          </article>
+
+          {/* ══ Sidebar Column (lg:col-span-4) ══ */}
+          <div className="lg:col-span-4">
+            <div className="sticky top-24 space-y-6">
+              <BlogSidebar
+                recentPosts={recentPosts}
+                popularProducts={popularProducts}
+                featuredCourses={featuredCourses}
+              />
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   );
