@@ -301,55 +301,55 @@ export default function RealTimeSeoAnalyzer({
       {activeSubTab === "overview" && (
         <div className="p-6 space-y-6">
           {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-slate-400 block font-semibold mb-1">Title Width</span>
-              <span className={`text-base font-extrabold ${analysis.titlePixelWidth > 580 ? "text-amber-600" : "text-slate-900"}`}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 2xl:grid-cols-6 gap-2.5 text-xs">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Title Width</span>
+              <span className={`text-base font-extrabold block truncate ${analysis.titlePixelWidth > 580 ? "text-amber-600" : "text-slate-900"}`}>
                 {analysis.titlePixelWidth}px
               </span>
-              <span className="text-[11px] text-slate-400 block">max 580px ({analysis.titleLength} chars)</span>
+              <span className="text-[11px] text-slate-400 block truncate">max 580px ({analysis.titleLength} chars)</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-slate-400 block font-semibold mb-1">Snippet Width</span>
-              <span className={`text-base font-extrabold ${analysis.descPixelWidth > 960 ? "text-amber-600" : "text-slate-900"}`}>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Snippet Width</span>
+              <span className={`text-base font-extrabold block truncate ${analysis.descPixelWidth > 960 ? "text-amber-600" : "text-slate-900"}`}>
                 {analysis.descPixelWidth}px
               </span>
-              <span className="text-[11px] text-slate-400 block">max 960px ({analysis.descLength} chars)</span>
+              <span className="text-[11px] text-slate-400 block truncate">max 960px ({analysis.descLength} chars)</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-slate-400 block font-semibold mb-1">Word Count</span>
-              <span className="text-base font-extrabold text-slate-900">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Word Count</span>
+              <span className="text-base font-extrabold text-slate-900 block truncate">
                 {analysis.wordCount} words
               </span>
-              <span className="text-[11px] text-slate-400 block">~{analysis.readingTimeMinutes} min reading time</span>
+              <span className="text-[11px] text-slate-400 block truncate">~{analysis.readingTimeMinutes} min reading time</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-slate-400 block font-semibold mb-1">Headings Ratio</span>
-              <span className={`text-base font-extrabold ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "text-amber-600" : "text-slate-900"}`}>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Headings Ratio</span>
+              <span className={`text-base font-extrabold block truncate ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "text-amber-600" : "text-slate-900"}`}>
                 {analysis.totalHeadings} <span className="text-xs font-normal text-slate-500">headings</span>
               </span>
-              <span className="text-[11px] text-slate-400 block">~{analysis.wordsPerHeading} words/section</span>
+              <span className="text-[11px] text-slate-400 block truncate">~{analysis.wordsPerHeading} words/section</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-slate-400 block font-semibold mb-1">Images Missing Alt</span>
-              <span className={`text-base font-extrabold ${analysis.imagesMissingAlt > 0 ? "text-red-600" : "text-emerald-600"}`}>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Images Missing Alt</span>
+              <span className={`text-base font-extrabold block truncate ${analysis.imagesMissingAlt > 0 ? "text-red-600" : "text-emerald-600"}`}>
                 {analysis.imagesMissingAlt} of {analysis.totalImages}
               </span>
-              <span className="text-[11px] text-slate-400 block">
+              <span className="text-[11px] text-slate-400 block truncate">
                 {analysis.imagesMissingAlt === 0 ? "All images labeled" : "Alt tags required"}
               </span>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
-              <span className="text-slate-400 block font-semibold mb-1">Dynamic Internal</span>
-              <span className={`text-base font-extrabold ${analysis.dynamicInternalLinksCount > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Dynamic Internal</span>
+              <span className={`text-base font-extrabold block truncate ${analysis.dynamicInternalLinksCount > 0 ? "text-amber-600" : "text-emerald-600"}`}>
                 {analysis.dynamicInternalLinksCount === 0 ? "0 clean" : `${analysis.dynamicInternalLinksCount} issue${analysis.dynamicInternalLinksCount > 1 ? "s" : ""}`}
               </span>
-              <span className="text-[11px] text-slate-400 block">
+              <span className="text-[11px] text-slate-400 block truncate">
                 {analysis.dynamicInternalLinksCount === 0 ? "No dynamic params" : "Needs nofollow/clean"}
               </span>
             </div>
@@ -447,7 +447,7 @@ export default function RealTimeSeoAnalyzer({
                       }`}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-                        <div className="space-y-1 flex-1">
+                        <div className="space-y-1 flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${severityBadge}`}>
                               {rec.severity}
@@ -520,7 +520,7 @@ export default function RealTimeSeoAnalyzer({
             <p className="text-xs text-slate-500">
               Boost your article authority by linking to relevant marketplace categories and tools:
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
               {[
                 { name: "Digital Products Store", url: "/store" },
                 { name: "Verified Courses", url: "/courses" },

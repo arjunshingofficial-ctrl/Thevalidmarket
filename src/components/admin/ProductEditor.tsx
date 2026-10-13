@@ -619,7 +619,7 @@ export default function ProductEditor({ categories = [], fieldDefinitions = [], 
                   </button>
                 </div>
                 {tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
+                  <div className="max-h-48 overflow-y-auto pr-1 flex flex-wrap gap-1.5 pt-1 scrollbar-thin">
                     {tags.map((tag) => (
                       <span
                         key={tag}
