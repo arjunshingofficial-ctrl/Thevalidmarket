@@ -432,6 +432,7 @@ const VisualCard = TipTapNode.create({
 interface RichTextEditorProps {
   name: string;
   defaultValue?: string;
+  value?: string;
   placeholder?: string;
   onChange?: (html: string) => void;
 }
@@ -1544,7 +1545,7 @@ function ButtonModal({ initialData, onInsert, onClose }: ButtonModalProps) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function RichTextEditor({ name, defaultValue = "", placeholder, onChange }: RichTextEditorProps) {
+export default function RichTextEditor({ name, defaultValue = "", value, placeholder, onChange }: RichTextEditorProps) {
   const [showImage, setShowImage] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [showLink, setShowLink] = useState(false);
@@ -1567,6 +1568,8 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
     };
   } | null>(null);
   const hiddenRef = useRef<HTMLInputElement>(null);
+
+  const currentExternalValue = value !== undefined ? value : defaultValue;
 
   const editor = useEditor({
     extensions: [
@@ -1601,7 +1604,7 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
       VisualGrid,
       VisualCard,
     ],
-    content: defaultValue || "",
+    content: currentExternalValue || "",
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -1624,6 +1627,16 @@ export default function RichTextEditor({ name, defaultValue = "", placeholder, o
       hiddenRef.current.value = editor.getHTML();
     }
   }, [editor]);
+
+  // Keep editor in sync when content is updated via 1-click SEO fixes
+  useEffect(() => {
+    if (editor && currentExternalValue !== undefined) {
+      if (editor.getHTML() !== currentExternalValue) {
+        editor.commands.setContent(currentExternalValue, false);
+        if (hiddenRef.current) hiddenRef.current.value = currentExternalValue;
+      }
+    }
+  }, [currentExternalValue, editor]);
 
   const insertImage = useCallback((url: string, alt: string) => {
     editor?.chain().focus().setImage({ src: url, alt }).run();

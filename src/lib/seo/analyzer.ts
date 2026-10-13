@@ -426,6 +426,27 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
 
   // Title Check 3: Word Repetitions
   if (titleRepeats.length > 0) {
+    const titleParts = effectiveTitle.split(/\s*\|\s*/);
+    const seenParts = new Set<string>();
+    const deduplicatedParts = titleParts.filter(p => {
+      const lower = p.trim().toLowerCase();
+      if (!lower || seenParts.has(lower)) return false;
+      seenParts.add(lower);
+      return true;
+    });
+    let cleanedTitle = deduplicatedParts.join(" | ");
+    if (cleanedTitle === effectiveTitle || cleanedTitle.length < 10) {
+      const seenWords = new Set<string>();
+      cleanedTitle = effectiveTitle
+        .split(" ")
+        .filter(w => {
+          const l = w.toLowerCase().replace(/[^a-z0-9]/g, "");
+          if (l.length > 3 && seenWords.has(l)) return false;
+          if (l.length > 3) seenWords.add(l);
+          return true;
+        })
+        .join(" ");
+    }
     checks.push({
       id: "title_repetition",
       category: "title",
@@ -435,8 +456,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: `Words like "${titleRepeats[0]}" are repeated multiple times in the title.`,
       impact: "Search engines penalize repetitive title text as low quality or keyword stuffing.",
       fixAction: {
-        label: "Remove Duplicate Words",
+        label: "Deduplicate Title Words",
         field: "seoTitle",
+        value: cleanedTitle,
         tabId: "seo",
       },
     });
@@ -499,6 +521,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       });
       score += 2;
     } else if (descLength < 80) {
+      const enrichedDesc = cleanPrimaryKey
+        ? `${effectiveDesc} Discover complete guides, features, and verified tools for ${cleanPrimaryKey} at Asia D Market.`.slice(0, 155).trim()
+        : `${effectiveDesc} Instant access, verified downloads, and 24/7 dedicated assistance at Asia D Market.`.slice(0, 155).trim();
       checks.push({
         id: "desc_length",
         category: "description",
@@ -510,6 +535,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Enrich Description",
           field: "metaDescription",
+          value: enrichedDesc,
           tabId: "seo",
         },
       });
@@ -648,6 +674,10 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         title: "Primary Keyphrase Appears in First 100 Words",
       });
     } else {
+      const introLead = `<p>Welcome to our comprehensive guide on <strong>${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)}</strong>. Below you will find key features, step-by-step instructions, and verified tools.</p>\n`;
+      const fixedIntroContent = content && content.trim().startsWith("<p>") 
+        ? content.replace(/<p(\b[^>]*)>/i, `<p$1>Looking for <strong>${cleanPrimaryKey}</strong>? `)
+        : (content ? `${introLead}${content}` : introLead);
       checks.push({
         id: "keyphrase_in_intro",
         category: "keywords",
@@ -657,8 +687,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         issue: `"${cleanPrimaryKey}" does not appear early in the introductory paragraphs.`,
         impact: "Early keyword prominence signals immediate relevance to search engine parsers.",
         fixAction: {
-          label: "Edit Intro in Content",
+          label: "Insert Keyphrase in Intro",
           field: "content",
+          value: fixedIntroContent,
           tabId: "general",
         },
       });
@@ -675,6 +706,10 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         title: "Primary Keyphrase Appears in H2/H3 Headings",
       });
     } else {
+      const headingTitle = `Why Choose ${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)}?`;
+      const fixedHeadingContent = content.includes("<h2>") 
+        ? content.replace(/<h2>/i, `<h2>${headingTitle}</h2>\n<h2>`)
+        : `<h2>${headingTitle}</h2>\n${content || "<p>Detailed guide and specifications below.</p>"}`;
       checks.push({
         id: "keyphrase_in_headings",
         category: "headings",
@@ -686,6 +721,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Add Heading with Keyphrase",
           field: "content",
+          value: fixedHeadingContent,
           tabId: "general",
         },
       });
@@ -735,6 +771,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         title: `${presentSecondary} of ${cleanSecondaryKeys.length} Secondary Keyphrases Used in Content`,
       });
     } else {
+      const secondaryParagraph = `\n\n<p><strong>Related topics:</strong> ${cleanSecondaryKeys.map(k => `${k.charAt(0).toUpperCase() + k.slice(1)}`).join(", ")} are supported with comprehensive documentation and verified access on Asia D Market.</p>`;
       checks.push({
         id: "secondary_keyphrases_found",
         category: "keywords",
@@ -746,6 +783,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Incorporate Related Terms",
           field: "content",
+          value: content ? `${content}${secondaryParagraph}` : secondaryParagraph,
           tabId: "general",
         },
       });
@@ -754,6 +792,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
 
   // Heading Structure Check 1: Single H1 Enforcement
   if (h1sInContent.length > 0) {
+    const demotedContent = content
+      .replace(/<h1(\b[^>]*)>/gi, "<h2$1>")
+      .replace(/<\/h1>/gi, "</h2>");
     checks.push({
       id: "headings_single_h1",
       category: "headings",
@@ -763,8 +804,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: "The article body contains <h1> tags. The page title already acts as the primary H1.",
       impact: "Pages with multiple H1 tags confuse search engine crawlers regarding the primary topic.",
       fixAction: {
-        label: "Demote to H2",
+        label: "Demote Body H1 to H2",
         field: "content",
+        value: demotedContent,
         tabId: "general",
       },
     });
@@ -782,6 +824,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   // Heading Structure Check 2: Logical H2 Presence
   const minHeadings = contentType === "blog" ? 2 : 1;
   if (h2Count < minHeadings) {
+    const structuredContent = content
+      ? `${content}\n\n<h2>Key Highlights & Specifications</h2>\n<p>Explore detailed features, setup requirements, and verified benefits below.</p>\n<h2>Frequently Asked Questions</h2>\n<p>Find quick answers regarding licensing, downloads, and technical support.</p>`
+      : `<h2>Key Highlights & Specifications</h2>\n<p>Explore detailed features, setup requirements, and verified benefits below.</p>\n<h2>Frequently Asked Questions</h2>\n<p>Find quick answers regarding licensing, downloads, and technical support.</p>`;
     checks.push({
       id: "headings_h2_presence",
       category: "headings",
@@ -791,8 +836,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: `Content should have at least ${minHeadings} H2 headings to divide ideas.`,
       impact: "Unbroken walls of text hurt user dwell time and crawler parsing.",
       fixAction: {
-        label: "Structure with H2s",
+        label: "Add Section Headings",
         field: "content",
+        value: structuredContent,
         tabId: "general",
       },
     });
@@ -809,6 +855,18 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
 
   // Heading Structure Check 3: Duplicate Headings
   if (duplicateHeadings.length > 0) {
+    let deduplicatedContent = content;
+    duplicateHeadings.forEach((dup) => {
+      let count = 0;
+      const regex = new RegExp(`(<h[2-6]\\b[^>]*>\\s*${dup.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")}\\s*<\\/h[2-6]>)`, "gi");
+      deduplicatedContent = deduplicatedContent.replace(regex, (match) => {
+        count++;
+        if (count > 1) {
+          return match.replace(new RegExp(dup, "i"), `${dup} (Part ${count})`);
+        }
+        return match;
+      });
+    });
     checks.push({
       id: "headings_duplicates",
       category: "headings",
@@ -818,8 +876,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: "Two or more headings share the exact same wording.",
       impact: "Repetitive headings reduce the clarity of the document outline.",
       fixAction: {
-        label: "Make Headings Unique",
+        label: "Make Duplicate Headings Unique",
         field: "content",
+        value: deduplicatedContent,
         tabId: "general",
       },
     });
@@ -837,6 +896,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   // Content Length Check
   const minWordTarget = contentType === "blog" ? 600 : 200;
   if (wordCount < minWordTarget) {
+    const faqExpansion = `\n\n<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, Asia D Market provides 24/7 technical customer support for all active licenses and services.</p>\n<p><strong>Can I request custom configurations?</strong> Contact our technical team via live chat for bespoke enterprise requirements.</p>`;
     checks.push({
       id: "content_word_count",
       category: "headings",
@@ -848,6 +908,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       fixAction: {
         label: "Expand Details & FAQ",
         field: "content",
+        value: content ? `${content}\n${faqExpansion}` : faqExpansion,
         tabId: "general",
       },
     });
@@ -874,8 +935,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: "The article or product has no featured image or inline screenshots.",
       impact: "Pages with engaging visuals retain visitors longer and can rank in Google Images.",
       fixAction: {
-        label: "Add Featured Image",
+        label: "Set Default Featured Image",
         field: "featuredImage",
+        value: "/og-image.jpg",
         tabId: "general",
       },
     });
@@ -948,6 +1010,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
 
   // Link Analysis Checks
   if (internalLinksCount === 0) {
+    const internalLinkSnippet = `\n\n<p>Explore more verified software, proxies, and accounts in the <a href="/store">Asia D Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
     checks.push({
       id: "links_internal",
       category: "links",
@@ -957,8 +1020,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: "Content does not link to other pages, products, or tools on Asia D Market.",
       impact: "Internal links pass PageRank and help search crawlers index your catalog.",
       fixAction: {
-        label: "Add Link to Store or Tools",
+        label: "Add Store & Blog Link",
         field: "content",
+        value: content ? `${content}${internalLinkSnippet}` : internalLinkSnippet,
         tabId: "general",
       },
     });
@@ -974,6 +1038,13 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   }
 
   if (vagueAnchorLinksCount > 0) {
+    let improvedAnchorsContent = content;
+    improvedAnchorsContent = improvedAnchorsContent.replace(
+      /<a\b([^>]*)>(click here|here|read more|learn more|link|this)<\/a>/gi,
+      (match, attrs, anchor) => {
+        return `<a${attrs}>explore the full Asia D Market catalog</a>`;
+      }
+    );
     checks.push({
       id: "links_vague_anchors",
       category: "links",
@@ -983,8 +1054,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: "Found generic anchors like 'click here' or 'learn more' instead of descriptive phrases.",
       impact: "Descriptive anchor text tells Google what the destination page is about.",
       fixAction: {
-        label: "Use Descriptive Anchors",
+        label: "Improve Anchor Text",
         field: "content",
+        value: improvedAnchorsContent,
         tabId: "general",
       },
     });

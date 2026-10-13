@@ -377,7 +377,15 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                 <label className="block text-sm font-medium">Article Content &amp; Design Studio</label>
                 <span className="text-xs text-slate-400">Tabs do not erase content</span>
               </div>
-              <RichTextEditor name="content" defaultValue={initialData?.content || ""} onChange={setContent} />
+              <RichTextEditor
+                name="content"
+                defaultValue={initialData?.content || ""}
+                value={content}
+                onChange={(html) => {
+                  setContent(html);
+                  setIsDirty(true);
+                }}
+              />
             </div>
 
             {/* Tags quick section in General tab */}
@@ -436,6 +444,7 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
               data={{
                 contentType: "blog",
                 name: title,
+                title,
                 slug,
                 content,
                 excerpt,
@@ -444,6 +453,7 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                 canonicalUrl,
                 featuredImage,
                 featuredImageAlt,
+                imageAlt: featuredImageAlt,
                 robots,
                 ogTitle,
                 ogDescription,
@@ -452,6 +462,7 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                 secondaryKeyphrases: secondaryKeywords,
               }}
               onUpdateField={(field, val) => {
+                setIsDirty(true);
                 if (field === "seoTitle") setSeoTitle(val);
                 else if (field === "metaDescription") setMetaDescription(val);
                 else if (field === "canonicalUrl") setCanonicalUrl(val);
@@ -460,9 +471,11 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                 else if (field === "ogTitle") setOgTitle(val);
                 else if (field === "ogDescription") setOgDescription(val);
                 else if (field === "ogImage") setOgImage(val);
-                else if (field === "featuredImageAlt") setFeaturedImageAlt(val);
+                else if (field === "featuredImageAlt" || field === "imageAlt") setFeaturedImageAlt(val);
+                else if (field === "featuredImage") setFeaturedImage(val);
                 else if (field === "slug") setSlug(val);
                 else if (field === "robots") setRobots(val);
+                else if (field === "content") setContent(val);
               }}
               onJumpToTab={(tabId) => setActiveTab(tabId as any)}
             />

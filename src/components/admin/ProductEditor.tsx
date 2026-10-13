@@ -504,6 +504,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                 <RichTextEditor
                   name="description"
                   defaultValue={description}
+                  value={description}
                   onChange={(html) => {
                     setDescription(html);
                     setIsDirty(true);
@@ -528,6 +529,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
               <RealTimeSeoAnalyzer
                 data={{
                   contentType: "product",
+                  name,
                   title: name,
                   content: description,
                   slug: slug,
@@ -537,6 +539,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                   secondaryKeywords: secondaryKeywords,
                   canonicalUrl: canonicalUrl,
                   featuredImage: featuredImage,
+                  featuredImageAlt: imageAlt,
                   imageAlt: imageAlt,
                   ogTitle: ogTitle,
                   ogDescription: ogDescription,
@@ -556,7 +559,10 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                     case "ogDescription": setOgDescription(value); break;
                     case "ogImage": setOgImage(value); break;
                     case "robots": setRobots(value); break;
-                    case "imageAlt": setImageAlt(value); break;
+                    case "imageAlt":
+                    case "featuredImageAlt": setImageAlt(value); break;
+                    case "featuredImage": setFeaturedImage(value); break;
+                    case "content": setDescription(value); break;
                   }
                 }}
                 onJumpToTab={(tabId) => setActiveTab(tabId)}

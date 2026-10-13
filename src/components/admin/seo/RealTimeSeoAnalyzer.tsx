@@ -96,6 +96,47 @@ export default function RealTimeSeoAnalyzer({
     }
   };
 
+  const [fixedNotice, setFixedNotice] = useState<string | null>(null);
+
+  // Auto-fixable warnings
+  const autoFixableWarnings = useMemo(() => {
+    return analysis.recommendations.filter(
+      r => !r.passed && (r.severity === "important" || r.severity === "recommended" || r.severity === "optional") && r.fixAction?.value !== undefined
+    );
+  }, [analysis]);
+
+  const handleFixAllWarnings = () => {
+    const toFix = autoFixableWarnings;
+    if (toFix.length === 0) return;
+    
+    // Group fields to update without collision
+    const fieldUpdates: Record<string, any> = {};
+    toFix.forEach(item => {
+      if (item.fixAction && item.fixAction.value !== undefined) {
+        fieldUpdates[item.fixAction.field] = item.fixAction.value;
+      }
+    });
+
+    Object.entries(fieldUpdates).forEach(([field, val]) => {
+      onUpdateField(field, val);
+    });
+
+    setFixedNotice(`⚡ Fixed ${toFix.length} warning${toFix.length > 1 ? "s" : ""} in one click!`);
+    setTimeout(() => setFixedNotice(null), 4000);
+  };
+
+  const handleFixSingle = (rec: SeoCheckItem) => {
+    if (!rec.fixAction) return;
+    if (rec.fixAction.value !== undefined) {
+      onUpdateField(rec.fixAction.field, rec.fixAction.value);
+    }
+    if (rec.fixAction.tabId && onJumpToTab) {
+      onJumpToTab(rec.fixAction.tabId);
+    }
+    setFixedNotice(`✓ Fixed: "${rec.fixAction.label}"`);
+    setTimeout(() => setFixedNotice(null), 3000);
+  };
+
   // Filter recommendations
   const filteredRecs = useMemo(() => {
     if (filterSeverity === "passed") return analysis.checks.filter(c => c.passed);
@@ -150,8 +191,8 @@ export default function RealTimeSeoAnalyzer({
           </div>
         </div>
 
-        {/* Quick Audit Counters */}
-        <div className="flex items-center gap-2 sm:gap-3 bg-white/5 border border-white/10 p-2.5 rounded-xl text-xs">
+        {/* Quick Audit Counters & One-Click Fix */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white/5 border border-white/10 p-2.5 rounded-xl text-xs">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>{analysis.passedCount} Passed</span>
@@ -164,6 +205,18 @@ export default function RealTimeSeoAnalyzer({
             <AlertCircle className="w-4 h-4 text-red-400" />
             <span>{analysis.errorCount} Critical</span>
           </div>
+
+          {autoFixableWarnings.length > 0 && (
+            <button
+              type="button"
+              onClick={handleFixAllWarnings}
+              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/30 transition-transform active:scale-95 cursor-pointer"
+              title="Resolve all warnings with one click"
+            >
+              <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
+              <span>Fix All Warnings ({autoFixableWarnings.length})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -244,38 +297,64 @@ export default function RealTimeSeoAnalyzer({
           </div>
 
           {/* Actionable Recommendations Header with Severity Filters */}
-          <div>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 mb-4 border-b border-slate-100">
+          <div className="space-y-3">
+            {fixedNotice && (
+              <div className="p-3 bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-1">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  {fixedNotice}
+                </span>
+                <button type="button" onClick={() => setFixedNotice(null)} className="text-white/80 hover:text-white cursor-pointer">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
               <div>
                 <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-primary" />
                   <span>Actionable Optimization Checklist ({filteredRecs.length})</span>
                 </h4>
                 <p className="text-xs text-slate-500">
-                  Click &quot;Apply Suggestion&quot; to automatically fix items directly in the editor.
+                  Click &quot;Fix&quot; on any item to resolve warnings and critical issues in one click.
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5 text-xs">
-                {[
-                  { id: "all", label: "All Fixes" },
-                  { id: "critical", label: `Critical (${analysis.errorCount})` },
-                  { id: "warning", label: `Warnings (${analysis.warningCount})` },
-                  { id: "passed", label: `Passed (${analysis.passedCount})` },
-                ].map(filter => (
+              <div className="flex flex-wrap items-center gap-2">
+                {autoFixableWarnings.length > 0 && (
                   <button
-                    key={filter.id}
                     type="button"
-                    onClick={() => setFilterSeverity(filter.id as any)}
-                    className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
-                      filterSeverity === filter.id 
-                        ? "bg-slate-900 text-white" 
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
+                    onClick={handleFixAllWarnings}
+                    className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
+                    title="Fix all auto-fixable warnings in one click"
                   >
-                    {filter.label}
+                    <Sparkles className="w-3.5 h-3.5 fill-white" />
+                    <span>⚡ Fix All Warnings ({autoFixableWarnings.length})</span>
                   </button>
-                ))}
+                )}
+
+                <div className="flex items-center gap-1.5 text-xs">
+                  {[
+                    { id: "all", label: "All Fixes" },
+                    { id: "critical", label: `Critical (${analysis.errorCount})` },
+                    { id: "warning", label: `Warnings (${analysis.warningCount})` },
+                    { id: "passed", label: `Passed (${analysis.passedCount})` },
+                  ].map(filter => (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => setFilterSeverity(filter.id as any)}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                        filterSeverity === filter.id 
+                          ? "bg-slate-900 text-white" 
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -334,16 +413,18 @@ export default function RealTimeSeoAnalyzer({
                             {rec.fixAction.value !== undefined ? (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  onUpdateField(rec.fixAction!.field, rec.fixAction!.value);
-                                  if (rec.fixAction!.tabId && onJumpToTab) {
-                                    onJumpToTab(rec.fixAction!.tabId);
-                                  }
-                                }}
-                                className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 flex items-center gap-1.5 shadow-xs cursor-pointer transition-transform active:scale-95"
+                                onClick={() => handleFixSingle(rec)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95 ${
+                                  rec.severity === "critical"
+                                    ? "bg-red-600 hover:bg-red-700 text-white"
+                                    : rec.severity === "important"
+                                      ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                      : "bg-primary hover:bg-primary/90 text-white"
+                                }`}
+                                title="Click to apply this fix in one click"
                               >
-                                <Sparkles className="w-3.5 h-3.5" />
-                                <span>{rec.fixAction.label}</span>
+                                <Sparkles className="w-3.5 h-3.5 fill-white/40" />
+                                <span>Fix: {rec.fixAction.label}</span>
                               </button>
                             ) : (
                               <button
