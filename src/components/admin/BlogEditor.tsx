@@ -467,8 +467,8 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                 if (field === "seoTitle") setSeoTitle(val);
                 else if (field === "metaDescription") setMetaDescription(val);
                 else if (field === "canonicalUrl") setCanonicalUrl(val);
-                else if (field === "focusKeyword") setFocusKeyword(val);
-                else if (field === "secondaryKeywords") setSecondaryKeywords(val);
+                else if (field === "focusKeyword" || field === "primaryKeyphrase") setFocusKeyword(val);
+                else if (field === "secondaryKeywords" || field === "secondaryKeyphrases") setSecondaryKeywords(val);
                 else if (field === "ogTitle") setOgTitle(val);
                 else if (field === "ogDescription") setOgDescription(val);
                 else if (field === "ogImage") setOgImage(val);

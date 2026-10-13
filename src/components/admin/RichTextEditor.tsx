@@ -500,7 +500,7 @@ function Divider() {
   return <div className="w-px h-5 bg-slate-300/80 mx-0.5 shrink-0" />;
 }
 
-function DropMenu({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
+function DropMenu({ label, icon, children, badge }: { label: string; icon: React.ReactNode; children: React.ReactNode; badge?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -518,10 +518,12 @@ function DropMenu({ label, icon, children }: { label: string; icon: React.ReactN
         type="button"
         onMouseDown={(e) => { e.preventDefault(); setOpen(o => !o); }}
         title={label}
-        className="flex items-center gap-1 px-2 py-1.5 rounded text-xs font-medium text-slate-600 hover:bg-slate-200 transition-colors select-none"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 border border-slate-200/80 bg-white transition-colors select-none shadow-xs"
       >
-        {icon}<span className="hidden sm:inline">{label}</span>
-        <ChevronDown className="w-3 h-3 opacity-60" />
+        {icon}
+        <span className="hidden sm:inline">{label}</span>
+        {badge}
+        <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
       </button>
       {open && (
         <div
@@ -535,16 +537,19 @@ function DropMenu({ label, icon, children }: { label: string; icon: React.ReactN
   );
 }
 
-function MenuItem({ onClick, icon, label, shortcut }: { onClick: () => void; icon?: React.ReactNode; label: string; shortcut?: string }) {
+function MenuItem({ onClick, icon, label, shortcut, active }: { onClick: () => void; icon?: React.ReactNode; label: string; shortcut?: string; active?: boolean }) {
   return (
     <button
       type="button"
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
+      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors text-left ${
+        active ? "bg-primary/10 text-primary font-bold" : "text-slate-700 hover:bg-slate-50"
+      }`}
     >
-      {icon && <span className="text-slate-400 shrink-0">{icon}</span>}
+      {icon && <span className={active ? "text-primary shrink-0" : "text-slate-400 shrink-0"}>{icon}</span>}
       <span className="flex-1">{label}</span>
-      {shortcut && <span className="text-xs text-slate-400 font-mono">{shortcut}</span>}
+      {active && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+      {shortcut && !active && <span className="text-xs text-slate-400 font-mono">{shortcut}</span>}
     </button>
   );
 }
@@ -2010,6 +2015,21 @@ export default function RichTextEditor({ name, defaultValue = "", value, placeho
     if (hiddenRef.current) hiddenRef.current.value = editor.getHTML();
   }, [editor]);
 
+  // Dynamic format detector: accurately recognizes current node under cursor
+  const currentFormat = (() => {
+    if (!editor) return { label: "Paragraph (P)", short: "Paragraph", tag: "p", isHeading: false };
+    if (editor.isActive("heading", { level: 1 })) return { label: "Heading 1 (H1)", short: "H1", tag: "h1", isHeading: true };
+    if (editor.isActive("heading", { level: 2 })) return { label: "Heading 2 (H2)", short: "H2", tag: "h2", isHeading: true };
+    if (editor.isActive("heading", { level: 3 })) return { label: "Heading 3 (H3)", short: "H3", tag: "h3", isHeading: true };
+    if (editor.isActive("heading", { level: 4 })) return { label: "Heading 4 (H4)", short: "H4", tag: "h4", isHeading: true };
+    if (editor.isActive("heading", { level: 5 })) return { label: "Heading 5 (H5)", short: "H5", tag: "h5", isHeading: true };
+    if (editor.isActive("heading", { level: 6 })) return { label: "Heading 6 (H6)", short: "H6", tag: "h6", isHeading: true };
+    if (editor.isActive("blockquote")) return { label: "Blockquote", short: "Quote", tag: "blockquote", isHeading: false };
+    if (editor.isActive("codeBlock")) return { label: "Code Block", short: "Code", tag: "code", isHeading: false };
+    if (editor.isActive("paragraph")) return { label: "Paragraph (P)", short: "P", tag: "p", isHeading: false };
+    return { label: "Paragraph (P)", short: "P", tag: "p", isHeading: false };
+  })();
+
   if (!editor) return null;
 
   const wrapClass = isFullscreen
@@ -2026,17 +2046,50 @@ export default function RichTextEditor({ name, defaultValue = "", value, placeho
         <div className={`flex flex-wrap items-center gap-1 p-2 border-b bg-white/95 backdrop-blur-md sticky top-0 z-30 shadow-sm rounded-t-xl transition-all ${isFullscreen ? "border-b-2" : ""}`}>
 
           {/* Headings / Format */}
-          <DropMenu label="Format" icon={<Type className="w-4 h-4" />}>
-            <MenuItem onClick={() => editor.chain().focus().setParagraph().run()} icon={<Pilcrow className="w-4 h-4" />} label="Paragraph" />
+          <DropMenu 
+            label={currentFormat.short} 
+            icon={<Type className="w-4 h-4 text-primary" />}
+            badge={
+              <span className={`px-1.5 py-0.2 rounded text-[10px] font-black font-mono ${currentFormat.isHeading ? "bg-amber-100 text-amber-800 border border-amber-300" : "bg-slate-100 text-slate-700"}`}>
+                {currentFormat.tag.toUpperCase()}
+              </span>
+            }
+          >
+            <MenuItem 
+              onClick={() => editor.chain().focus().setParagraph().run()} 
+              icon={<Pilcrow className="w-4 h-4" />} 
+              label="Paragraph (P)" 
+              active={editor.isActive("paragraph")}
+            />
             {([1,2,3,4,5,6] as const).map(l => (
-              <MenuItem key={l} onClick={() => editor.chain().focus().toggleHeading({ level: l }).run()}
-                icon={<span className="font-bold text-xs">H{l}</span>} label={`Heading ${l}`}
-                shortcut={`Ctrl+Alt+${l}`} />
+              <MenuItem 
+                key={l} 
+                onClick={() => editor.chain().focus().toggleHeading({ level: l }).run()}
+                icon={<span className="font-bold text-xs">H{l}</span>} 
+                label={`Heading ${l} (H${l})`}
+                shortcut={`Ctrl+Alt+${l}`} 
+                active={editor.isActive("heading", { level: l })}
+              />
             ))}
             <div className="border-t border-slate-100 my-1" />
-            <MenuItem onClick={() => editor.chain().focus().toggleBlockquote().run()} icon={<Quote className="w-4 h-4" />} label="Blockquote" />
-            <MenuItem onClick={() => editor.chain().focus().toggleCode().run()} icon={<Code className="w-4 h-4" />} label="Inline Code" />
-            <MenuItem onClick={() => editor.chain().focus().toggleCodeBlock().run()} icon={<Code2 className="w-4 h-4" />} label="Code Block" />
+            <MenuItem 
+              onClick={() => editor.chain().focus().toggleBlockquote().run()} 
+              icon={<Quote className="w-4 h-4" />} 
+              label="Blockquote" 
+              active={editor.isActive("blockquote")}
+            />
+            <MenuItem 
+              onClick={() => editor.chain().focus().toggleCode().run()} 
+              icon={<Code className="w-4 h-4" />} 
+              label="Inline Code" 
+              active={editor.isActive("code")}
+            />
+            <MenuItem 
+              onClick={() => editor.chain().focus().toggleCodeBlock().run()} 
+              icon={<Code2 className="w-4 h-4" />} 
+              label="Code Block" 
+              active={editor.isActive("codeBlock")}
+            />
           </DropMenu>
 
           <Divider />
@@ -2253,6 +2306,33 @@ export default function RichTextEditor({ name, defaultValue = "", value, placeho
         {/* ─ Bubble Menu (inline toolbar on selection) ─ */}
         <BubbleMenu editor={editor}
           className="flex items-center gap-0.5 bg-slate-900 text-white rounded-lg shadow-xl p-1 border border-slate-700">
+          {/* Quick Format Selector in BubbleMenu */}
+          <div className="flex items-center gap-0.5 border-r border-slate-700 pr-1 mr-1">
+            <button
+              type="button"
+              onMouseDown={e => { e.preventDefault(); editor.chain().focus().setParagraph().run(); }}
+              className={`px-1.5 py-1 rounded text-[11px] font-bold font-mono transition-colors ${
+                editor.isActive("paragraph") ? "bg-primary text-white" : "text-slate-300 hover:bg-white/10"
+              }`}
+              title="Format as Paragraph (P)"
+            >
+              P
+            </button>
+            {([1, 2, 3, 4, 5] as const).map(l => (
+              <button
+                key={l}
+                type="button"
+                onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleHeading({ level: l }).run(); }}
+                className={`px-1.5 py-1 rounded text-[11px] font-bold font-mono transition-colors ${
+                  editor.isActive("heading", { level: l }) ? "bg-primary text-white" : "text-slate-300 hover:bg-white/10"
+                }`}
+                title={`Format as Heading ${l} (H${l})`}
+              >
+                H{l}
+              </button>
+            ))}
+          </div>
+
           <button type="button" onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleBold().run(); }}
             className={`p-1.5 rounded text-xs transition-colors ${editor.isActive("bold") ? "bg-white/20" : "hover:bg-white/10"}`} title="Bold"><Bold className="w-3.5 h-3.5" /></button>
           <button type="button" onMouseDown={e => { e.preventDefault(); editor.chain().focus().toggleItalic().run(); }}
@@ -2278,6 +2358,10 @@ export default function RichTextEditor({ name, defaultValue = "", value, placeho
         {/* ─ Status Bar ─ */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 border-t bg-slate-50/80 text-xs text-slate-500">
           <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold bg-slate-200/80 text-slate-800 border border-slate-300">
+              <span className="text-slate-500 font-sans font-normal">Format:</span>
+              <span className={currentFormat.isHeading ? "text-indigo-700" : "text-slate-900"}>{currentFormat.label}</span>
+            </span>
             <span>{editor.storage.characterCount?.characters?.() ?? 0} chars · <strong>{wordCount}</strong> words</span>
             <span>⏱️ ~{Math.max(1, Math.round(wordCount / 180))} min read</span>
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full font-medium ${

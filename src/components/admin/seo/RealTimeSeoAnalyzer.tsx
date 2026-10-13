@@ -5,7 +5,7 @@ import {
   CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Star, 
   Plus, X, Globe, Smartphone, Monitor, ChevronDown, ChevronRight, 
   Share2, Layers, Search, ArrowRight, ExternalLink, Image as ImageIcon, 
-  Link as LinkIcon, Hash, Copy, Check, Info, FileText 
+  Link as LinkIcon, Hash, Copy, Check, Info, FileText, Edit3 
 } from "lucide-react";
 import { 
   analyzeSeo, 
@@ -66,11 +66,11 @@ export default function RealTimeSeoAnalyzer({
   }[analysis.statusLevel];
 
   // Keyphrase actions
-  const handleAddSecondaryKey = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleAddSecondaryKey = (e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) => {
+    if (e && 'preventDefault' in e) e.preventDefault();
     const clean = newSecondaryKey.trim().toLowerCase();
     if (!clean) return;
-    const current = data.secondaryKeyphrases || (data as any).secondaryKeywords || [];
+    const current = (data.secondaryKeyphrases || (data as any).secondaryKeywords || []) as string[];
     if (current.includes(clean)) {
       setNewSecondaryKey("");
       return;
@@ -86,7 +86,7 @@ export default function RealTimeSeoAnalyzer({
   };
 
   const handleRemoveSecondaryKey = (keyToRemove: string) => {
-    const current = data.secondaryKeyphrases || (data as any).secondaryKeywords || [];
+    const current = (data.secondaryKeyphrases || (data as any).secondaryKeywords || []) as string[];
     const updated = current.filter((k: string) => k !== keyToRemove);
     onUpdateField("secondaryKeywords", updated);
     onUpdateField("secondaryKeyphrases", updated);
@@ -113,10 +113,34 @@ export default function RealTimeSeoAnalyzer({
     const toFix = autoFixableWarnings;
     if (toFix.length === 0) return;
     
-    // Group fields to update without collision
+    let nextContent = data.content || "";
     const fieldUpdates: Record<string, any> = {};
+
     toFix.forEach(item => {
-      if (item.fixAction && item.fixAction.value !== undefined) {
+      if (!item.fixAction || item.fixAction.value === undefined) return;
+      if (item.fixAction.field === "content") {
+        if (item.id === "links_internal") {
+          const internalSnippet = `<p>Explore more verified software, proxies, and accounts in the <a href="/store">Asia D Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
+          if (!nextContent.includes("/store")) {
+            nextContent = nextContent ? `${nextContent}\n\n${internalSnippet}` : internalSnippet;
+          }
+        } else if (item.id === "headings_single_h1") {
+          nextContent = nextContent.replace(/<h1(\b[^>]*)>/gi, "<h2$1>").replace(/<\/h1>/gi, "</h2>");
+        } else if (item.id === "headings_h2_presence") {
+          const h2Snippet = `<h2>Key Highlights & Specifications</h2>\n<p>Explore detailed features, setup requirements, and verified benefits below.</p>\n<h2>Frequently Asked Questions</h2>\n<p>Find quick answers regarding licensing, downloads, and technical support.</p>`;
+          if (!nextContent.includes("<h2>")) {
+            nextContent = nextContent ? `${nextContent}\n\n${h2Snippet}` : h2Snippet;
+          }
+        } else if (item.id === "content_word_count") {
+          const faqSnippet = `<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, Asia D Market provides 24/7 technical customer support for all active licenses and services.</p>`;
+          if (!nextContent.includes("Frequently Asked Questions")) {
+            nextContent = nextContent ? `${nextContent}\n\n${faqSnippet}` : faqSnippet;
+          }
+        } else {
+          nextContent = item.fixAction.value;
+        }
+        fieldUpdates["content"] = nextContent;
+      } else {
         fieldUpdates[item.fixAction.field] = item.fixAction.value;
       }
     });
@@ -133,11 +157,10 @@ export default function RealTimeSeoAnalyzer({
     if (!rec.fixAction) return;
     if (rec.fixAction.value !== undefined) {
       onUpdateField(rec.fixAction.field, rec.fixAction.value);
-    }
-    if (rec.fixAction.tabId && onJumpToTab) {
+      setFixedNotice(`✓ Fixed: "${rec.fixAction.label}"`);
+    } else if (rec.fixAction.tabId && onJumpToTab) {
       onJumpToTab(rec.fixAction.tabId);
     }
-    setFixedNotice(`✓ Fixed: "${rec.fixAction.label}"`);
     setTimeout(() => setFixedNotice(null), 3000);
   };
 
@@ -564,23 +587,35 @@ export default function RealTimeSeoAnalyzer({
 
             {/* Input to add */}
             {(data.secondaryKeyphrases || (data as any).secondaryKeywords || []).length < 4 && (
-              <form onSubmit={handleAddSecondaryKey} className="flex gap-2">
+              <div className="flex gap-2">
                 <input
                   type="text"
                   value={newSecondaryKey}
                   onChange={(e) => setNewSecondaryKey(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleAddSecondaryKey(e);
+                    }
+                  }}
                   placeholder="Add long-tail variation (e.g. residential proxy android setup) and press Add"
                   className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleAddSecondaryKey(e);
+                  }}
                   disabled={!newSecondaryKey.trim()}
-                  className="px-3 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                  className="px-3.5 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 disabled:opacity-50 cursor-pointer flex items-center gap-1 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Keyphrase</span>
                 </button>
-              </form>
+              </div>
             )}
 
             {/* Configured secondary tags */}
@@ -742,6 +777,130 @@ export default function RealTimeSeoAnalyzer({
             <p className="text-xs text-slate-600 leading-relaxed pt-1 line-clamp-2">
               {data.metaDescription || data.excerpt || "Discover verified software, proxy solutions, and online courses on Asia D Market with instant delivery and 24/7 technical support."}
             </p>
+          </div>
+
+          {/* Interactive SERP Fields Editor */}
+          <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-5 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
+              <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-primary" />
+                <span>Edit Google Snippet (Live Sync)</span>
+              </h5>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Directly customize your Google search presence
+              </span>
+            </div>
+
+            {/* SEO Title Input */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>SEO Title Tag</span>
+                  <span className="text-[10px] text-slate-400 font-normal">(&lt;title&gt;)</span>
+                </label>
+                <div className="flex items-center gap-2 font-mono text-[11px]">
+                  <span className={analysis.titleLength > 60 || analysis.titlePixelWidth > 580 ? "text-amber-600 font-black" : analysis.titleLength < 35 ? "text-blue-600 font-bold" : "text-emerald-600 font-bold"}>
+                    {analysis.titleLength}/60 chars ({analysis.titlePixelWidth}/580px)
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={data.seoTitle || ""}
+                  onChange={(e) => onUpdateField("seoTitle", e.target.value)}
+                  placeholder={data.name || "Enter descriptive SEO title..."}
+                  className="flex-1 bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-medium focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                />
+                {analysis.suggestedTitle && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdateField("seoTitle", analysis.suggestedTitle)}
+                    className="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 cursor-pointer flex items-center gap-1.5 flex-shrink-0 transition-colors shadow-xs"
+                    title="Apply algorithmic suggested title"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Use Suggestion</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Title Pixel Meter */}
+              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-300 ${
+                    analysis.titlePixelWidth > 580 ? "bg-amber-500" : analysis.titlePixelWidth < 280 ? "bg-blue-400" : "bg-emerald-500"
+                  }`} 
+                  style={{ width: `${Math.min(100, Math.max(5, (analysis.titlePixelWidth / 580) * 100))}%` }} 
+                />
+              </div>
+            </div>
+
+            {/* Meta Description Textarea */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <label className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>Meta Description</span>
+                  <span className="text-[10px] text-slate-400 font-normal">(&lt;meta name=&quot;description&quot;&gt;)</span>
+                </label>
+                <div className="flex items-center gap-2 font-mono text-[11px]">
+                  <span className={analysis.descLength > 160 || analysis.descPixelWidth > 960 ? "text-amber-600 font-black" : analysis.descLength < 80 ? "text-blue-600 font-bold" : "text-emerald-600 font-bold"}>
+                    {analysis.descLength}/160 chars ({analysis.descPixelWidth}/960px)
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <textarea
+                  rows={3}
+                  value={data.metaDescription || ""}
+                  onChange={(e) => onUpdateField("metaDescription", e.target.value)}
+                  placeholder="Summarize the page content compellingly to maximize click-through rate from Google..."
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-medium focus:ring-2 focus:ring-primary/50 focus:outline-none resize-none leading-relaxed"
+                />
+                {analysis.suggestedMetaDescription && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => onUpdateField("metaDescription", analysis.suggestedMetaDescription)}
+                      className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs"
+                      title="Apply algorithmic suggested description"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Use Suggested Description</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Description Pixel Meter */}
+              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-300 ${
+                    analysis.descPixelWidth > 960 ? "bg-amber-500" : analysis.descLength < 80 ? "bg-blue-400" : "bg-emerald-500"
+                  }`} 
+                  style={{ width: `${Math.min(100, Math.max(5, (analysis.descPixelWidth / 960) * 100))}%` }} 
+                />
+              </div>
+            </div>
+
+            {/* URL Slug Field */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-800 block">URL Slug</label>
+              <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs">
+                <span className="text-slate-400 font-mono select-none">
+                  https://asiadmarket.com/{data.contentType === "blog" ? "blog" : "product"}/
+                </span>
+                <input
+                  type="text"
+                  value={data.slug || ""}
+                  onChange={(e) => onUpdateField("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))}
+                  placeholder="url-slug"
+                  className="flex-1 font-mono text-slate-900 font-semibold focus:outline-none bg-transparent"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Quick 1-Click Fix Helpers */}

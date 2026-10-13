@@ -395,7 +395,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Trim Title",
           field: "seoTitle",
-          value: effectiveTitle.slice(0, 58).trim(),
+          value: effectiveTitle.slice(0, 52).trim(),
           tabId: "seo",
         },
       });
@@ -520,7 +520,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Trim Description",
           field: "metaDescription",
-          value: effectiveDesc.slice(0, 152).trim() + "...",
+          value: effectiveDesc.slice(0, 135).trim() + "...",
           tabId: "seo",
         },
       });
