@@ -16,6 +16,7 @@ import {
   SlidersHorizontal
 } from "lucide-react";
 import CourseCard from "@/components/product/CourseCard";
+import CoursesSortSelect from "./CoursesSortSelect";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -194,24 +195,7 @@ export default async function CoursesPage({
 
           {/* Quick Sort Tabs & Dropdown */}
           <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-            <form action="/courses" method="GET" className="flex items-center gap-2">
-              {q && <input type="hidden" name="q" value={q} />}
-              <div className="relative flex items-center">
-                <SlidersHorizontal className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
-                <select
-                  name="sort"
-                  defaultValue={sort}
-                  onChange={(e) => e.target.form?.submit()}
-                  className="text-xs sm:text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl py-2 pl-9 pr-8 focus:ring-2 focus:ring-primary/40 focus:border-primary/50 cursor-pointer shadow-2xs"
-                >
-                  <option value="newest">Sort: Newest First</option>
-                  <option value="oldest">Sort: Oldest First</option>
-                  <option value="price_asc">Sort: Price Low → High</option>
-                  <option value="price_desc">Sort: Price High → Low</option>
-                  <option value="highest_rated">Sort: Highest Rated</option>
-                </select>
-              </div>
-            </form>
+            <CoursesSortSelect initialSort={sort} />
 
             {q && (
               <Link
