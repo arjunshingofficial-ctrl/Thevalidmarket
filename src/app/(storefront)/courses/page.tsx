@@ -19,11 +19,10 @@ export default async function CoursesPage({
 }) {
   const resolvedSearch = await searchParams;
 
+  // Safe category lookup without invalid findUnique arguments
   const category = await prisma.category.findUnique({
-    where: { slug: "courses", isActive: true }
+    where: { slug: "courses" }
   });
-
-  if (!category) return notFound();
 
   const page = Math.max(1, parseInt(resolvedSearch.page || "1"));
   const limit = 12; // Default 12 per user instructions
@@ -31,16 +30,24 @@ export default async function CoursesPage({
   const q = resolvedSearch.q?.trim() || "";
   const sort = resolvedSearch.sort || "newest";
 
+  // Match all published products of type COURSE or in courses category
   const whereClause: any = {
-    categoryId: category.id,
     status: "PUBLISHED",
+    OR: [
+      { type: "COURSE" },
+      ...(category ? [{ categoryId: category.id }] : []),
+    ],
   };
   
   if (q) {
-    whereClause.OR = [
-      { name: { contains: q } },
-      { sku: { contains: q } },
-      { shortDesc: { contains: q } },
+    whereClause.AND = [
+      {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { sku: { contains: q, mode: "insensitive" } },
+          { shortDesc: { contains: q, mode: "insensitive" } },
+        ]
+      }
     ];
   }
 

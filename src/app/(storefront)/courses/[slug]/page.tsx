@@ -86,7 +86,25 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   })();
 
   const image = metadata.image || product.course?.thumbnailUrl || null;
-  const instructor = product.course?.instructor || "Asia D Market Elite Faculty";
+  const instructor = product.course?.instructor || metadata.instructor || "Asia D Market Elite Faculty";
+  const skillLevel = metadata.skillLevel || "All Skill Levels";
+  const language = metadata.language || "English & Global Access";
+  const courseBadge = metadata.badge || "Masterclass";
+
+  const rawHighlights = metadata.highlights;
+  const highlights: string[] = Array.isArray(rawHighlights) && rawHighlights.length > 0
+    ? rawHighlights
+    : (typeof rawHighlights === "string" && rawHighlights.trim()
+        ? rawHighlights.split("\n").map((s: string) => s.trim()).filter(Boolean)
+        : [
+            "Complete foundational setup, authorized lab deployments & tools",
+            "Vulnerability assessment, network penetration & security auditing",
+            "Real-world exploit mechanics, defensive mitigations & bug bounties",
+            "Hands-on interactive practice inside safe legal lab environments",
+            "Scripting & automation workflows for defensive cybersecurity",
+            "Career progression blueprint & cybersecurity interview prep",
+          ]);
+
   const modules = product.course?.modules || [];
   const totalLessons = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
   const totalMinutes = modules.reduce(
@@ -127,14 +145,14 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             <div className="flex flex-wrap items-center gap-2.5 mb-4">
               <span className="text-[11px] font-extrabold uppercase tracking-widest bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-full flex items-center gap-1.5">
                 <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>Masterclass</span>
+                <span>{courseBadge}</span>
               </span>
               <span className="text-[11px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1.5">
                 <Zap className="w-3 h-3 text-emerald-400" />
                 <span>Instant Auto-Dispatch</span>
               </span>
               <span className="text-[11px] font-semibold text-slate-400 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-                All Skill Levels
+                {skillLevel}
               </span>
             </div>
 
@@ -173,7 +191,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
               <div className="flex items-center gap-1.5">
                 <Globe className="w-4 h-4 text-cyan-400" />
-                <span>English &amp; Global Access</span>
+                <span>{language}</span>
               </div>
             </div>
           </div>
@@ -196,14 +214,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {[
-                  "Complete foundational setup, authorized lab deployments & tools",
-                  "Vulnerability assessment, network penetration & security auditing",
-                  "Real-world exploit mechanics, defensive mitigations & bug bounties",
-                  "Hands-on interactive practice inside safe legal lab environments",
-                  "Scripting & automation workflows for defensive cybersecurity",
-                  "Career progression blueprint & cybersecurity interview prep",
-                ].map((item, idx) => (
+                {highlights.map((item, idx) => (
                   <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                     <span className="leading-snug">{item}</span>

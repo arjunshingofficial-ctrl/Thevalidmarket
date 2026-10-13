@@ -100,6 +100,10 @@ export async function updateCourseAction(courseId: string, data: {
   price?: number;
   salePrice?: number;
   thumbnailUrl?: string;
+  skillLevel?: string;
+  language?: string;
+  badge?: string;
+  highlights?: string[] | string;
 }) {
   await requireAdmin("Courses", "Edit");
 
@@ -110,48 +114,74 @@ export async function updateCourseAction(courseId: string, data: {
   if (!course) throw new Error("Course not found");
 
   await prisma.$transaction(async (tx) => {
-    if (data.name || data.shortDesc !== undefined || data.description !== undefined || data.price !== undefined || data.salePrice !== undefined) {
+    // 1. Prepare updated metadata
+    let meta: any = {};
+    try {
+      if (course.product?.metadata) {
+        meta = JSON.parse(course.product.metadata);
+      }
+    } catch (e) {}
+
+    let metaChanged = false;
+
+    if (data.thumbnailUrl !== undefined) {
+      meta.image = data.thumbnailUrl || "";
+      metaChanged = true;
+    }
+    if (data.skillLevel !== undefined) {
+      meta.skillLevel = data.skillLevel;
+      metaChanged = true;
+    }
+    if (data.language !== undefined) {
+      meta.language = data.language;
+      metaChanged = true;
+    }
+    if (data.badge !== undefined) {
+      meta.badge = data.badge;
+      metaChanged = true;
+    }
+    if (data.highlights !== undefined) {
+      meta.highlights = Array.isArray(data.highlights)
+        ? data.highlights
+        : (typeof data.highlights === "string" ? data.highlights.split("\n").map(s => s.trim()).filter(Boolean) : []);
+      metaChanged = true;
+    }
+
+    // 2. Update Product record
+    const productUpdateData: any = {};
+    if (data.name) productUpdateData.name = data.name;
+    if (data.shortDesc !== undefined) productUpdateData.shortDesc = data.shortDesc;
+    if (data.description !== undefined) productUpdateData.description = data.description;
+    if (data.price !== undefined) productUpdateData.price = Number(data.price);
+    if (data.salePrice !== undefined) productUpdateData.salePrice = data.salePrice ? Number(data.salePrice) : null;
+    if (metaChanged) productUpdateData.metadata = JSON.stringify(meta);
+
+    if (Object.keys(productUpdateData).length > 0) {
       await tx.product.update({
         where: { id: course.productId },
-        data: {
-          ...(data.name && { name: data.name }),
-          ...(data.shortDesc !== undefined && { shortDesc: data.shortDesc }),
-          ...(data.description !== undefined && { description: data.description }),
-          ...(data.price !== undefined && { price: Number(data.price) }),
-          ...(data.salePrice !== undefined && { salePrice: data.salePrice ? Number(data.salePrice) : null }),
-        }
+        data: productUpdateData,
       });
     }
 
-    if (data.instructor !== undefined || data.thumbnailUrl !== undefined) {
+    // 3. Update Course record
+    const courseUpdateData: any = {};
+    if (data.instructor !== undefined) courseUpdateData.instructor = data.instructor;
+    if (data.thumbnailUrl !== undefined) courseUpdateData.thumbnailUrl = data.thumbnailUrl || null;
+
+    if (Object.keys(courseUpdateData).length > 0) {
       await tx.course.update({
         where: { id: courseId },
-        data: {
-          ...(data.instructor !== undefined && { instructor: data.instructor }),
-          ...(data.thumbnailUrl !== undefined && { thumbnailUrl: data.thumbnailUrl || null }),
-        }
+        data: courseUpdateData,
       });
-
-      if (data.thumbnailUrl !== undefined) {
-        let meta: any = {};
-        try {
-          if (course.product?.metadata) {
-            meta = JSON.parse(course.product.metadata);
-          }
-        } catch (e) {}
-        meta.image = data.thumbnailUrl || "";
-        await tx.product.update({
-          where: { id: course.productId },
-          data: { metadata: JSON.stringify(meta) },
-        });
-      }
     }
   });
 
   revalidatePath(`/admin/courses/${courseId}`);
   revalidatePath("/admin/courses");
+  revalidatePath("/courses");
   revalidatePath("/store");
   if (course.product?.slug) {
+    revalidatePath(`/courses/${course.product.slug}`);
     revalidatePath(`/product/${course.product.slug}`);
   }
 
