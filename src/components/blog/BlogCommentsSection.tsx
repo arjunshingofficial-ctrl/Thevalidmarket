@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { MessageSquare, Send, CheckCircle2, AlertCircle, Clock, ShieldCheck, User } from "lucide-react";
 
 interface CommentItem {
@@ -16,11 +17,19 @@ interface BlogCommentsSectionProps {
 }
 
 export default function BlogCommentsSection({ postId, initialComments }: BlogCommentsSectionProps) {
+  const { data: session } = useSession();
   const [comments, setComments] = useState<CommentItem[]>(initialComments);
   const [authorName, setAuthorName] = useState("");
   const [authorEmail, setAuthorEmail] = useState("");
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (session?.user && !authorName) {
+      if (session.user.name) setAuthorName(session.user.name);
+      if (session.user.email) setAuthorEmail(session.user.email);
+    }
+  }, [session, authorName]);
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;

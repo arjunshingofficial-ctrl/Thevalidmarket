@@ -22,7 +22,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const body = await req.json();
-    const { status, content, authorName } = body;
+    const { status, content, authorName, authorEmail } = body;
 
     const data: any = {};
     if (status && ["PENDING", "APPROVED", "REJECTED"].includes(status)) {
@@ -33,6 +33,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
     if (typeof authorName === "string" && authorName.trim()) {
       data.authorName = authorName.trim();
+    }
+    if (typeof authorEmail === "string") {
+      data.authorEmail = authorEmail.trim() || null;
     }
 
     const updated = await prisma.blogComment.update({

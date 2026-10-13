@@ -35,15 +35,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Article not found or not published." }, { status: 404 });
     }
 
-    // Determine author info: prefer logged-in user if available
-    let name = authorName?.trim();
-    let email = authorEmail?.trim();
+    // Determine author info: ALWAYS prioritize the custom name entered in the form
+    let name = typeof authorName === "string" ? authorName.trim() : "";
+    let email = typeof authorEmail === "string" ? authorEmail.trim() : null;
     let userId: string | null = null;
 
     if (session?.user) {
       userId = (session.user as any).id || null;
-      name = session.user.name || name || "Verified Member";
-      email = session.user.email || email;
+      // Only fallback to session name/email if the user left the input blank
+      if (!name) {
+        name = session.user.name?.trim() || "Verified Member";
+      }
+      if (!email && session.user.email) {
+        email = session.user.email.trim();
+      }
     }
 
     if (!name || name.length < 2) {
