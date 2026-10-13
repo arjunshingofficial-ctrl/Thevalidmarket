@@ -145,6 +145,11 @@ export default function RealTimeSeoAnalyzer({
           if (!nextContent.includes("Frequently Asked Questions")) {
             nextContent = nextContent ? `${nextContent}\n\n${faqSnippet}` : faqSnippet;
           }
+        } else if (item.id === "links_vague_anchors") {
+          nextContent = nextContent.replace(
+            /<a\b([^>]*)>(click here|here|read more|learn more|link|this)<\/a>/gi,
+            `<a$1>explore the full Asia D Market catalog</a>`
+          );
         } else {
           nextContent = item.fixAction.value;
         }

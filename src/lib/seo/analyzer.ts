@@ -298,8 +298,73 @@ export function deduplicateHeadingTexts(contentHtml: string, duplicates: string[
 
 export function rebalanceExcessiveHeadings(contentHtml: string): string {
   if (!contentHtml) return "";
-  // Demote minor H4-H6 tags to strong paragraphs, preserving the bold visual layout while keeping heading hierarchy balanced
-  return contentHtml.replace(/<h[4-6]\b[^>]*>(.*?)<\/h[4-6]>/gi, "<p><strong>$1</strong></p>");
+  let result = contentHtml;
+
+  // 1. Demote all H4-H6 tags to strong paragraphs (multiline and whitespace safe)
+  result = result.replace(/<h([4-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi, (_match, _tag, inner) => {
+    const trimmed = inner.trim();
+    return /^<strong\b[^>]*>[\s\S]*<\/strong>$/i.test(trimmed)
+      ? `<p>${trimmed}</p>`
+      : `<p><strong>${trimmed}</strong></p>`;
+  });
+
+  // Recalculate headings
+  let headings = extractHeadings(result);
+  const words = stripHtml(result).split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+
+  const isDisproportionate = (hCount: number) => {
+    const wPerH = hCount > 0 ? Math.round(wordCount / hCount) : wordCount;
+    return (hCount >= 12 && wPerH < 50) || (hCount >= 25 && wordCount < 2500);
+  };
+
+  if (!isDisproportionate(headings.length)) {
+    return result;
+  }
+
+  // 2. If no H2 tags exist but H3 tags exist, promote the first few H3s to H2s so the page retains top-level hierarchy
+  const h2Count = headings.filter(h => h.level === 2).length;
+  if (h2Count === 0) {
+    let promoted = 0;
+    const maxPromotions = Math.max(3, Math.min(8, Math.floor(wordCount / 120)));
+    result = result.replace(/<h3\b([^>]*)>([\s\S]*?)<\/h3>/gi, (match, attrs, inner) => {
+      if (promoted < maxPromotions) {
+        promoted++;
+        return `<h2${attrs}>${inner}</h2>`;
+      }
+      return match;
+    });
+    headings = extractHeadings(result);
+  }
+
+  // 3. Demote H3 tags to strong paragraphs until heading proportion is healthy
+  if (isDisproportionate(headings.length)) {
+    result = result.replace(/<h3\b[^>]*>([\s\S]*?)<\/h3>/gi, (_match, inner) => {
+      const trimmed = inner.trim();
+      return /^<strong\b[^>]*>[\s\S]*<\/strong>$/i.test(trimmed)
+        ? `<p>${trimmed}</p>`
+        : `<p><strong>${trimmed}</strong></p>`;
+    });
+    headings = extractHeadings(result);
+  }
+
+  // 4. If STILL disproportionate (e.g. dozens of H2 headings for a short article):
+  if (isDisproportionate(headings.length)) {
+    const targetH2 = Math.max(5, Math.floor(wordCount / 100));
+    let h2Index = 0;
+    result = result.replace(/<h2\b[^>]*>([\s\S]*?)<\/h2>/gi, (match, inner) => {
+      h2Index++;
+      if (h2Index > targetH2) {
+        const trimmed = inner.trim();
+        return /^<strong\b[^>]*>[\s\S]*<\/strong>$/i.test(trimmed)
+          ? `<p>${trimmed}</p>`
+          : `<p><strong>${trimmed}</strong></p>`;
+      }
+      return match;
+    });
+  }
+
+  return result;
 }
 
 // ─── Main SEO Analyzer Engine ───────────────────────────────────────────────
@@ -1008,7 +1073,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       issue: `There are ${totalHeadings} headings on the page for only ${wordCount} words (average of ~${wordsPerHeading} words per heading). The number of headings should be more in proportion to the amount of text (recommended: at least 60–150 words per heading).`,
       impact: "Too many headings fragment the reading flow, look unnatural to Google, and dilute the topical authority of primary subheadings.",
       fixAction: {
-        label: "Rebalance Headings (Demote H4–H6 to Paragraphs)",
+        label: "Rebalance Headings (Demote Subheadings to Paragraphs)",
         field: "content",
         value: rebalancedContent,
         tabId: "general",
