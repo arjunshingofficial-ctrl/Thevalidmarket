@@ -590,6 +590,7 @@ model BlogPost {
   status          String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
   publishDate     DateTime?
   tags            String?  // JSON array
+  views           Int      @default(0)
   
   // SEO
   seoTitle        String?

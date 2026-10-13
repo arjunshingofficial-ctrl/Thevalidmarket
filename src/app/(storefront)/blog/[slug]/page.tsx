@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { 
   ArrowLeft, Calendar, Clock, Tag, 
-  CheckCircle2, ShieldCheck 
+  CheckCircle2, ShieldCheck, Eye 
 } from "lucide-react";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
@@ -80,6 +80,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post || post.status !== "PUBLISHED") {
     notFound();
   }
+
+  // Non-blockingly increment view counter
+  prisma.blogPost.update({
+    where: { id: post.id },
+    data: { views: { increment: 1 } },
+  }).catch((err) => console.error("Error updating blog view count:", err));
 
   // 2. Fetch Recent Posts with safe fallback
   let recentPosts: any[] = [];
@@ -256,6 +262,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                           day: "numeric",
                         })}
                   </span>
+                </span>
+                <span className="text-xs text-slate-300">•</span>
+                <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
+                  <Eye className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{((post.views || 0) + 1).toLocaleString()} views</span>
                 </span>
               </div>
 

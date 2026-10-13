@@ -22,6 +22,7 @@ interface BlogPost {
   publishDate: Date | string | null;
   createdAt: Date | string;
   tags?: string | null;
+  views?: number;
   category?: Category | null;
 }
 
@@ -160,6 +161,11 @@ export default function BlogPostsTable({ initialPosts, categories }: BlogPostsTa
           <span className="text-xs text-slate-500 font-medium px-2 py-1 bg-slate-100 rounded-md shrink-0">
             {filteredPosts.length} {filteredPosts.length === 1 ? "post" : "posts"}
           </span>
+
+          <span className="text-xs font-semibold px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-100 rounded-md shrink-0 flex items-center gap-1.5">
+            <Eye className="w-3.5 h-3.5 text-violet-500" />
+            <span>{filteredPosts.reduce((acc, p) => acc + (p.views || 0), 0).toLocaleString()} total views</span>
+          </span>
         </div>
       </div>
 
@@ -169,9 +175,10 @@ export default function BlogPostsTable({ initialPosts, categories }: BlogPostsTa
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-50/80 text-slate-700 font-semibold border-b border-slate-200 text-xs uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-3.5">Blog Post Title & Slug</th>
+                <th className="px-6 py-3.5">Blog Post Title &amp; Slug</th>
                 <th className="px-6 py-3.5">Category</th>
                 <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5 text-center">Views</th>
                 <th className="px-6 py-3.5">Published Date</th>
                 <th className="px-6 py-3.5 text-right min-w-[220px]">Actions</th>
               </tr>
@@ -179,7 +186,7 @@ export default function BlogPostsTable({ initialPosts, categories }: BlogPostsTa
             <tbody className="divide-y divide-slate-100">
               {filteredPosts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                     <FileText className="mx-auto h-12 w-12 text-slate-300 mb-3" />
                     <p className="font-semibold text-slate-700 text-base">No blog posts found</p>
                     <p className="text-xs text-slate-400 mt-1">Try adjusting your search query or publish a new article.</p>
@@ -235,6 +242,14 @@ export default function BlogPostsTable({ initialPosts, categories }: BlogPostsTa
                           )}
                           {post.status}
                         </button>
+                      </td>
+
+                      {/* Views */}
+                      <td className="px-6 py-4 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-100/80 shadow-2xs">
+                          <Eye className="w-3.5 h-3.5 text-violet-500" />
+                          <span>{(post.views || 0).toLocaleString()}</span>
+                        </span>
                       </td>
 
                       {/* Published Date */}

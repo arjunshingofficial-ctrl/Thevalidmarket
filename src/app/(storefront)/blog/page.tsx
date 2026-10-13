@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Metadata } from "next";
-import { Clock, ArrowRight, Sparkles, Newspaper, ChevronRight } from "lucide-react";
+import { Clock, ArrowRight, Sparkles, Newspaper, ChevronRight, Eye } from "lucide-react";
 import Image from "next/image";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import BlogSidebar from "@/components/blog/BlogSidebar";
@@ -172,6 +172,11 @@ export default async function BlogIndexPage() {
                                   day: "numeric",
                                   year: "numeric",
                                 })}
+                          </span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1 font-medium text-slate-500">
+                            <Eye className="w-3 h-3 text-slate-400" />
+                            <span>{(post.views || 0).toLocaleString()}</span>
                           </span>
                         </div>
 
