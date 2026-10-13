@@ -298,7 +298,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
               {/* Featured Image - Optimized with Next.js Image */}
               {post.featuredImage && (
-                <div className="mb-8 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 w-full aspect-video relative bg-slate-100">
+                <div 
+                  className="mb-8 rounded-2xl overflow-hidden shadow-sm border border-slate-200/80 w-full aspect-video relative bg-slate-100"
+                  style={{ aspectRatio: "16 / 9" }}
+                >
                   <Image
                     src={normalizeImageUrl(post.featuredImage)}
                     alt={post.title}

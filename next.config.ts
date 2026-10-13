@@ -27,7 +27,6 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    inlineCss: true,
     optimizePackageImports: ["lucide-react", "recharts", "@tiptap/react"],
   },
   typescript: {
