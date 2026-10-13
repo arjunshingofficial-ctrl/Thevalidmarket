@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/actions/admin";
-import { Save } from "lucide-react";
-import { updateGlobalSEOSettings } from "../actions";
+import GlobalSeoForm from "./GlobalSeoForm";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +12,16 @@ export default async function GlobalSEOPage() {
     settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
   }
 
+  let twitterHandle = "@AsiaDMarket";
+  if (settings.footerConfig) {
+    try {
+      const parsed = JSON.parse(settings.footerConfig);
+      if (parsed.twitterHandle) twitterHandle = parsed.twitterHandle;
+    } catch {}
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -22,67 +31,15 @@ export default async function GlobalSEOPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border shadow-sm p-6">
-        <form action={updateGlobalSEOSettings} className="space-y-6 max-w-3xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2 text-sm">
-              <label className="font-medium text-slate-700">Site Name</label>
-              <input 
-                type="text" 
-                name="siteName" 
-                className="w-full rounded-md border p-2" 
-                defaultValue={settings.siteName || "Asia D Market"} 
-              />
-            </div>
-            <div className="space-y-2 text-sm">
-              <label className="font-medium text-slate-700">Twitter Handle</label>
-              <input 
-                type="text" 
-                name="twitterHandle" 
-                className="w-full rounded-md border p-2" 
-                defaultValue={"@AsiaDMarket"} 
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2 text-sm">
-            <label className="font-medium text-slate-700">Site Description (Meta)</label>
-            <textarea 
-              name="siteDescription" 
-              className="w-full rounded-md border p-2 h-24" 
-              defaultValue={settings.siteDescription || "Asia D Market: Premier digital marketplace for software, courses, tools, and digital goods."} 
-            />
-          </div>
-
-          <div className="space-y-2 text-sm">
-            <label className="font-medium text-slate-700">Default Open Graph Image URL</label>
-            <input 
-              type="url" 
-              name="defaultOgImage" 
-              className="w-full rounded-md border p-2" 
-              defaultValue={settings.defaultOgImage || "/og-image.jpg"} 
-            />
-          </div>
-
-          <div className="space-y-2 text-sm">
-            <label className="font-medium text-slate-700">Organization JSON-LD Schema (Read-only)</label>
-            <textarea 
-              readOnly 
-              className="w-full rounded-md border p-2 font-mono text-xs h-32 bg-slate-50 text-slate-600" 
-              defaultValue={'{\n  "@context": "https://schema.org",\n  "@type": "Organization",\n  "name": "Asia D Market",\n  "url": "https://asiadmarket.com"\n}'} 
-            />
-          </div>
-
-          <div className="pt-4 border-t flex justify-end">
-            <button 
-              type="submit" 
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 hover:bg-primary/90 shadow-sm"
-            >
-              <Save className="h-4 w-4" /> Save SEO Settings
-            </button>
-          </div>
-        </form>
-      </div>
+      <GlobalSeoForm
+        initialData={{
+          siteName: settings.siteName || "Asia D Market",
+          twitterHandle,
+          siteDescription: settings.siteDescription || "",
+          defaultOgImage: settings.defaultOgImage || "/og-image.jpg",
+          siteUrl,
+        }}
+      />
     </div>
   );
 }

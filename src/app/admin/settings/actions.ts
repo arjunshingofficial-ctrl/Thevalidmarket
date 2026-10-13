@@ -64,25 +64,70 @@ export async function updateGeneralSettings(formData: FormData) {
 }
 
 export async function updateGlobalSEOSettings(formData: FormData) {
-  const siteName = formData.get("siteName")?.toString() || "Asia D Market";
-  const siteDescription = formData.get("siteDescription")?.toString() || "";
-  const defaultOgImage = formData.get("defaultOgImage")?.toString() || "";
+  try {
+    const { requireAdmin, createAuditLog } = await import("@/lib/actions/admin");
+    await requireAdmin("Settings", "Manage");
 
-  let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
-  if (!settings) {
-    settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
-  }
+    const siteName = formData.get("siteName")?.toString()?.trim() || "Asia D Market";
+    const siteDescription = formData.get("siteDescription")?.toString()?.trim() || "";
+    const defaultOgImage = formData.get("defaultOgImage")?.toString()?.trim() || "/og-image.jpg";
+    const twitterHandle = formData.get("twitterHandle")?.toString()?.trim() || "@AsiaDMarket";
 
-  await prisma.siteSettings.update({
-    where: { id: "GLOBAL" },
-    data: {
-      siteName,
-      siteDescription,
-      defaultOgImage,
+    let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+    if (!settings) {
+      settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
     }
-  });
 
-  revalidatePath("/");
-  revalidatePath("/store");
-  revalidatePath("/admin/settings/seo");
+    let footerConfig: any = {};
+    try {
+      footerConfig = settings.footerConfig ? JSON.parse(settings.footerConfig) : {};
+    } catch {
+      footerConfig = {};
+    }
+    footerConfig.twitterHandle = twitterHandle.startsWith("@") ? twitterHandle : `@${twitterHandle}`;
+
+    await prisma.siteSettings.update({
+      where: { id: "GLOBAL" },
+      data: {
+        siteName,
+        siteDescription,
+        defaultOgImage,
+        footerConfig: JSON.stringify(footerConfig),
+      }
+    });
+
+    await createAuditLog({
+      action: "SETTINGS_UPDATED",
+      entity: "SiteSettings",
+      entityId: "GLOBAL",
+      metadata: {
+        siteName,
+        siteDescriptionLength: siteDescription.length,
+        defaultOgImage,
+        twitterHandle: footerConfig.twitterHandle,
+      }
+    });
+
+    revalidatePath("/", "layout");
+    revalidatePath("/");
+    revalidatePath("/store");
+    revalidatePath("/admin/settings/seo");
+
+    return { 
+      success: true, 
+      message: "Global SEO settings saved and updated across the site!",
+      data: {
+        siteName,
+        siteDescription,
+        defaultOgImage,
+        twitterHandle: footerConfig.twitterHandle,
+      }
+    };
+  } catch (error: any) {
+    console.error("Failed to update global SEO settings:", error);
+    return {
+      success: false,
+      message: error?.message || "Failed to update global SEO settings. Please try again.",
+    };
+  }
 }

@@ -3,113 +3,154 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import ProgressBarProvider from "@/components/providers/ProgressBarProvider";
-import Script from "next/script";
+import { prisma } from "@/lib/prisma";
 
 const inter = Inter({ 
   subsets: ["latin"], 
-  display: "swap",
+  display: "swap", 
   preload: true 
 });
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
 
-export const metadata: Metadata = {
-  metadataBase: new URL(baseUrl),
-  title: {
-    default: "Asia D Market | Premium Digital Products, Tools & Software Marketplace",
-    template: "%s | Asia D Market",
-  },
-  description: "Explore Asia D Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery.",
-  keywords: [
-    "digital marketplace",
-    "software licenses",
-    "digital products",
-    "developer tools",
-    "online courses",
-    "Asia D Market",
-    "buy digital goods",
-    "instant delivery marketplace"
-  ],
-  authors: [{ name: "Asia D Market Team", url: baseUrl }],
-  creator: "Asia D Market",
-  publisher: "Asia D Market",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: baseUrl,
-    siteName: "Asia D Market",
-    title: "Asia D Market | Premium Digital Products, Tools & Software Marketplace",
-    description: "Explore Asia D Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Asia D Market - Digital Marketplace",
-      },
+export async function generateMetadata(): Promise<Metadata> {
+  let settings = null;
+  try {
+    settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+  } catch (e) {
+    console.error("Failed to fetch site settings in generateMetadata:", e);
+  }
+
+  const siteName = settings?.siteName?.trim() || "Asia D Market";
+  const siteDescription = settings?.siteDescription?.trim() || "Explore Asia D Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery.";
+  const defaultOgImage = settings?.defaultOgImage?.trim() || "/og-image.jpg";
+
+  let twitterHandle = "@AsiaDMarket";
+  if (settings?.footerConfig) {
+    try {
+      const parsed = JSON.parse(settings.footerConfig);
+      if (parsed.twitterHandle) twitterHandle = parsed.twitterHandle;
+    } catch {}
+  }
+
+  return {
+    metadataBase: new URL(baseUrl),
+    title: {
+      default: `${siteName} | Premium Digital Products, Tools & Software Marketplace`,
+      template: `%s | ${siteName}`,
+    },
+    description: siteDescription,
+    keywords: [
+      "digital marketplace",
+      "software licenses",
+      "digital products",
+      "developer tools",
+      "online courses",
+      siteName,
+      "buy digital goods",
+      "instant delivery marketplace"
     ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Asia D Market | Premium Digital Products, Tools & Software Marketplace",
-    description: "The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets.",
-    images: ["/og-image.jpg"],
-    creator: "@AsiaDMarket",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    authors: [{ name: `${siteName} Team`, url: baseUrl }],
+    creator: siteName,
+    publisher: siteName,
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
+    },
+    alternates: {
+      canonical: "/",
+    },
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      url: baseUrl,
+      siteName: siteName,
+      title: `${siteName} | Premium Digital Products, Tools & Software Marketplace`,
+      description: siteDescription,
+      images: [
+        {
+          url: defaultOgImage,
+          width: 1200,
+          height: 630,
+          alt: `${siteName} - Digital Marketplace`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${siteName} | Premium Digital Products, Tools & Software Marketplace`,
+      description: siteDescription,
+      images: [defaultOgImage],
+      creator: twitterHandle,
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
-  },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
-};
+    icons: {
+      icon: "/favicon.ico",
+      shortcut: "/favicon.ico",
+      apple: "/apple-touch-icon.png",
+    },
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let settings = null;
+  try {
+    settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+  } catch (e) {
+    console.error("Failed to fetch site settings in RootLayout:", e);
+  }
+
+  const siteName = settings?.siteName?.trim() || "Asia D Market";
+  const siteDescription = settings?.siteDescription?.trim() || undefined;
+
+  let twitterHandle = "@AsiaDMarket";
+  if (settings?.footerConfig) {
+    try {
+      const parsed = JSON.parse(settings.footerConfig);
+      if (parsed.twitterHandle) twitterHandle = parsed.twitterHandle;
+    } catch {}
+  }
+  const twitterClean = twitterHandle.replace(/^@/, "");
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "Organization",
         "@id": `${baseUrl}/#organization`,
-        "name": "Asia D Market",
+        "name": siteName,
         "url": baseUrl,
+        ...(siteDescription ? { description: siteDescription } : {}),
         "logo": {
           "@type": "ImageObject",
           "url": `${baseUrl}/logo.png`,
-          "caption": "Asia D Market Logo"
+          "caption": `${siteName} Logo`
         },
         "sameAs": [
           "https://t.me/asiadmarket",
-          "https://twitter.com/AsiaDMarket"
-        ]
+          twitterClean ? `https://x.com/${twitterClean}` : "https://x.com/AsiaDMarket"
+        ].filter(Boolean)
       },
       {
         "@type": "WebSite",
         "@id": `${baseUrl}/#website`,
         "url": baseUrl,
-        "name": "Asia D Market",
+        "name": siteName,
         "publisher": {
           "@id": `${baseUrl}/#organization`
         },
