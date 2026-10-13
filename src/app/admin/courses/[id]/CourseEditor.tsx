@@ -73,7 +73,7 @@ export default function CourseEditor({ course }: CourseEditorProps) {
   const [thumbnailUrl, setThumbnailUrl] = useState<string>(course.thumbnailUrl || initialMeta.image || "");
   const [skillLevel, setSkillLevel] = useState<string>(initialMeta.skillLevel || "All Skill Levels");
   const [language, setLanguage] = useState<string>(initialMeta.language || "English & Global Access");
-  const [badge, setBadge] = useState<string>(initialMeta.badge || "Masterclass");
+  const [badge, setBadge] = useState<string>(initialMeta.badge || "");
   const [highlights, setHighlights] = useState<string>(
     Array.isArray(initialMeta.highlights)
       ? initialMeta.highlights.join("\n")
@@ -559,7 +559,7 @@ export default function CourseEditor({ course }: CourseEditorProps) {
                 rows={6}
                 value={highlights}
                 onChange={(e) => setHighlights(e.target.value)}
-                placeholder="Complete foundational setup, authorized lab deployments & tools&#10;Vulnerability assessment, network penetration & security auditing&#10;Real-world exploit mechanics, defensive mitigations & bug bounties&#10;Hands-on interactive practice inside safe legal lab environments"
+                placeholder="e.g. Master core principles and fundamental concepts&#10;Hands-on practical projects and real-world exercises&#10;Step-by-step guidance and best practices&#10;Industry-standard workflows and techniques"
                 className="w-full px-3.5 py-2.5 text-sm font-mono rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/40 text-slate-900 leading-relaxed"
               />
               <p className="text-[11px] text-slate-400">

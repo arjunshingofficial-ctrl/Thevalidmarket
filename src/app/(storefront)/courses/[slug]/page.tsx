@@ -86,24 +86,17 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
   })();
 
   const image = metadata.image || product.course?.thumbnailUrl || null;
-  const instructor = product.course?.instructor || metadata.instructor || "Asia D Market Elite Faculty";
+  const instructor = product.course?.instructor || metadata.instructor || "Instructor";
   const skillLevel = metadata.skillLevel || "All Skill Levels";
   const language = metadata.language || "English & Global Access";
-  const courseBadge = metadata.badge || "Masterclass";
+  const courseBadge = metadata.badge || "Online Course";
 
   const rawHighlights = metadata.highlights;
   const highlights: string[] = Array.isArray(rawHighlights) && rawHighlights.length > 0
     ? rawHighlights
     : (typeof rawHighlights === "string" && rawHighlights.trim()
         ? rawHighlights.split("\n").map((s: string) => s.trim()).filter(Boolean)
-        : [
-            "Complete foundational setup, authorized lab deployments & tools",
-            "Vulnerability assessment, network penetration & security auditing",
-            "Real-world exploit mechanics, defensive mitigations & bug bounties",
-            "Hands-on interactive practice inside safe legal lab environments",
-            "Scripting & automation workflows for defensive cybersecurity",
-            "Career progression blueprint & cybersecurity interview prep",
-          ]);
+        : []);
 
   const modules = product.course?.modules || [];
   const totalLessons = modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
@@ -169,20 +162,29 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
             {/* Metrics Row */}
             <div className="flex flex-wrap items-center gap-6 text-xs sm:text-sm text-slate-300 pt-2 border-t border-slate-800">
-              <div className="flex items-center gap-1.5">
-                <div className="flex text-amber-400">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400" />
-                  ))}
+              {reviewsCount > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <div className="flex text-amber-400">
+                    {[...Array(Math.min(5, Math.round(Number(avgRating))))].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-amber-400" />
+                    ))}
+                  </div>
+                  <span className="font-extrabold text-white">{avgRating}</span>
+                  <span className="text-slate-400">({reviewsCount} {reviewsCount === 1 ? "review" : "reviews"})</span>
                 </div>
-                <span className="font-extrabold text-white">{avgRating}</span>
-                <span className="text-slate-400">({reviewsCount > 0 ? reviewsCount : 24} reviews)</span>
-              </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <Star className="w-4 h-4 text-amber-400" />
+                  <span>New Course</span>
+                </div>
+              )}
 
-              <div className="flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-emerald-400" />
-                <span>1,200+ Students Enrolled</span>
-              </div>
+              {totalLessons > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="w-4 h-4 text-emerald-400" />
+                  <span>{totalLessons} {totalLessons === 1 ? "Lesson" : "Lessons"}</span>
+                </div>
+              )}
 
               <div className="flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-indigo-400" />
@@ -206,41 +208,43 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
           {/* ══ LEFT: Course Syllabus & Overview (8 cols) ══ */}
           <div className="lg:col-span-8 space-y-8">
             
-            {/* What You'll Learn Highlights Card */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
-              <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <span>What You Will Master in This Course</span>
-              </h2>
+            {/* What You'll Learn Highlights Card (Only shown if custom highlights configured) */}
+            {highlights.length > 0 && (
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
+                <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>What You Will Master in This Course</span>
+                </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {highlights.map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                    <span className="leading-snug">{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Course Curriculum & Syllabus Accordion */}
-            <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
-              <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
-                <div>
-                  <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-primary" />
-                    <span>Course Curriculum</span>
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    {modules.length > 0 ? `${modules.length} Modules • ${totalLessons} Lessons` : "4 Comprehensive Modules • Practical Labs Included"}
-                  </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {highlights.map((item, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <span className="leading-snug">{item}</span>
+                    </div>
+                  ))}
                 </div>
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                  Self-Paced Learning
-                </span>
               </div>
+            )}
 
-              {modules.length > 0 ? (
+            {/* Course Curriculum & Syllabus Accordion (Only shown if modules configured) */}
+            {modules.length > 0 && (
+              <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
+                <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+                  <div>
+                    <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      <Layers className="w-5 h-5 text-primary" />
+                      <span>Course Curriculum</span>
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {modules.length} {modules.length === 1 ? "Module" : "Modules"} • {totalLessons} {totalLessons === 1 ? "Lesson" : "Lessons"}
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                    Self-Paced Learning
+                  </span>
+                </div>
+
                 <div className="space-y-4">
                   {modules.map((mod, idx) => (
                     <div key={mod.id} className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50">
@@ -281,31 +285,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                     </div>
                   ))}
                 </div>
-              ) : (
-                /* Fallback Curriculum Outline */
-                <div className="space-y-3">
-                  {[
-                    { title: "Module 1: Ethical Hacking & Cybersecurity Fundamentals", lessons: 6, time: "2h 15m" },
-                    { title: "Module 2: Network Reconnaissance & Penetration Lab Setup", lessons: 8, time: "3h 40m" },
-                    { title: "Module 3: Web Application Security & Bug Bounty Frameworks", lessons: 10, time: "4h 20m" },
-                    { title: "Module 4: Defensive Hardening, Mitigations & Career Blueprint", lessons: 5, time: "2h 00m" },
-                  ].map((item, idx) => (
-                    <div key={idx} className="p-4 rounded-2xl border border-slate-200/80 bg-white flex items-center justify-between hover:border-slate-300 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <span className="w-7 h-7 rounded-xl bg-slate-100 text-slate-700 font-extrabold text-xs flex items-center justify-center">
-                          {idx + 1}
-                        </span>
-                        <div>
-                          <h4 className="text-xs sm:text-sm font-bold text-slate-900">{item.title}</h4>
-                          <p className="text-[11px] text-slate-400">{item.lessons} step-by-step video modules</p>
-                        </div>
-                      </div>
-                      <span className="text-xs font-semibold text-slate-500">{item.time}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Course Detailed Description */}
             <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
@@ -373,7 +354,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                   )}
                   <div className="absolute inset-0 bg-black/20" />
                   <span className="absolute bottom-3 left-3 text-[10px] font-extrabold uppercase tracking-wider bg-slate-900/90 text-white px-2.5 py-1 rounded-lg backdrop-blur-md">
-                    Full Video Course + Labs
+                    {courseBadge || "Full Video Course"}
                   </span>
                 </div>
 
