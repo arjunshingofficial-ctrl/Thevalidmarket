@@ -3,17 +3,32 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { ShoppingBag, ArrowRight, X, Sparkles, CheckCircle2 } from "lucide-react";
 import { CartItem } from "@/lib/cart";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export default function QuickCheckoutToast() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const [lastItem, setLastItem] = useState<Partial<CartItem> | null>(null);
+
+  // Automatically hide if user navigates to checkout or payment page
+  useEffect(() => {
+    if (pathname && (pathname.startsWith("/checkout") || pathname.startsWith("/payment"))) {
+      setVisible(false);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
 
     const handleAdded = (event: Event) => {
+      // Never pop up if already on checkout or payment page
+      if (window.location.pathname.startsWith("/checkout") || window.location.pathname.startsWith("/payment")) {
+        return;
+      }
+
       const customEvent = event as CustomEvent<{ item: Partial<CartItem> }>;
       const item = customEvent.detail?.item;
       if (item) {
@@ -32,6 +47,11 @@ export default function QuickCheckoutToast() {
       clearTimeout(timeout);
     };
   }, []);
+
+  // Do not render anything when on checkout or payment page
+  if (pathname && (pathname.startsWith("/checkout") || pathname.startsWith("/payment"))) {
+    return null;
+  }
 
   if (!visible || !lastItem) return null;
 
@@ -60,7 +80,7 @@ export default function QuickCheckoutToast() {
           {lastItem.image ? (
             <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0 border border-slate-700">
               <Image
-                src={lastItem.image}
+                src={normalizeImageUrl(lastItem.image)}
                 alt={lastItem.name || "Product"}
                 fill
                 sizes="48px"
