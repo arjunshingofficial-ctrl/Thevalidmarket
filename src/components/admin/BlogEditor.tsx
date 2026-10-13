@@ -41,7 +41,6 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
 
   const [tags, setTags] = useState<string[]>(initialTags);
   const [tagInput, setTagInput] = useState("");
-  const [sidebarTagInput, setSidebarTagInput] = useState("");
   const router = useRouter();
 
   const [title, setTitle] = useState(initialData?.title || "");
@@ -105,7 +104,6 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
       setIsDirty(true);
     }
     setTagInput("");
-    setSidebarTagInput("");
   };
 
   const handleAddTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
@@ -113,15 +111,6 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
     if (e && 'preventDefault' in e) e.preventDefault();
     if (tagInput.trim()) {
       addTagsFromString(tagInput);
-    }
-  };
-
-  const handleAddSidebarTag = (e?: React.KeyboardEvent | React.MouseEvent) => {
-    if (e && 'key' in e && e.key !== 'Enter' && e.key !== ',') return;
-    if (e && 'preventDefault' in e) e.preventDefault();
-    if (sidebarTagInput.trim()) {
-      addTagsFromString(sidebarTagInput);
-      setSidebarTagInput("");
     }
   };
 
@@ -204,17 +193,48 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
           <button type="button" onClick={() => setError(null)} className="text-red-500 hover:text-red-700 font-bold ml-2">×</button>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{mode === "create" ? "New Post" : "Edit Post"}</h1>
-          <p className="text-xs text-slate-500">Drafts are saved directly without losing content across tabs.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            {mode === "create" ? "New Blog Article" : `Edit Post: ${title || "Untitled"}`}
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Real-time on-page SEO analysis with live Seobility &amp; Google SERP criteria.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Status badge & selector */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 text-xs shadow-xs">
+            <span className={`w-2.5 h-2.5 rounded-full ${status === "PUBLISHED" ? "bg-emerald-500 ring-2 ring-emerald-500/20" : "bg-amber-500 ring-2 ring-amber-500/20"}`} />
+            <span className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">Status:</span>
+            <select
+              name="status"
+              value={status}
+              onChange={e => { setStatus(e.target.value); setIsDirty(true); }}
+              className="bg-transparent font-bold text-slate-800 outline-none cursor-pointer text-xs"
+            >
+              <option value="DRAFT">Draft</option>
+              <option value="PUBLISHED">Published</option>
+            </select>
+          </div>
+
+          {mode === "edit" && (slug || initialData?.slug) && (
+            <button
+              type="button"
+              onClick={() => window.open(`/blog/${slug || initialData?.slug}`, "_blank")}
+              className="px-3.5 py-2 rounded-xl border border-slate-200 font-bold text-xs bg-white hover:bg-slate-50 text-slate-700 shadow-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Preview live blog article on storefront"
+            >
+              <Eye className="w-3.5 h-3.5 text-slate-500" />
+              <span>Preview</span>
+            </button>
+          )}
+
           <button
             type="button"
             disabled={saving}
             onClick={() => handleSubmit(undefined, "DRAFT")}
-            className="px-4 py-2 rounded-lg border border-slate-300 font-semibold text-sm bg-white hover:bg-slate-50 text-slate-700 shadow-sm disabled:opacity-50 transition-colors"
+            className="px-4 py-2 rounded-xl border border-slate-300 font-bold text-xs bg-white hover:bg-slate-50 text-slate-700 shadow-xs disabled:opacity-50 transition-colors cursor-pointer"
           >
             {saving ? "Saving..." : "Save Draft"}
           </button>
@@ -222,15 +242,14 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
             type="button"
             disabled={saving}
             onClick={() => handleSubmit(undefined, "PUBLISHED")}
-            className="px-5 py-2 rounded-lg font-semibold text-sm bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-50 transition-colors"
+            className="px-5 py-2 rounded-xl font-bold text-xs bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-50 transition-all cursor-pointer"
           >
-            {saving ? "Publishing..." : "Publish Post"}
+            {saving ? "Publishing..." : status === "PUBLISHED" ? "Update Post" : "Publish Post"}
           </button>
         </div>
       </div>
       
-      <div className="flex flex-col xl:flex-row gap-6 items-start">
-        <div className="flex-1 min-w-0 w-full bg-white rounded-xl shadow-sm border p-4 sm:p-6 space-y-6">
+      <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-200/90 p-5 sm:p-7 space-y-6">
           <div className="flex gap-4 border-b pb-4">
             <button
               type="button"
@@ -413,7 +432,15 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
             <div className="pt-4 border-t border-slate-100">
               <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center justify-between">
                 <span className="flex items-center gap-1.5"><Tag className="w-4 h-4 text-primary" /> Post Tags ({tags.length})</span>
-                <span className="text-xs text-slate-400">Syncs live with sidebar &amp; SEO tab</span>
+                {tags.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllTags}
+                    className="text-xs text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                  >
+                    Clear all
+                  </button>
+                )}
               </label>
               <div className="flex gap-2">
                 <input
@@ -510,109 +537,6 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
             />
           </div>
         </div>
-        
-        {/* Sidebar Options */}
-        <div className="w-full xl:w-80 xl:shrink-0 bg-white rounded-xl shadow-sm border p-5 sm:p-6 space-y-5 xl:sticky xl:top-6">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 className="font-bold text-slate-900 text-sm">Publishing Options</h3>
-            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-              status === "PUBLISHED" 
-                ? "bg-emerald-100 text-emerald-800 border border-emerald-200" 
-                : "bg-slate-100 text-slate-700 border border-slate-200"
-            }`}>
-              {status}
-            </span>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Status</label>
-            <select 
-              name="status" 
-              value={status} 
-              onChange={e => { setStatus(e.target.value); setIsDirty(true); }} 
-              className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-white focus:ring-2 focus:ring-primary/50 font-medium cursor-pointer"
-            >
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-            </select>
-          </div>
-
-          {/* Active Tags with Interactive Cloud & Quick Add */}
-          <div className="pt-3 border-t border-slate-100 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-primary" />
-                <span>Active Tags ({tags.length})</span>
-              </span>
-              {tags.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleClearAllTags}
-                  className="text-[11px] text-slate-400 hover:text-red-600 transition-colors cursor-pointer font-medium"
-                  title="Remove all tags"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-
-            {/* Quick Add Tag in Sidebar */}
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                value={sidebarTagInput}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val.includes(",")) {
-                    addTagsFromString(val);
-                  } else {
-                    setSidebarTagInput(val);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === ",") {
-                    e.preventDefault();
-                    handleAddSidebarTag(e);
-                  }
-                }}
-                placeholder="New tag..."
-                className="flex-1 min-w-0 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 bg-slate-50/50"
-              />
-              <button
-                type="button"
-                onClick={() => handleAddSidebarTag()}
-                className="px-2.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 shrink-0 flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" /> Add
-              </button>
-            </div>
-
-            {/* Scrollable, non-overflowing tag cloud */}
-            {tags.length > 0 ? (
-              <div className="max-h-56 overflow-y-auto pr-1 flex flex-wrap gap-1.5 pt-1 scrollbar-thin">
-                {tags.map(t => (
-                  <span 
-                    key={t} 
-                    className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 hover:bg-slate-200/80 text-slate-700 border border-slate-200/80 px-2 py-0.5 rounded-md transition-colors group"
-                  >
-                    <span>#{t}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(t)}
-                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full p-0.5 transition-colors cursor-pointer"
-                      title={`Remove #${t}`}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic py-2">No tags added yet. Type above to add keywords.</p>
-            )}
-          </div>
-        </div>
-      </div>
     </form>
   );
 }
