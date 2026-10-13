@@ -86,7 +86,7 @@ export default function CourseCard({ course }: { course: any }) {
       </button>
 
       {/* Image Container (16:9) */}
-      <Link href={`/product/${course.slug}`} className="relative aspect-video bg-slate-100 block overflow-hidden border-b border-slate-100">
+      <Link href={`/courses/${course.slug}`} className="relative aspect-video bg-slate-100 block overflow-hidden border-b border-slate-100">
         {image ? (
           <Image
             src={normalizeImageUrl(image)}
@@ -107,7 +107,7 @@ export default function CourseCard({ course }: { course: any }) {
       
       {/* Content */}
       <div className="flex flex-col flex-1 p-5 gap-3">
-        <Link href={`/product/${course.slug}`} className="font-bold text-slate-900 leading-snug tracking-tight line-clamp-2 hover:text-primary transition-colors text-lg">
+        <Link href={`/courses/${course.slug}`} className="font-bold text-slate-900 leading-snug tracking-tight line-clamp-2 hover:text-primary transition-colors text-lg">
           {course.name}
         </Link>
         
