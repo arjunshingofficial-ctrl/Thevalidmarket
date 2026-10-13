@@ -60,6 +60,8 @@ export interface SeoAnalysisResult {
   h1CountInContent: number;
   h2Count: number;
   h3Count: number;
+  totalHeadings: number;
+  wordsPerHeading: number;
   headingsList: { level: number; text: string }[];
   duplicateHeadings: string[];
   
@@ -70,6 +72,8 @@ export interface SeoAnalysisResult {
   internalLinksCount: number;
   externalLinksCount: number;
   vagueAnchorLinksCount: number;
+  dynamicInternalLinksCount: number;
+  dynamicInternalLinksList: string[];
 
   // Keyphrases
   keyphrasesData: KeyphraseMatch[];
@@ -186,20 +190,116 @@ export function extractImages(html: string): { src: string; alt: string }[] {
   return images;
 }
 
-// Extract links from HTML
-export function extractLinks(html: string, siteHost: string = "asiadmarket.com"): { href: string; text: string; isInternal: boolean }[] {
+export interface ExtractedLink {
+  href: string;
+  text: string;
+  isInternal: boolean;
+  hasDynamicParams: boolean;
+  isNoFollow: boolean;
+  rawAttrs: string;
+}
+
+// Extract links from HTML with dynamic parameter and nofollow detection
+export function extractLinks(html: string, siteHost: string = "asiadmarket.com"): ExtractedLink[] {
   if (!html) return [];
   const matches = html.matchAll(/<a\b([^>]*?)>(.*?)<\/a>/gi);
-  const links: { href: string; text: string; isInternal: boolean }[] = [];
+  const links: ExtractedLink[] = [];
   for (const match of matches) {
-    const attrs = match[1];
+    const attrs = match[1] || "";
     const hrefMatch = attrs.match(/\bhref\s*=\s*["']([^"']+)["']/i);
     const href = hrefMatch ? hrefMatch[1].trim() : "";
     const text = stripHtml(match[2]).trim();
-    const isInternal = href.startsWith("/") || href.startsWith("#") || href.includes(siteHost);
-    links.push({ href, text, isInternal });
+
+    // Check internal vs external
+    const isExplicitExternal = /^https?:\/\//i.test(href) && !href.includes(siteHost) && !href.includes("localhost");
+    const isSpecialScheme = /^(mailto:|tel:|javascript:|#)/i.test(href);
+    const isInternal = !isExplicitExternal && !isSpecialScheme && (href.startsWith("/") || href.includes(siteHost) || !/^[a-z]+:/i.test(href));
+
+    // Dynamic query parameters: check for ? with key-value pairs
+    const hasDynamicParams = href.includes("?") && /[?&][^=&#]+=[^&#]*/i.test(href);
+
+    // Check rel="nofollow"
+    const isNoFollow = /\brel\s*=\s*["'][^"']*\bnofollow\b[^"']*["']/i.test(attrs);
+
+    links.push({
+      href,
+      text,
+      isInternal,
+      hasDynamicParams,
+      isNoFollow,
+      rawAttrs: attrs,
+    });
   }
   return links;
+}
+
+// ─── Automated Content Fix Helpers ──────────────────────────────────────────
+
+export function cleanDynamicInternalLinks(contentHtml: string, siteHost: string = "asiadmarket.com"): string {
+  if (!contentHtml) return "";
+  return contentHtml.replace(/<a\b([^>]*?)>(.*?)<\/a>/gi, (fullMatch, attrs, linkBody) => {
+    const hrefMatch = attrs.match(/\bhref\s*=\s*["']([^"']+)["']/i);
+    if (!hrefMatch) return fullMatch;
+    const href = hrefMatch[1].trim();
+
+    const isExplicitExternal = /^https?:\/\//i.test(href) && !href.includes(siteHost) && !href.includes("localhost");
+    const isSpecialScheme = /^(mailto:|tel:|javascript:|#)/i.test(href);
+    const isInternal = !isExplicitExternal && !isSpecialScheme && (href.startsWith("/") || href.includes(siteHost) || !/^[a-z]+:/i.test(href));
+    const hasDynamicParams = href.includes("?") && /[?&][^=&#]+=[^&#]*/i.test(href);
+    const isNoFollow = /\brel\s*=\s*["'][^"']*\bnofollow\b[^"']*["']/i.test(attrs);
+
+    if (isInternal && hasDynamicParams && !isNoFollow) {
+      // 1. If it's a category query on store e.g. /store?category=slug -> /category/slug
+      const catMatch = href.match(/[\/?&]category=([a-z0-9_-]+)/i);
+      if (catMatch && href.includes("/store")) {
+        const cleanHref = `/category/${catMatch[1]}`;
+        const newAttrs = attrs.replace(hrefMatch[0], `href="${cleanHref}"`);
+        return `<a${newAttrs}>${linkBody}</a>`;
+      }
+      
+      // 2. Strip standard tracking query params (?ref=, ?utm_..., ?source=)
+      const trackingParams = /[?&](ref|utm_[a-z]+|source|tracker|aff|campaign|fbclid|gclid)=[^&#]*/gi;
+      let strippedHref = href.replace(trackingParams, "").replace(/\?&/, "?").replace(/[?&]$/, "");
+      if (strippedHref !== href && !strippedHref.includes("?")) {
+        const newAttrs = attrs.replace(hrefMatch[0], `href="${strippedHref}"`);
+        return `<a${newAttrs}>${linkBody}</a>`;
+      }
+
+      // 3. For essential query strings (e.g. dynamic search, filters), append rel="nofollow"
+      let newAttrs = attrs;
+      if (/\brel\s*=\s*["']([^"']*)["']/i.test(newAttrs)) {
+        newAttrs = newAttrs.replace(/\brel\s*=\s*["']([^"']*)["']/i, (m: string, val: string) => `rel="${val} nofollow"`);
+      } else {
+        newAttrs = `${newAttrs} rel="nofollow"`;
+      }
+      return `<a${newAttrs}>${linkBody}</a>`;
+    }
+    return fullMatch;
+  });
+}
+
+export function deduplicateHeadingTexts(contentHtml: string, duplicates: string[]): string {
+  if (!contentHtml || !duplicates.length) return contentHtml;
+  let result = contentHtml;
+  duplicates.forEach((dup) => {
+    let count = 0;
+    const escaped = dup.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    const regex = new RegExp(`(<h[1-6]\\b[^>]*>\\s*)(${escaped})(\\s*<\\/h[1-6]>)`, "gi");
+    result = result.replace(regex, (match, prefix, text, suffix) => {
+      count++;
+      if (count > 1) {
+        return `${prefix}${text} (Section ${count})${suffix}`;
+      }
+      return match;
+    });
+  });
+  return result;
+}
+
+export function rebalanceExcessiveHeadings(contentHtml: string): string {
+  if (!contentHtml) return "";
+  // Demote minor H4-H6 tags to strong paragraphs, preserving the bold visual layout while keeping heading hierarchy balanced
+  return contentHtml.replace(/<h[4-6]\b[^>]*>(.*?)<\/h[4-6]>/gi, "<p><strong>$1</strong></p>");
 }
 
 // ─── Main SEO Analyzer Engine ───────────────────────────────────────────────
@@ -242,9 +342,13 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   const h1sInContent = headings.filter(h => h.level === 1);
   const h2Count = headings.filter(h => h.level === 2).length;
   const h3Count = headings.filter(h => h.level === 3).length;
+  const totalHeadings = headings.length;
+  const wordsPerHeading = totalHeadings > 0 ? Math.round(wordCount / totalHeadings) : wordCount;
 
-  const headingTexts = headings.map(h => h.text.toLowerCase());
-  const duplicateHeadings = headingTexts.filter((item, index) => item.length > 2 && headingTexts.indexOf(item) !== index);
+  const headingTexts = headings.map(h => h.text.toLowerCase().trim()).filter(Boolean);
+  const headingOccurrences: Record<string, number> = {};
+  headingTexts.forEach(t => { headingOccurrences[t] = (headingOccurrences[t] || 0) + 1; });
+  const duplicateHeadings = Object.keys(headingOccurrences).filter(t => headingOccurrences[t] > 1);
 
   // 3. Images extraction
   const inlineImages = extractImages(content);
@@ -270,6 +374,9 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   const parsedLinks = extractLinks(content);
   const internalLinksCount = parsedLinks.filter(l => l.isInternal).length;
   const externalLinksCount = parsedLinks.filter(l => !l.isInternal).length;
+  const dynamicInternalLinks = parsedLinks.filter(l => l.isInternal && l.hasDynamicParams && !l.isNoFollow);
+  const dynamicInternalLinksCount = dynamicInternalLinks.length;
+  const dynamicInternalLinksList = Array.from(new Set(dynamicInternalLinks.map(l => l.href)));
   
   const vagueAnchorPatterns = /^(click here|here|read more|learn more|link|this|more|check here|website)$/i;
   const vagueAnchorLinksCount = parsedLinks.filter(l => vagueAnchorPatterns.test(l.text.trim())).length;
@@ -389,13 +496,13 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         category: "title",
         severity: "important",
         passed: false,
-        title: `SEO Title is Too Long (${titleLength} chars / ${titlePixelWidth}px)`,
-        issue: "Title exceeds Google's 580px desktop pixel limit and will be cut off with '...'.",
-        impact: "Users will not see your full value proposition in search results.",
+        title: `The page title should be shorter than 580 pixels. It is ${titlePixelWidth} pixels long (${titleLength} chars).`,
+        issue: `Title exceeds Google's 580px desktop pixel limit and will be cut off on search results. Current length: ${titlePixelWidth}px (${titleLength} characters). Max recommended: 580px / 60 characters.`,
+        impact: "Users will not see your full title or brand in search results, reducing click-through rate.",
         fixAction: {
-          label: "Trim Title",
+          label: "Trim Title Under 580px",
           field: "seoTitle",
-          value: effectiveTitle.slice(0, 52).trim(),
+          value: effectiveTitle.slice(0, 48).trim(),
           tabId: "seo",
         },
       });
@@ -859,27 +966,17 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   }
 
   // Heading Structure Check 3: Duplicate Headings
-  if (duplicateHeadings.length > 0) {
-    let deduplicatedContent = content;
-    duplicateHeadings.forEach((dup) => {
-      let count = 0;
-      const regex = new RegExp(`(<h[2-6]\\b[^>]*>\\s*${dup.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&")}\\s*<\\/h[2-6]>)`, "gi");
-      deduplicatedContent = deduplicatedContent.replace(regex, (match) => {
-        count++;
-        if (count > 1) {
-          return match.replace(new RegExp(dup, "i"), `${dup} (Part ${count})`);
-        }
-        return match;
-      });
-    });
+  const uniqueDupes = Array.from(new Set(duplicateHeadings));
+  if (uniqueDupes.length > 0) {
+    const deduplicatedContent = deduplicateHeadingTexts(content, uniqueDupes);
     checks.push({
       id: "headings_duplicates",
       category: "headings",
-      severity: "recommended",
+      severity: "important",
       passed: false,
-      title: `Duplicate Headings Found: "${duplicateHeadings[0]}"`,
-      issue: "Two or more headings share the exact same wording.",
-      impact: "Repetitive headings reduce the clarity of the document outline.",
+      title: "There are duplicate heading texts on the page",
+      issue: `Found ${uniqueDupes.length} duplicate heading text${uniqueDupes.length > 1 ? "s" : ""}: ${uniqueDupes.map(d => `"${d}"`).join(", ")}. Two or more sections share the exact same heading text.`,
+      impact: "Duplicate headings confuse readers, break document outline logic, and hinder search engine snippet extraction.",
       fixAction: {
         label: "Make Duplicate Headings Unique",
         field: "content",
@@ -887,14 +984,44 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         tabId: "general",
       },
     });
-  } else if (h2Count > 0) {
-    score += 3;
+  } else if (headings.length > 0) {
+    score += 4;
     checks.push({
       id: "headings_duplicates",
       category: "headings",
       severity: "passed",
       passed: true,
       title: "All Heading Texts Are Unique",
+    });
+  }
+
+  // Heading Structure Check 4: Headings in Proportion to Amount of Text
+  const isHeadingDisproportionate = (totalHeadings >= 12 && wordsPerHeading < 50) || (totalHeadings >= 25 && wordCount < 2500);
+  if (isHeadingDisproportionate) {
+    const rebalancedContent = rebalanceExcessiveHeadings(content);
+    checks.push({
+      id: "headings_proportion",
+      category: "headings",
+      severity: "important",
+      passed: false,
+      title: `There are ${totalHeadings} headings on the page. The number of headings should be more in proportion to the amount of text.`,
+      issue: `There are ${totalHeadings} headings on the page for only ${wordCount} words (average of ~${wordsPerHeading} words per heading). The number of headings should be more in proportion to the amount of text (recommended: at least 60–150 words per heading).`,
+      impact: "Too many headings fragment the reading flow, look unnatural to Google, and dilute the topical authority of primary subheadings.",
+      fixAction: {
+        label: "Rebalance Headings (Demote H4–H6 to Paragraphs)",
+        field: "content",
+        value: rebalancedContent,
+        tabId: "general",
+      },
+    });
+  } else if (totalHeadings > 0) {
+    score += 4;
+    checks.push({
+      id: "headings_proportion",
+      category: "headings",
+      severity: "passed",
+      passed: true,
+      title: `Heading Count is in Proportion to Text (${totalHeadings} headings, ~${wordsPerHeading} words/section)`,
     });
   }
 
@@ -1076,6 +1203,35 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     });
   }
 
+  // Link Analysis Check 3: Internal Links with Dynamic Parameters (Without Nofollow)
+  if (dynamicInternalLinksCount > 0) {
+    const cleanedDynamicContent = cleanDynamicInternalLinks(content);
+    checks.push({
+      id: "links_dynamic_internal",
+      category: "links",
+      severity: "important",
+      passed: false,
+      title: "All internal URLs, which are not marked as nofollow, should not contain dynamic parameters",
+      issue: `Some internal links have dynamic parameters (${dynamicInternalLinksList.slice(0, 3).map(u => `"${u}"`).join(", ")}${dynamicInternalLinksList.length > 3 ? ` and ${dynamicInternalLinksList.length - 3} more` : ""}). All internal URLs, which are not marked as nofollow, should not contain dynamic parameters.`,
+      impact: "Internal URLs with query parameters without nofollow dilute link equity, waste crawler budget, and can generate duplicate search indexing.",
+      fixAction: {
+        label: "Clean Dynamic Internal Links (Strip Query & Add Nofollow)",
+        field: "content",
+        value: cleanedDynamicContent,
+        tabId: "general",
+      },
+    });
+  } else if (internalLinksCount > 0) {
+    score += 3;
+    checks.push({
+      id: "links_dynamic_internal",
+      category: "links",
+      severity: "passed",
+      passed: true,
+      title: "All Internal Links Are Clean (No Dynamic Parameters Without Nofollow)",
+    });
+  }
+
   // Technical & Social Checks
   const isNoIndex = (robots || "").toLowerCase().includes("noindex");
   if (isNoIndex) {
@@ -1177,6 +1333,8 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     h1CountInContent: h1sInContent.length,
     h2Count,
     h3Count,
+    totalHeadings,
+    wordsPerHeading,
     headingsList: headings,
     duplicateHeadings,
     totalImages,
@@ -1185,6 +1343,8 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     internalLinksCount,
     externalLinksCount,
     vagueAnchorLinksCount,
+    dynamicInternalLinksCount,
+    dynamicInternalLinksList,
     keyphrasesData,
     checks,
     recommendations,

@@ -12,7 +12,10 @@ import {
   SeoInputData, 
   SeoAnalysisResult, 
   SeoCheckItem, 
-  KeyphraseMatch 
+  KeyphraseMatch,
+  cleanDynamicInternalLinks,
+  deduplicateHeadingTexts,
+  rebalanceExcessiveHeadings
 } from "@/lib/seo/analyzer";
 
 interface RealTimeSeoAnalyzerProps {
@@ -124,6 +127,12 @@ export default function RealTimeSeoAnalyzer({
           if (!nextContent.includes("/store")) {
             nextContent = nextContent ? `${nextContent}\n\n${internalSnippet}` : internalSnippet;
           }
+        } else if (item.id === "links_dynamic_internal") {
+          nextContent = cleanDynamicInternalLinks(nextContent);
+        } else if (item.id === "headings_duplicates") {
+          nextContent = deduplicateHeadingTexts(nextContent, analysis.duplicateHeadings);
+        } else if (item.id === "headings_proportion") {
+          nextContent = rebalanceExcessiveHeadings(nextContent);
         } else if (item.id === "headings_single_h1") {
           nextContent = nextContent.replace(/<h1(\b[^>]*)>/gi, "<h2$1>").replace(/<\/h1>/gi, "</h2>");
         } else if (item.id === "headings_h2_presence") {
@@ -254,7 +263,7 @@ export default function RealTimeSeoAnalyzer({
           { id: "keyphrases", label: "5 Focus Keyphrases", icon: Star, count: analysis.keyphrasesData.length },
           { id: "serp", label: "Google SERP Snippet", icon: Globe },
           { id: "social", label: "Social Card (OG & X)", icon: Share2 },
-          { id: "headings", label: "Headings & Structure", icon: Hash, count: analysis.h2Count + analysis.h3Count },
+          { id: "headings", label: "Headings & Structure", icon: Hash, count: analysis.totalHeadings },
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -287,7 +296,7 @@ export default function RealTimeSeoAnalyzer({
       {activeSubTab === "overview" && (
         <div className="p-6 space-y-6">
           {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
               <span className="text-slate-400 block font-semibold mb-1">Title Width</span>
               <span className={`text-base font-extrabold ${analysis.titlePixelWidth > 580 ? "text-amber-600" : "text-slate-900"}`}>
@@ -313,12 +322,30 @@ export default function RealTimeSeoAnalyzer({
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+              <span className="text-slate-400 block font-semibold mb-1">Headings Ratio</span>
+              <span className={`text-base font-extrabold ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "text-amber-600" : "text-slate-900"}`}>
+                {analysis.totalHeadings} <span className="text-xs font-normal text-slate-500">headings</span>
+              </span>
+              <span className="text-[11px] text-slate-400 block">~{analysis.wordsPerHeading} words/section</span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
               <span className="text-slate-400 block font-semibold mb-1">Images Missing Alt</span>
               <span className={`text-base font-extrabold ${analysis.imagesMissingAlt > 0 ? "text-red-600" : "text-emerald-600"}`}>
                 {analysis.imagesMissingAlt} of {analysis.totalImages}
               </span>
               <span className="text-[11px] text-slate-400 block">
                 {analysis.imagesMissingAlt === 0 ? "All images labeled" : "Alt tags required"}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+              <span className="text-slate-400 block font-semibold mb-1">Dynamic Internal</span>
+              <span className={`text-base font-extrabold ${analysis.dynamicInternalLinksCount > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                {analysis.dynamicInternalLinksCount === 0 ? "0 clean" : `${analysis.dynamicInternalLinksCount} issue${analysis.dynamicInternalLinksCount > 1 ? "s" : ""}`}
+              </span>
+              <span className="text-[11px] text-slate-400 block">
+                {analysis.dynamicInternalLinksCount === 0 ? "No dynamic params" : "Needs nofollow/clean"}
               </span>
             </div>
           </div>
@@ -1062,7 +1089,7 @@ export default function RealTimeSeoAnalyzer({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div className={`p-4 rounded-xl border ${analysis.h1CountInContent > 0 ? "bg-red-50 border-red-200 text-red-800" : "bg-emerald-50 border-emerald-200 text-emerald-800"}`}>
               <span className="font-extrabold block text-sm">Rendered H1s</span>
               <span className="text-2xl font-black">{analysis.h1CountInContent === 0 ? "1 (Page Title)" : `${analysis.h1CountInContent + 1} (Multiple H1 Error)`}</span>
@@ -1084,6 +1111,19 @@ export default function RealTimeSeoAnalyzer({
               <span className="text-2xl font-black text-slate-900">{analysis.h3Count}</span>
               <p className="text-[11px] text-slate-500 mt-1">
                 Sub-points nested under H2 headings.
+              </p>
+            </div>
+
+            <div className={`p-4 rounded-xl border ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "bg-amber-50 border-amber-200 text-amber-900" : "bg-slate-50 border-slate-200 text-slate-800"}`}>
+              <div className="flex items-center justify-between">
+                <span className="font-extrabold block text-sm">Heading Ratio</span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "bg-amber-200 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>
+                  {analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "Disproportionate" : "Balanced"}
+                </span>
+              </div>
+              <span className="text-2xl font-black text-slate-900">{analysis.totalHeadings} <span className="text-xs font-normal text-slate-500">headings</span></span>
+              <p className="text-[11px] text-slate-500 mt-1">
+                ~{analysis.wordsPerHeading} words / heading section. (Target: 60–150 words).
               </p>
             </div>
           </div>
