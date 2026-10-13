@@ -11,6 +11,7 @@ import { ReviewAvatar } from "@/components/reviews/ReviewAvatar";
 import { trackProductView } from "@/lib/analytics";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { formatUsd } from "@/lib/currency";
+import { optimizeDescriptionHtml } from "@/lib/utils/html";
 
 import { unstable_cache } from "next/cache";
 
@@ -41,7 +42,7 @@ const getCachedProduct = unstable_cache(
 
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -380,7 +381,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               </h2>
               <div 
                 className="product-description"
-                dangerouslySetInnerHTML={{ __html: product.description || "<p>No description provided.</p>" }}
+                dangerouslySetInnerHTML={{ __html: optimizeDescriptionHtml(product.description) }}
               />
             </div>
 

@@ -11,8 +11,9 @@ import BlogSidebar from "@/components/blog/BlogSidebar";
 import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
 import BlogShareButton from "@/components/blog/BlogShareButton";
 import { normalizeImageUrl } from "@/lib/storage/client";
+import { optimizeDescriptionHtml } from "@/lib/utils/html";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // Cache on Vercel CDN for 5 minutes, background revalidate
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -303,6 +304,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     alt={post.title}
                     fill
                     priority
+                    quality={75}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 768px, 860px"
                     className="object-cover"
                   />
@@ -319,7 +321,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               {/* Article HTML Content */}
               <div
                 className="product-description text-slate-800 leading-relaxed text-base"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: optimizeDescriptionHtml(post.content) }}
               />
 
               {/* Article Tags */}

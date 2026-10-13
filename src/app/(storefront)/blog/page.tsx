@@ -6,7 +6,7 @@ import Image from "next/image";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "News & Guides - Asia D Market",

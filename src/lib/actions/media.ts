@@ -17,14 +17,14 @@ export async function uploadMedia(data: FormData) {
   if (!file) throw new Error("No file provided");
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { url, storageKey } = await storage.uploadFile(buffer, file.name, true);
+  const { url, storageKey, mimeType, size } = await storage.uploadFile(buffer, file.name, true);
 
   const media = await prisma.media.create({
     data: {
       filename: storageKey,
       originalName: file.name,
-      mimeType: file.type,
-      size: file.size,
+      mimeType: mimeType || file.type,
+      size: size || file.size,
       url,
     }
   });

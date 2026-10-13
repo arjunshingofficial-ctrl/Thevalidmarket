@@ -11,8 +11,9 @@ import {
 import AddToCartButton from "@/app/(storefront)/product/[slug]/AddToCartButton";
 import { formatUsd } from "@/lib/currency";
 import { normalizeImageUrl } from "@/lib/storage/client";
+import { optimizeDescriptionHtml } from "@/lib/utils/html";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -296,7 +297,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
 
               <div
                 className="product-description text-slate-700 text-sm sm:text-base leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: product.description || "<p>Explore complete step-by-step masterclass curriculum.</p>" }}
+                dangerouslySetInnerHTML={{ __html: optimizeDescriptionHtml(product.description) }}
               />
             </div>
 

@@ -4,9 +4,17 @@ import crypto from "crypto";
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { normalizeImageUrl } from "./client";
+import { optimizeImageBuffer, getMimeTypeFromExt } from "./optimize";
+
+export interface UploadResult {
+  storageKey: string;
+  url: string;
+  mimeType?: string;
+  size?: number;
+}
 
 export interface StorageProvider {
-  uploadFile(buffer: Buffer, originalName: string, isPublic: boolean): Promise<{ storageKey: string; url: string }>;
+  uploadFile(buffer: Buffer, originalName: string, isPublic: boolean): Promise<UploadResult>;
   deleteFile(storageKey: string, isPublic: boolean): Promise<void>;
   getFile(storageKey: string, isPublic: boolean): Promise<Buffer>;
   getPublicUrl(storageKey: string): string;
@@ -22,11 +30,12 @@ export class LocalStorageProvider implements StorageProvider {
     await fs.mkdir(this.privateDir, { recursive: true });
   }
 
-  async uploadFile(buffer: Buffer, originalName: string, isPublic: boolean) {
+  async uploadFile(rawBuffer: Buffer, originalName: string, isPublic: boolean): Promise<UploadResult> {
     await this.init();
-    const ext = path.extname(originalName);
+    const { buffer, filename: optimizedName, mimeType, size } = await optimizeImageBuffer(rawBuffer, originalName);
+    const ext = path.extname(optimizedName);
     const hash = crypto.createHash("md5").update(buffer).digest("hex").slice(0, 8);
-    const filename = `${path.basename(originalName, ext).replace(/[^a-zA-Z0-9]/g, "-")}-${hash}${ext}`;
+    const filename = `${path.basename(optimizedName, ext).replace(/[^a-zA-Z0-9]/g, "-")}-${hash}${ext}`;
     
     const targetDir = isPublic ? this.publicDir : this.privateDir;
     await fs.writeFile(path.join(targetDir, filename), buffer);
@@ -34,6 +43,8 @@ export class LocalStorageProvider implements StorageProvider {
     return {
       storageKey: filename,
       url: isPublic ? `/uploads/${filename}` : `private://${filename}`,
+      mimeType,
+      size,
     };
   }
 
@@ -84,11 +95,12 @@ export class S3StorageProvider implements StorageProvider {
     });
   }
 
-  async uploadFile(buffer: Buffer, originalName: string, isPublic: boolean) {
-    const ext = path.extname(originalName);
+  async uploadFile(rawBuffer: Buffer, originalName: string, isPublic: boolean): Promise<UploadResult> {
+    const { buffer, filename: optimizedName, mimeType, size } = await optimizeImageBuffer(rawBuffer, originalName);
+    const ext = path.extname(optimizedName);
     const hash = crypto.createHash("md5").update(buffer).digest("hex").slice(0, 8);
     // Sanitize filename
-    const safeName = path.basename(originalName, ext).replace(/[^a-zA-Z0-9]/g, "-");
+    const safeName = path.basename(optimizedName, ext).replace(/[^a-zA-Z0-9]/g, "-");
     const filename = `${safeName}-${hash}${ext}`;
     
     const prefix = isPublic ? "public/uploads" : "private/uploads";
@@ -98,7 +110,7 @@ export class S3StorageProvider implements StorageProvider {
       Bucket: this.bucket,
       Key: storageKey,
       Body: buffer,
-      ContentType: this.getContentType(ext),
+      ContentType: mimeType,
     });
 
     await this.client.send(command);
@@ -106,6 +118,8 @@ export class S3StorageProvider implements StorageProvider {
     return {
       storageKey,
       url: isPublic ? this.getPublicUrl(storageKey) : `private://${storageKey}`,
+      mimeType,
+      size,
     };
   }
 
