@@ -52,10 +52,10 @@ export default function BlogSidebar({
       {popularProducts.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+            <div className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
               <Flame className="w-4 h-4 text-amber-500" />
               <span>Popular Tools &amp; Products</span>
-            </h3>
+            </div>
             <Link
               href="/store"
               className="text-xs text-primary hover:underline font-semibold flex items-center"
@@ -123,10 +123,10 @@ export default function BlogSidebar({
       {recentPosts.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
           <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
-            <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+            <div className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
               <Clock className="w-4 h-4 text-blue-500" />
               <span>Recent Guides &amp; News</span>
-            </h3>
+            </div>
             <Link
               href="/blog"
               className="text-xs text-primary hover:underline font-semibold flex items-center"
@@ -147,9 +147,9 @@ export default function BlogSidebar({
                     {post.category.name}
                   </span>
                 )}
-                <h4 className="text-xs font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                <p className="text-xs font-bold text-slate-800 group-hover:text-primary transition-colors line-clamp-2 leading-snug">
                   {post.title}
-                </h4>
+                </p>
                 <p className="text-[11px] text-slate-400 mt-1">
                   {post.publishDate
                     ? new Date(post.publishDate).toLocaleDateString(undefined, {
@@ -199,9 +199,9 @@ export default function BlogSidebar({
                     ${Number(course.price).toFixed(2)}
                   </span>
                 </div>
-                <h4 className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-2 leading-snug">
+                <p className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-2 leading-snug">
                   {course.title}
-                </h4>
+                </p>
               </Link>
             ))}
           </div>
@@ -213,9 +213,9 @@ export default function BlogSidebar({
         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-3">
           <ShieldCheck className="w-5 h-5" />
         </div>
-        <h4 className="font-bold text-sm text-white mb-1">
+        <p className="font-bold text-sm text-white mb-1">
           Need Setup Help or Custom Tools?
-        </h4>
+        </p>
         <p className="text-xs text-slate-400 mb-4 leading-relaxed">
           Our team provides instant setup support, private proxy configurations, and automated account replacements 24/7.
         </p>

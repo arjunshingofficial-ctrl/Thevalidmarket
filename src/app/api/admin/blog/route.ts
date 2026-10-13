@@ -77,6 +77,7 @@ export async function POST(req: Request) {
         excerpt: (formData.get("excerpt") as string) || null,
         content,
         featuredImage: (formData.get("featuredImage") as string) || null,
+        featuredImageAlt: (formData.get("featuredImageAlt") as string)?.trim() || null,
         categoryId,
         status,
         tags: tagsJson,

@@ -92,6 +92,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         excerpt: (formData.get("excerpt") as string) ?? existing.excerpt,
         content,
         featuredImage: (formData.get("featuredImage") as string) ?? existing.featuredImage,
+        featuredImageAlt: (formData.get("featuredImageAlt") as string)?.trim() ?? (existing as any).featuredImageAlt,
         categoryId,
         status: newStatus,
         tags: tagsJson,

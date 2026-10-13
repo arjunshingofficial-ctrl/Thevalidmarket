@@ -573,6 +573,7 @@ model BlogPost {
   excerpt         String?
   content         String
   featuredImage   String?
+  featuredImageAlt String?
   authorId        String
   categoryId      String?
   status          String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED

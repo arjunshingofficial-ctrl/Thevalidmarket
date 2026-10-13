@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return {
-    title: `${post.seoTitle || post.title} | Asia D Market Blog`,
+    title: post.seoTitle || post.title,
     description: post.metaDescription || post.excerpt || undefined,
     keywords: keywords.length > 0 ? keywords : undefined,
     alternates: {
@@ -46,6 +46,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: post.ogTitle || post.seoTitle || post.title,
       description: post.ogDescription || post.metaDescription || post.excerpt || undefined,
       images: post.ogImage || post.featuredImage ? [{ url: (post.ogImage || post.featuredImage) as string }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.ogTitle || post.seoTitle || post.title,
+      description: post.ogDescription || post.metaDescription || post.excerpt || undefined,
+      images: post.ogImage || post.featuredImage ? [(post.ogImage || post.featuredImage) as string] : undefined,
     },
   };
 }
@@ -197,8 +203,47 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const approvedComments = (post as any).comments || [];
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
+  const postUrl = `${siteUrl}/blog/${post.slug}`;
+  const postImage = post.ogImage || post.featuredImage
+    ? normalizeImageUrl((post.ogImage || post.featuredImage)!)
+    : `${siteUrl}/og-image.jpg`;
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": postUrl,
+    },
+    "headline": post.seoTitle || post.title,
+    "description": post.metaDescription || post.excerpt || "",
+    "image": [postImage],
+    "datePublished": post.publishDate ? new Date(post.publishDate).toISOString() : new Date(post.createdAt).toISOString(),
+    "dateModified": new Date(post.updatedAt).toISOString(),
+    "author": {
+      "@type": "Organization",
+      "name": "Asia D Market Editorial Team",
+      "url": siteUrl,
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Asia D Market",
+      "logo": {
+        "@type": "ImageObject",
+        "url": `${siteUrl}/logo.png`,
+      },
+    },
+    "keywords": parsedTags.join(", "),
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/60 py-10 sm:py-14">
+      {/* Schema.org BlogPosting Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* ─ Breadcrumbs & Navigation ─ */}
@@ -304,7 +349,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 >
                   <Image
                     src={normalizeImageUrl(post.featuredImage)}
-                    alt={post.title}
+                    alt={(post as any).featuredImageAlt || `${post.title} - Asia D Market`}
                     fill
                     priority
                     quality={75}
@@ -324,7 +369,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               {/* Article HTML Content */}
               <div
                 className="product-description text-slate-800 leading-relaxed text-base"
-                dangerouslySetInnerHTML={{ __html: optimizeDescriptionHtml(post.content) }}
+                dangerouslySetInnerHTML={{ __html: optimizeDescriptionHtml(post.content, (post as any).featuredImageAlt || post.title) }}
               />
 
               {/* Article Tags */}
