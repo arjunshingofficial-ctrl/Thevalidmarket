@@ -97,15 +97,40 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const canonicalUrl = (data.get("canonicalUrl") as string) || "";
     const robots = (data.get("robots") as string) || "index,follow";
 
+    let existingMeta: any = {};
+    try {
+      if (existing.metadata) existingMeta = JSON.parse(existing.metadata);
+    } catch {}
+
+    const focusKeyword = (data.get("focusKeyword") as string)?.trim() ?? (existingMeta.focusKeyword || "");
+    let secondaryKeywords: string[] = existingMeta.secondaryKeywords || [];
+    try {
+      const rawSec = data.get("secondaryKeywords") as string;
+      if (rawSec !== null && rawSec !== undefined) {
+        secondaryKeywords = rawSec.startsWith("[") ? JSON.parse(rawSec) : rawSec.split(",").map(t => t.trim()).filter(Boolean);
+      }
+    } catch {}
+    const ogTitle = (data.get("ogTitle") as string)?.trim() ?? (existingMeta.ogTitle || "");
+    const ogDescription = (data.get("ogDescription") as string)?.trim() ?? (existingMeta.ogDescription || "");
+    const ogImage = (data.get("ogImage") as string)?.trim() ?? (existingMeta.ogImage || "");
+    const imageAlt = (data.get("imageAlt") as string)?.trim() ?? (existingMeta.imageAlt || "");
+
     const metadata = JSON.stringify({ 
+      ...existingMeta,
       image, 
+      imageAlt,
       gallery, 
       specifications,
       tags,
       seoTitle,
       metaDescription,
       canonicalUrl,
-      robots
+      robots,
+      focusKeyword,
+      secondaryKeywords,
+      ogTitle,
+      ogDescription,
+      ogImage
     });
 
     // Check slug collision with other products

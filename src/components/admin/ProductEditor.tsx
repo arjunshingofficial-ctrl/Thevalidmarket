@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import RichTextEditor from "./RichTextEditor";
 import ProductFileUploader from "./ProductFileUploader";
 import MediaSelector from "./MediaSelector";
+import RealTimeSeoAnalyzer from "./seo/RealTimeSeoAnalyzer";
 import { normalizeImageUrl } from "@/lib/storage/client";
-import { X, Tag, Plus } from "lucide-react";
+import { X, Tag, Plus, Sparkles, Globe } from "lucide-react";
 
 type Tab = {
   id: string;
@@ -23,7 +24,7 @@ const TABS: Tab[] = [
   { id: "files", label: "Files" },
   { id: "license", label: "License" },
   { id: "subscription", label: "Subscription" },
-  { id: "seo", label: "SEO" },
+  { id: "seo", label: "SEO & Analyzer" },
   { id: "related", label: "Related Products" },
   { id: "advanced", label: "Advanced" },
 ];
@@ -53,10 +54,32 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
   const [slug, setSlug] = useState((initialData?.slug as string) || "");
   const [description, setDescription] = useState((initialData?.description as string) || "");
 
-  const initialMetadata = initialData?.metadata ? JSON.parse(initialData.metadata as string) : {};
+  const initialMetadata = initialData?.metadata ? (typeof initialData.metadata === 'string' ? JSON.parse(initialData.metadata) : initialData.metadata) : {};
   const [featuredImage, setFeaturedImage] = useState<string>(initialMetadata.image || "");
+  const [imageAlt, setImageAlt] = useState<string>(initialMetadata.imageAlt || "");
   const [gallery, setGallery] = useState<string[]>(initialMetadata.gallery || []);
   const [mediaTarget, setMediaTarget] = useState<"featured" | "gallery">("featured");
+
+  // Real-Time SEO & Metadata states
+  const [shortDesc, setShortDesc] = useState<string>((initialData?.shortDesc as string) || "");
+  const [seoTitle, setSeoTitle] = useState<string>(initialMetadata.seoTitle || "");
+  const [metaDescription, setMetaDescription] = useState<string>(initialMetadata.metaDescription || "");
+  const [canonicalUrl, setCanonicalUrl] = useState<string>(initialMetadata.canonicalUrl || "");
+  const [robots, setRobots] = useState<string>(initialMetadata.robots || "index,follow");
+  const [focusKeyword, setFocusKeyword] = useState<string>(initialMetadata.focusKeyword || "");
+  const [secondaryKeywords, setSecondaryKeywords] = useState<string[]>(() => {
+    if (!initialMetadata.secondaryKeywords) return [];
+    if (Array.isArray(initialMetadata.secondaryKeywords)) return initialMetadata.secondaryKeywords;
+    try {
+      const p = JSON.parse(initialMetadata.secondaryKeywords);
+      return Array.isArray(p) ? p : [String(p)];
+    } catch {
+      return String(initialMetadata.secondaryKeywords).split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+  });
+  const [ogTitle, setOgTitle] = useState<string>(initialMetadata.ogTitle || "");
+  const [ogDescription, setOgDescription] = useState<string>(initialMetadata.ogDescription || "");
+  const [ogImage, setOgImage] = useState<string>(initialMetadata.ogImage || "");
   const [tags, setTags] = useState<string[]>(() => {
     let list: any[] = [];
     if (Array.isArray(initialMetadata.tags)) {
@@ -159,8 +182,22 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
     setError(null);
     if (publishStatus) formData.set("status", publishStatus);
     if (description) formData.set("description", description);
+    if (name) formData.set("name", name);
+    if (slug) formData.set("slug", slug);
+    if (shortDesc) formData.set("shortDesc", shortDesc);
+    formData.set("image", featuredImage);
+    formData.set("imageAlt", imageAlt);
     formData.set("gallery", JSON.stringify(gallery));
     formData.set("tags", JSON.stringify(tags));
+    formData.set("seoTitle", seoTitle);
+    formData.set("metaDescription", metaDescription);
+    formData.set("canonicalUrl", canonicalUrl);
+    formData.set("robots", robots);
+    formData.set("focusKeyword", focusKeyword);
+    formData.set("secondaryKeywords", JSON.stringify(secondaryKeywords));
+    formData.set("ogTitle", ogTitle);
+    formData.set("ogDescription", ogDescription);
+    formData.set("ogImage", ogImage);
 
     const endpoint = mode === "create" ? "/api/admin/products" : `/api/admin/products/${productId}`;
     const method = mode === "create" ? "POST" : "PUT";
@@ -331,7 +368,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Short Description</label>
-                  <textarea name="shortDesc" rows={2} defaultValue={initialData?.shortDesc as string}
+                  <textarea name="shortDesc" rows={2} value={shortDesc} onChange={e => { setShortDesc(e.target.value); handleChange(); }}
                     className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                     placeholder="Brief description shown on product cards" />
                 </div>
@@ -477,92 +514,111 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
             </div>
 
             <div data-tab-id="seo" className={activeTab === "seo" ? "block" : "hidden"}>
-              <h2 className="text-lg font-semibold text-slate-900 mb-6">Search Engine Optimization</h2>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">SEO Title</label>
-                  <input name="seoTitle" defaultValue={initialData?.name as string}
-                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Meta Description</label>
-                  <textarea name="metaDescription" rows={3} defaultValue={initialData?.shortDesc as string}
-                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Canonical URL</label>
-                  <input name="canonicalUrl"
-                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    placeholder={`/product/${initialData?.slug || ""}`} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Robots</label>
-                  <select name="robots" className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
-                    <option value="index,follow">index, follow (default)</option>
-                    <option value="noindex,follow">noindex, follow</option>
-                    <option value="noindex,nofollow">noindex, nofollow</option>
-                  </select>
-                </div>
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="text-sm font-medium text-slate-700 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5"><Tag className="w-4 h-4 text-primary" /> Product Tags & SEO Keywords</span>
-                    <span className="text-xs text-slate-400">Helps search engine indexing & ranking</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={tagInput}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val.includes(",")) {
-                          addTagsFromString(val);
-                        } else {
-                          setTagInput(val);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === ",") {
-                          e.preventDefault();
-                          handleAddTag(e);
-                        }
-                      }}
-                      placeholder="Paste comma-separated keywords (e.g. windows 11, pro license, key) or press Enter"
-                      className="flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleAddTag()}
-                      className="px-4 py-2 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" /> Add
-                    </button>
-                  </div>
-                  {tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 pt-2">
-                      {tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
-                        >
-                          #{tag}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTag(tag)}
-                            className="hover:text-red-600 transition-colors ml-0.5"
-                            title="Remove tag"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-400 italic">No tags added yet. Add keywords relevant to your product.</p>
-                  )}
-                  <p className="text-xs text-slate-500">
-                    Press Enter or comma to add. These tags will be embedded in metadata keywords and improve ranking.
+              <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-200">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary" /> Real-Time On-Page SEO Engine
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Live pixel-accurate audits for product descriptions, SERP snippet, and search visibility.
                   </p>
                 </div>
+              </div>
+
+              <RealTimeSeoAnalyzer
+                data={{
+                  contentType: "product",
+                  title: name,
+                  content: description,
+                  slug: slug,
+                  metaDescription: metaDescription || shortDesc,
+                  seoTitle: seoTitle,
+                  focusKeyword: focusKeyword,
+                  secondaryKeywords: secondaryKeywords,
+                  canonicalUrl: canonicalUrl,
+                  featuredImage: featuredImage,
+                  imageAlt: imageAlt,
+                  ogTitle: ogTitle,
+                  ogDescription: ogDescription,
+                  ogImage: ogImage,
+                  robots: robots
+                }}
+                onUpdateField={(field, value) => {
+                  handleChange();
+                  switch (field) {
+                    case "seoTitle": setSeoTitle(value); break;
+                    case "metaDescription": setMetaDescription(value); break;
+                    case "focusKeyword": setFocusKeyword(value); break;
+                    case "secondaryKeywords": setSecondaryKeywords(value); break;
+                    case "slug": setSlug(value); break;
+                    case "canonicalUrl": setCanonicalUrl(value); break;
+                    case "ogTitle": setOgTitle(value); break;
+                    case "ogDescription": setOgDescription(value); break;
+                    case "ogImage": setOgImage(value); break;
+                    case "robots": setRobots(value); break;
+                    case "imageAlt": setImageAlt(value); break;
+                  }
+                }}
+                onJumpToTab={(tabId) => setActiveTab(tabId)}
+              />
+
+              {/* Product Tags & Keywords section */}
+              <div className="mt-8 pt-6 border-t border-slate-200 space-y-3">
+                <label className="text-sm font-semibold text-slate-900 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5"><Tag className="w-4 h-4 text-primary" /> Product Keywords & Tags</span>
+                  <span className="text-xs text-slate-400 font-normal">Indexed in catalog & search filters</span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val.includes(",")) {
+                        addTagsFromString(val);
+                      } else {
+                        setTagInput(val);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        handleAddTag(e);
+                      }
+                    }}
+                    placeholder="Paste comma-separated keywords (e.g. windows 11, pro license, key) or press Enter"
+                    className="flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddTag()}
+                    className="px-4 py-2 bg-slate-900 text-white rounded-md text-sm font-medium hover:bg-slate-800 flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add
+                  </button>
+                </div>
+                {tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                      >
+                        #{tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="hover:text-red-600 transition-colors ml-0.5"
+                          title="Remove tag"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">No tags added yet. Add keywords relevant to your product.</p>
+                )}
               </div>
             </div>
 
@@ -618,9 +674,19 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                       placeholder="Paste URL..." 
                       id="featured-image-input"
                     />
+                    <div className="pt-1">
+                      <label className="text-xs font-medium text-slate-600 block mb-1">Image Alt Text (SEO & Accessibility)</label>
+                      <input 
+                        type="text" 
+                        value={imageAlt} 
+                        onChange={e => { setImageAlt(e.target.value); handleChange(); }}
+                        placeholder="Descriptive alt text for the featured image..." 
+                        className="w-full border rounded-md px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
                     {featuredImage && (
                       <div className="mt-2 aspect-video relative rounded-md overflow-hidden bg-slate-100 border">
-                        <img src={normalizeImageUrl(featuredImage)} alt="Featured" className="w-full h-full object-cover" />
+                        <img src={normalizeImageUrl(featuredImage)} alt={imageAlt || "Featured"} className="w-full h-full object-cover" />
                         <button type="button" onClick={() => { setFeaturedImage(""); handleChange(); }} className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 w-6 h-6 flex items-center justify-center text-xs">×</button>
                       </div>
                     )}

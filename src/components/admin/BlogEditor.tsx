@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import RichTextEditor from "./RichTextEditor";
 import MediaSelector from "./MediaSelector";
+import RealTimeSeoAnalyzer from "./seo/RealTimeSeoAnalyzer";
 import { 
   Tag, Plus, X, Image as ImageIcon, Sparkles, 
   CheckCircle2, AlertCircle, Eye, Globe, Trash2, HelpCircle 
@@ -58,6 +59,20 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
   const [seoTitle, setSeoTitle] = useState(initialData?.seoTitle || "");
   const [metaDescription, setMetaDescription] = useState(initialData?.metaDescription || "");
   const [canonicalUrl, setCanonicalUrl] = useState(initialData?.canonicalUrl || "");
+  const [focusKeyword, setFocusKeyword] = useState(initialData?.focusKeyword || "");
+  const [secondaryKeywords, setSecondaryKeywords] = useState<string[]>(() => {
+    if (!initialData?.secondaryKeywords) return [];
+    try {
+      const p = JSON.parse(initialData.secondaryKeywords);
+      return Array.isArray(p) ? p : [String(p)];
+    } catch {
+      return String(initialData.secondaryKeywords).split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+  });
+  const [robots, setRobots] = useState(initialData?.robots || "index, follow");
+  const [ogTitle, setOgTitle] = useState(initialData?.ogTitle || "");
+  const [ogDescription, setOgDescription] = useState(initialData?.ogDescription || "");
+  const [ogImage, setOgImage] = useState(initialData?.ogImage || "");
 
   const [error, setError] = useState<string | null>(null);
 
@@ -128,6 +143,12 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
     formData.set("seoTitle", seoTitle);
     formData.set("metaDescription", metaDescription);
     formData.set("canonicalUrl", canonicalUrl);
+    formData.set("focusKeyword", focusKeyword);
+    formData.set("secondaryKeywords", JSON.stringify(secondaryKeywords));
+    formData.set("robots", robots);
+    formData.set("ogTitle", ogTitle);
+    formData.set("ogDescription", ogDescription);
+    formData.set("ogImage", ogImage);
     
     const endpoint = mode === "create" ? "/api/admin/blog" : `/api/admin/blog/${postId}`;
     const method = mode === "create" ? "POST" : "PUT";
@@ -409,170 +430,42 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
             </div>
           </div>
           
-          {/* SEO Tab - Kept mounted in DOM */}
-          <div className={activeTab === "seo" ? "space-y-6" : "hidden"}>
-            {/* Google SERP Snippet Preview */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/80">
-              <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-200">
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-primary" /> Google SERP Snippet Preview
-                </span>
-                <span className="text-[11px] text-slate-400">Live search result appearance</span>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-1">
-                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <span className="w-3.5 h-3.5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[9px]">A</span>
-                  <span>asiadmarket.com</span>
-                  <span>›</span>
-                  <span className="text-slate-600">blog</span>
-                  <span>›</span>
-                  <span className="truncate max-w-[200px]">{previewSlug}</span>
-                </div>
-                <div className="text-lg font-medium text-blue-800 hover:underline leading-snug cursor-pointer line-clamp-1">
-                  {previewSnippetTitle}
-                </div>
-                <div className="text-xs text-slate-600 line-clamp-2 leading-relaxed pt-0.5">
-                  {previewSnippetDesc}
-                </div>
-              </div>
-            </div>
-
-            {/* SEO Title */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium">SEO Title</label>
-                <span className={`text-xs font-mono font-medium ${seoTitle.length > 60 ? "text-amber-600 font-bold" : seoTitle.length >= 40 ? "text-emerald-600" : "text-slate-400"}`}>
-                  {seoTitle.length} / 60 characters
-                </span>
-              </div>
-              <input 
-                name="seoTitle" 
-                value={seoTitle} 
-                onChange={e => setSeoTitle(e.target.value)} 
-                placeholder="Search result title tag (ideal: 45–60 chars)..." 
-                className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary/50" 
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Asia D Market automatically appends &quot; | Asia D Market&quot; to avoid brand repetition. Keep keyword focused.
-              </p>
-            </div>
-
-            {/* Meta Description */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-medium">Meta Description</label>
-                <span className={`text-xs font-mono font-medium ${metaDescription.length > 160 ? "text-amber-600 font-bold" : metaDescription.length >= 120 ? "text-emerald-600" : "text-slate-400"}`}>
-                  {metaDescription.length} / 160 characters
-                </span>
-              </div>
-              <textarea 
-                name="metaDescription" 
-                value={metaDescription} 
-                onChange={e => setMetaDescription(e.target.value)} 
-                placeholder="Compelling snippet description for search engine clicks (ideal: 120–155 chars)..." 
-                className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-primary/50" 
-                rows={3} 
-              />
-            </div>
-
-            {/* Canonical URL */}
-            <div>
-              <label className="block text-sm font-medium mb-1">Canonical URL</label>
-              <input 
-                name="canonicalUrl" 
-                value={canonicalUrl} 
-                onChange={e => setCanonicalUrl(e.target.value)} 
-                className="w-full border rounded-lg p-2.5 text-sm font-mono text-xs" 
-                placeholder={`/blog/${slug || initialData?.slug || ""}`} 
-              />
-              <p className="text-[11px] text-slate-400 mt-1">
-                Leave blank to automatically use self-referential canonical URL.
-              </p>
-            </div>
-
-            {/* SEO Checklist summary */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-2">
-                SEO Readiness Checklist
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  {seoTitle || title ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertCircle className="w-4 h-4 text-amber-500" />}
-                  <span>SEO Title: {seoTitle ? "Customized" : title ? "Using main title" : "Missing"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {metaDescription || excerpt ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertCircle className="w-4 h-4 text-amber-500" />}
-                  <span>Meta Description: {metaDescription ? "Customized" : excerpt ? "Using excerpt" : "Missing"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {featuredImageAlt ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertCircle className="w-4 h-4 text-amber-500" />}
-                  <span>Image Alt Text: {featuredImageAlt ? "Defined" : "Auto-fallback to Title"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {tags.length > 0 ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <AlertCircle className="w-4 h-4 text-amber-500" />}
-                  <span>Keywords &amp; Tags: {tags.length} added</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Tags in SEO tab */}
-            <div className="pt-4 border-t border-slate-100 space-y-2">
-              <label className="text-sm font-medium text-slate-700 flex items-center justify-between">
-                <span className="flex items-center gap-1.5"><Tag className="w-4 h-4 text-primary" /> SEO Tags &amp; Keywords</span>
-                <span className="text-xs text-slate-400">Embeds into meta keywords &amp; Google indexing</span>
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val.includes(",")) {
-                      addTagsFromString(val);
-                    } else {
-                      setTagInput(val);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === ",") {
-                      e.preventDefault();
-                      handleAddTag(e);
-                    }
-                  }}
-                  placeholder="Paste comma-separated keywords (e.g. proxy, socks5, vpn) or press Enter"
-                  className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleAddTag()}
-                  className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> Add
-                </button>
-              </div>
-              {tags.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 pt-2">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
-                    >
-                      #{tag}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="hover:text-red-600 transition-colors ml-0.5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">No tags added yet. Add relevant keywords for ranking.</p>
-              )}
-            </div>
+          {/* SEO Tab - Real-Time SEO Analyzer */}
+          <div className={activeTab === "seo" ? "block" : "hidden"}>
+            <RealTimeSeoAnalyzer
+              data={{
+                contentType: "blog",
+                name: title,
+                slug,
+                content,
+                excerpt,
+                seoTitle,
+                metaDescription,
+                canonicalUrl,
+                featuredImage,
+                featuredImageAlt,
+                robots,
+                ogTitle,
+                ogDescription,
+                ogImage,
+                primaryKeyphrase: focusKeyword,
+                secondaryKeyphrases: secondaryKeywords,
+              }}
+              onUpdateField={(field, val) => {
+                if (field === "seoTitle") setSeoTitle(val);
+                else if (field === "metaDescription") setMetaDescription(val);
+                else if (field === "canonicalUrl") setCanonicalUrl(val);
+                else if (field === "focusKeyword") setFocusKeyword(val);
+                else if (field === "secondaryKeywords") setSecondaryKeywords(val);
+                else if (field === "ogTitle") setOgTitle(val);
+                else if (field === "ogDescription") setOgDescription(val);
+                else if (field === "ogImage") setOgImage(val);
+                else if (field === "featuredImageAlt") setFeaturedImageAlt(val);
+                else if (field === "slug") setSlug(val);
+                else if (field === "robots") setRobots(val);
+              }}
+              onJumpToTab={(tabId) => setActiveTab(tabId as any)}
+            />
           </div>
         </div>
         

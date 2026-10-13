@@ -56,39 +56,51 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const metadata = product.metadata ? (typeof product.metadata === 'string' ? JSON.parse(product.metadata) : product.metadata) : {};
-  const tags: string[] = Array.isArray(metadata.tags)
-    ? metadata.tags
-    : typeof metadata.tags === 'string' && metadata.tags.trim()
-      ? metadata.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
-      : [];
-  const image = metadata.image || product.course?.thumbnailUrl || "/og-image.jpg";
-  const desc = metadata.seoDescription || product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on Asia D Market with instant delivery and secure payment.`;
+  let keywords: string[] = [];
+  if (metadata.focusKeyword) keywords.push(metadata.focusKeyword);
+  if (Array.isArray(metadata.secondaryKeywords)) {
+    keywords.push(...metadata.secondaryKeywords);
+  } else if (typeof metadata.secondaryKeywords === 'string') {
+    try {
+      const parsed = JSON.parse(metadata.secondaryKeywords);
+      if (Array.isArray(parsed)) keywords.push(...parsed);
+    } catch {}
+  }
+  if (Array.isArray(metadata.tags)) {
+    keywords.push(...metadata.tags);
+  } else if (typeof metadata.tags === 'string' && metadata.tags.trim()) {
+    keywords.push(...metadata.tags.split(',').map((t: string) => t.trim()).filter(Boolean));
+  }
+  keywords = Array.from(new Set(keywords.map(k => k.trim()).filter(Boolean)));
+
+  const image = metadata.ogImage || metadata.image || product.course?.thumbnailUrl || "/og-image.jpg";
+  const desc = metadata.metaDescription || metadata.seoDescription || product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on Asia D Market with instant delivery and secure payment.`;
   const title = metadata.seoTitle || `${product.name} - Buy Online`;
   const canonicalUrl = metadata.canonicalUrl || `/product/${product.slug}`;
 
   return {
     title,
     description: desc,
-    keywords: tags.length > 0 ? tags : undefined,
+    keywords: keywords.length > 0 ? keywords : undefined,
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title,
-      description: desc,
+      title: metadata.ogTitle || title,
+      description: metadata.ogDescription || desc,
       url: canonicalUrl,
       type: "website",
       images: [
         {
           url: image,
-          alt: product.name,
+          alt: metadata.imageAlt || product.name,
         }
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title,
-      description: desc,
+      title: metadata.ogTitle || title,
+      description: metadata.ogDescription || desc,
       images: [image],
     },
     robots: {

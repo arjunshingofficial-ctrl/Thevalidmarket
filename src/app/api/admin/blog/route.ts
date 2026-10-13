@@ -83,7 +83,13 @@ export async function POST(req: Request) {
         tags: tagsJson,
         seoTitle: (formData.get("seoTitle") as string) || null,
         metaDescription: (formData.get("metaDescription") as string) || null,
+        focusKeyword: (formData.get("focusKeyword") as string)?.trim() || null,
+        secondaryKeywords: (formData.get("secondaryKeywords") as string)?.trim() || null,
         canonicalUrl: (formData.get("canonicalUrl") as string) || null,
+        ogTitle: (formData.get("ogTitle") as string)?.trim() || null,
+        ogDescription: (formData.get("ogDescription") as string)?.trim() || null,
+        ogImage: (formData.get("ogImage") as string)?.trim() || null,
+        robots: (formData.get("robots") as string)?.trim() || "index, follow",
         authorId,
         publishDate: status === "PUBLISHED" ? new Date() : null,
       }

@@ -597,6 +597,7 @@ model BlogPost {
   seoTitle        String?
   metaDescription String?
   focusKeyword    String?
+  secondaryKeywords String? // JSON array of up to 4 secondary focus keyphrases
   canonicalUrl    String?
   ogTitle         String?
   ogDescription   String?

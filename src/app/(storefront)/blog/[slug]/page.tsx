@@ -24,15 +24,26 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   let keywords: string[] = [];
+  if (post.focusKeyword) keywords.push(post.focusKeyword);
+  if (post.secondaryKeywords) {
+    try {
+      const parsed = JSON.parse(post.secondaryKeywords);
+      if (Array.isArray(parsed)) keywords.push(...parsed);
+      else if (typeof parsed === "string") keywords.push(parsed);
+    } catch {
+      keywords.push(...post.secondaryKeywords.split(",").map((k: string) => k.trim()).filter(Boolean));
+    }
+  }
   if (post.tags) {
     try {
       const parsed = JSON.parse(post.tags);
-      if (Array.isArray(parsed)) keywords = parsed;
-      else if (typeof parsed === "string") keywords = [parsed];
+      if (Array.isArray(parsed)) keywords.push(...parsed);
+      else if (typeof parsed === "string") keywords.push(parsed);
     } catch {
-      keywords = post.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
+      keywords.push(...post.tags.split(",").map((t: string) => t.trim()).filter(Boolean));
     }
   }
+  keywords = Array.from(new Set(keywords.map(k => k.trim()).filter(Boolean)));
 
   return {
     title: post.seoTitle || post.title,

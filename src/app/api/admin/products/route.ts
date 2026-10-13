@@ -74,16 +74,34 @@ export async function POST(req: NextRequest) {
     const metaDescription = (data.get("metaDescription") as string) || "";
     const canonicalUrl = (data.get("canonicalUrl") as string) || "";
     const robots = (data.get("robots") as string) || "index,follow";
+    const focusKeyword = (data.get("focusKeyword") as string)?.trim() || "";
+    let secondaryKeywords: string[] = [];
+    try {
+      const rawSec = data.get("secondaryKeywords") as string;
+      if (rawSec) {
+        secondaryKeywords = rawSec.startsWith("[") ? JSON.parse(rawSec) : rawSec.split(",").map(t => t.trim()).filter(Boolean);
+      }
+    } catch {}
+    const ogTitle = (data.get("ogTitle") as string)?.trim() || "";
+    const ogDescription = (data.get("ogDescription") as string)?.trim() || "";
+    const ogImage = (data.get("ogImage") as string)?.trim() || "";
+    const imageAlt = (data.get("imageAlt") as string)?.trim() || "";
 
     const metadata = JSON.stringify({ 
       image, 
+      imageAlt,
       gallery, 
       specifications,
       tags,
       seoTitle,
       metaDescription,
       canonicalUrl,
-      robots
+      robots,
+      focusKeyword,
+      secondaryKeywords,
+      ogTitle,
+      ogDescription,
+      ogImage
     });
 
     if (!name) {

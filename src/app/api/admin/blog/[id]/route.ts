@@ -98,7 +98,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         tags: tagsJson,
         seoTitle: (formData.get("seoTitle") as string) ?? existing.seoTitle,
         metaDescription: (formData.get("metaDescription") as string) ?? existing.metaDescription,
+        focusKeyword: (formData.get("focusKeyword") as string)?.trim() ?? existing.focusKeyword,
+        secondaryKeywords: (formData.get("secondaryKeywords") as string)?.trim() ?? (existing as any).secondaryKeywords,
         canonicalUrl: (formData.get("canonicalUrl") as string) ?? existing.canonicalUrl,
+        ogTitle: (formData.get("ogTitle") as string)?.trim() ?? existing.ogTitle,
+        ogDescription: (formData.get("ogDescription") as string)?.trim() ?? existing.ogDescription,
+        ogImage: (formData.get("ogImage") as string)?.trim() ?? existing.ogImage,
+        robots: (formData.get("robots") as string)?.trim() ?? existing.robots,
         ...(isPublishing ? { publishDate: new Date() } : {})
       }
     });
