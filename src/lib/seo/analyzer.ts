@@ -86,7 +86,8 @@ export interface SeoAnalysisResult {
 
 export interface SeoInputData {
   contentType: "blog" | "product";
-  name: string; // post title or product name
+  name?: string; // post title or product name
+  title?: string; // alias for name
   slug: string;
   content: string; // HTML content from rich text editor
   excerpt?: string;
@@ -95,12 +96,15 @@ export interface SeoInputData {
   canonicalUrl?: string;
   featuredImage?: string;
   featuredImageAlt?: string;
+  imageAlt?: string; // alias for featuredImageAlt
   robots?: string;
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
   primaryKeyphrase?: string;
+  focusKeyword?: string; // alias for primaryKeyphrase
   secondaryKeyphrases?: string[];
+  secondaryKeywords?: string[]; // alias for secondaryKeyphrases
   siteUrl?: string;
 }
 
@@ -200,31 +204,32 @@ export function extractLinks(html: string, siteHost: string = "asiadmarket.com")
 
 // ─── Main SEO Analyzer Engine ───────────────────────────────────────────────
 export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
+  const safeInput = input || ({} as SeoInputData);
   const {
-    contentType,
-    name,
-    slug,
-    content,
+    contentType = "product",
+    name = (safeInput as any).title || "",
+    slug = "",
+    content = "",
     excerpt = "",
     seoTitle = "",
     metaDescription = "",
     canonicalUrl = "",
     featuredImage = "",
-    featuredImageAlt = "",
+    featuredImageAlt = (safeInput as any).imageAlt || "",
     robots = "index, follow",
     ogTitle = "",
     ogDescription = "",
     ogImage = "",
-    primaryKeyphrase = "",
-    secondaryKeyphrases = [],
+    primaryKeyphrase = (safeInput as any).focusKeyword || "",
+    secondaryKeyphrases = (safeInput as any).secondaryKeywords || [],
     siteUrl = "https://asiadmarket.com",
-  } = input;
+  } = safeInput;
 
   const checks: SeoCheckItem[] = [];
   let score = 0;
 
   // 1. Plain text extraction & word count
-  const plainText = stripHtml(content);
+  const plainText = stripHtml(content || "");
   const words = plainText.split(/\s+/).filter(w => w.length > 0);
   const wordCount = words.length;
   const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
@@ -270,7 +275,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   const vagueAnchorLinksCount = parsedLinks.filter(l => vagueAnchorPatterns.test(l.text.trim())).length;
 
   // 5. Title Analysis
-  const effectiveTitle = (seoTitle || name).trim();
+  const effectiveTitle = ((seoTitle || name || (safeInput as any).title || "") as string).trim();
   const titleLength = effectiveTitle.length;
   const titlePixelWidth = estimateTitlePixelWidth(effectiveTitle);
 
@@ -286,7 +291,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   const titleRepeats = Object.entries(wordFrequencies).filter(([_, count]) => count > 1).map(([w]) => w);
 
   // 6. Meta Description Analysis
-  const effectiveDesc = (metaDescription || excerpt).trim();
+  const effectiveDesc = ((metaDescription || excerpt || "") as string).trim();
   const descLength = effectiveDesc.length;
   const descPixelWidth = estimateDescPixelWidth(effectiveDesc);
 
@@ -296,15 +301,15 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   else if (descLength > 160 || descPixelWidth > 960) descStatus = "too_long";
 
   // 7. Focus Keyphrases Matrix
-  const cleanPrimaryKey = primaryKeyphrase.trim().toLowerCase();
+  const cleanPrimaryKey = (primaryKeyphrase || "").trim().toLowerCase();
   const cleanSecondaryKeys = (secondaryKeyphrases || [])
-    .map(k => k.trim().toLowerCase())
-    .filter(k => k.length > 0 && k !== cleanPrimaryKey)
+    .map((k: string) => (k || "").trim().toLowerCase())
+    .filter((k: string) => k.length > 0 && k !== cleanPrimaryKey)
     .slice(0, 4);
 
   const allKeyphrases = [
     ...(cleanPrimaryKey ? [{ keyphrase: cleanPrimaryKey, isPrimary: true }] : []),
-    ...cleanSecondaryKeys.map(k => ({ keyphrase: k, isPrimary: false })),
+    ...cleanSecondaryKeys.map((k: string) => ({ keyphrase: k, isPrimary: false })),
   ];
 
   const keyphrasesData: KeyphraseMatch[] = allKeyphrases.map(({ keyphrase, isPrimary }) => {
@@ -361,7 +366,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       fixAction: {
         label: "Set Title from Name",
         field: "seoTitle",
-        value: name,
+        value: name || "New Product",
         tabId: "seo",
       },
     });
@@ -565,7 +570,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       fixAction: {
         label: "Set Focus Keyphrase",
         field: "focusKeyword",
-        value: name.toLowerCase().split(" ").slice(0, 3).join(" "),
+        value: (name || "product").toLowerCase().split(" ").slice(0, 3).join(" "),
         tabId: "seo",
       },
     });
@@ -771,7 +776,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         title: `${presentSecondary} of ${cleanSecondaryKeys.length} Secondary Keyphrases Used in Content`,
       });
     } else {
-      const secondaryParagraph = `\n\n<p><strong>Related topics:</strong> ${cleanSecondaryKeys.map(k => `${k.charAt(0).toUpperCase() + k.slice(1)}`).join(", ")} are supported with comprehensive documentation and verified access on Asia D Market.</p>`;
+      const secondaryParagraph = `\n\n<p><strong>Related topics:</strong> ${cleanSecondaryKeys.map((k: string) => `${k.charAt(0).toUpperCase() + k.slice(1)}`).join(", ")} are supported with comprehensive documentation and verified access on Asia D Market.</p>`;
       checks.push({
         id: "secondary_keyphrases_found",
         category: "keywords",
@@ -1072,7 +1077,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   }
 
   // Technical & Social Checks
-  const isNoIndex = robots.toLowerCase().includes("noindex");
+  const isNoIndex = (robots || "").toLowerCase().includes("noindex");
   if (isNoIndex) {
     checks.push({
       id: "tech_noindex",

@@ -70,7 +70,7 @@ export default function RealTimeSeoAnalyzer({
     if (e) e.preventDefault();
     const clean = newSecondaryKey.trim().toLowerCase();
     if (!clean) return;
-    const current = data.secondaryKeyphrases || [];
+    const current = data.secondaryKeyphrases || (data as any).secondaryKeywords || [];
     if (current.includes(clean)) {
       setNewSecondaryKey("");
       return;
@@ -79,13 +79,17 @@ export default function RealTimeSeoAnalyzer({
       alert("You can configure up to 4 secondary keyphrases (plus 1 primary).");
       return;
     }
-    onUpdateField("secondaryKeywords", [...current, clean]);
+    const updated = [...current, clean];
+    onUpdateField("secondaryKeywords", updated);
+    onUpdateField("secondaryKeyphrases", updated);
     setNewSecondaryKey("");
   };
 
   const handleRemoveSecondaryKey = (keyToRemove: string) => {
-    const current = data.secondaryKeyphrases || [];
-    onUpdateField("secondaryKeywords", current.filter(k => k !== keyToRemove));
+    const current = data.secondaryKeyphrases || (data as any).secondaryKeywords || [];
+    const updated = current.filter((k: string) => k !== keyToRemove);
+    onUpdateField("secondaryKeywords", updated);
+    onUpdateField("secondaryKeyphrases", updated);
   };
 
   const handleCopySuggestion = (text: string, id: string) => {
@@ -520,16 +524,21 @@ export default function RealTimeSeoAnalyzer({
             <div className="flex gap-2">
               <input
                 type="text"
-                value={data.primaryKeyphrase || ""}
-                onChange={(e) => onUpdateField("focusKeyword", e.target.value)}
+                value={data.primaryKeyphrase || (data as any).focusKeyword || ""}
+                onChange={(e) => {
+                  onUpdateField("focusKeyword", e.target.value);
+                  onUpdateField("primaryKeyphrase", e.target.value);
+                }}
                 placeholder="e.g. socks5 proxy for android"
                 className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium"
               />
               <button
                 type="button"
                 onClick={() => {
-                  const candidate = data.name.toLowerCase().split(" ").slice(0, 3).join(" ");
+                  const baseName = data.name || (data as any).title || "product";
+                  const candidate = baseName.toLowerCase().split(" ").slice(0, 3).join(" ");
                   onUpdateField("focusKeyword", candidate);
+                  onUpdateField("primaryKeyphrase", candidate);
                 }}
                 className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 cursor-pointer flex items-center gap-1"
               >
@@ -549,12 +558,12 @@ export default function RealTimeSeoAnalyzer({
                 2. Additional Keyphrases (Up to 4)
               </label>
               <span className="text-xs text-slate-400 font-bold">
-                {(data.secondaryKeyphrases || []).length} / 4 configured
+                {(data.secondaryKeyphrases || (data as any).secondaryKeywords || []).length} / 4 configured
               </span>
             </div>
 
             {/* Input to add */}
-            {(data.secondaryKeyphrases || []).length < 4 && (
+            {(data.secondaryKeyphrases || (data as any).secondaryKeywords || []).length < 4 && (
               <form onSubmit={handleAddSecondaryKey} className="flex gap-2">
                 <input
                   type="text"
@@ -576,7 +585,7 @@ export default function RealTimeSeoAnalyzer({
 
             {/* Configured secondary tags */}
             <div className="flex flex-wrap gap-2 pt-1">
-              {(data.secondaryKeyphrases || []).map((secKey, idx) => (
+              {(data.secondaryKeyphrases || (data as any).secondaryKeywords || []).map((secKey: string, idx: number) => (
                 <span
                   key={secKey}
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-white text-slate-800 border border-slate-300 shadow-xs"
@@ -593,7 +602,7 @@ export default function RealTimeSeoAnalyzer({
                   </button>
                 </span>
               ))}
-              {(data.secondaryKeyphrases || []).length === 0 && (
+              {(data.secondaryKeyphrases || (data as any).secondaryKeywords || []).length === 0 && (
                 <p className="text-xs text-slate-400 italic">No additional keyphrases added yet. Add long-tail queries to capture more search traffic.</p>
               )}
             </div>

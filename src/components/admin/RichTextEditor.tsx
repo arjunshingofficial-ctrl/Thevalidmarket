@@ -1632,7 +1632,7 @@ export default function RichTextEditor({ name, defaultValue = "", value, placeho
   useEffect(() => {
     if (editor && currentExternalValue !== undefined) {
       if (editor.getHTML() !== currentExternalValue) {
-        editor.commands.setContent(currentExternalValue, false);
+        editor.commands.setContent(currentExternalValue);
         if (hiddenRef.current) hiddenRef.current.value = currentExternalValue;
       }
     }

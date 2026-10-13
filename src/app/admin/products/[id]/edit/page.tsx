@@ -6,15 +6,39 @@ export const dynamic = "force-dynamic";
 
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = await prisma.product.findUnique({ 
-    where: { id },
-    include: { 
-      files: { orderBy: { createdAt: "desc" } },
-      fieldValues: { include: { field: true } }
-    }
-  });
-  const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
-  const fieldDefinitions = await prisma.fieldDefinition.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } });
+  let product = null;
+  let categories: { id: string; name: string }[] = [];
+  let fieldDefinitions: any[] = [];
+
+  try {
+    product = await prisma.product.findUnique({ 
+      where: { id },
+      include: { 
+        files: { orderBy: { createdAt: "desc" } },
+        fieldValues: { include: { field: true } }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to load product:", error);
+  }
+
+  try {
+    categories = await prisma.category.findMany({ 
+      select: { id: true, name: true },
+      orderBy: { name: "asc" } 
+    });
+  } catch (error) {
+    console.error("Failed to load categories for edit product:", error);
+  }
+
+  try {
+    fieldDefinitions = await prisma.fieldDefinition.findMany({ 
+      where: { isActive: true }, 
+      orderBy: { sortOrder: "asc" } 
+    });
+  } catch (error) {
+    console.error("Failed to load field definitions for edit product:", error);
+  }
 
   if (!product) notFound();
 

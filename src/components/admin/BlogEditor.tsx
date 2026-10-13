@@ -74,6 +74,7 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
   const [ogDescription, setOgDescription] = useState(initialData?.ogDescription || "");
   const [ogImage, setOgImage] = useState(initialData?.ogImage || "");
 
+  const [isDirty, setIsDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

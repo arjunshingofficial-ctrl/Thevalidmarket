@@ -35,14 +35,14 @@ const PRODUCT_TYPES = [
 ];
 
 interface ProductEditorProps {
-  categories: { id: string; name: string }[];
-  fieldDefinitions: { id: string; name: string; type: string; slug: string; required: boolean; options: string | null; applyToTypes: string | null }[];
+  categories?: { id: string; name: string }[];
+  fieldDefinitions?: { id: string; name: string; type: string; slug: string; required: boolean; options: string | null; applyToTypes: string | null }[];
   initialData?: any;
   mode: "create" | "edit";
   productId?: string;
 }
 
-export default function ProductEditor({ categories, fieldDefinitions, initialData, mode, productId }: ProductEditorProps) {
+export default function ProductEditor({ categories = [], fieldDefinitions = [], initialData, mode, productId }: ProductEditorProps) {
   const [activeTab, setActiveTab] = useState("general");
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -54,7 +54,18 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
   const [slug, setSlug] = useState((initialData?.slug as string) || "");
   const [description, setDescription] = useState((initialData?.description as string) || "");
 
-  const initialMetadata = initialData?.metadata ? (typeof initialData.metadata === 'string' ? JSON.parse(initialData.metadata) : initialData.metadata) : {};
+  const initialMetadata = (() => {
+    if (!initialData?.metadata) return {};
+    if (typeof initialData.metadata === 'object') return initialData.metadata;
+    if (typeof initialData.metadata === 'string') {
+      try {
+        return JSON.parse(initialData.metadata);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  })();
   const [featuredImage, setFeaturedImage] = useState<string>(initialMetadata.image || "");
   const [imageAlt, setImageAlt] = useState<string>(initialMetadata.imageAlt || "");
   const [gallery, setGallery] = useState<string[]>(initialMetadata.gallery || []);
@@ -107,7 +118,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
     return match ? match.value : "";
   };
 
-  const applicableFields = fieldDefinitions.filter(f => {
+  const applicableFields = (fieldDefinitions || []).filter(f => {
     if (!f.applyToTypes) return true;
     try {
       const types = JSON.parse(f.applyToTypes) as string[];
@@ -353,7 +364,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                     <select name="categoryId" required defaultValue={initialData?.categoryId as string}
                       className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50">
                       <option value="">Select Category</option>
-                      {categories.map(cat => (
+                      {(categories || []).map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </select>
@@ -536,7 +547,9 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                   metaDescription: metaDescription || shortDesc,
                   seoTitle: seoTitle,
                   focusKeyword: focusKeyword,
+                  primaryKeyphrase: focusKeyword,
                   secondaryKeywords: secondaryKeywords,
+                  secondaryKeyphrases: secondaryKeywords,
                   canonicalUrl: canonicalUrl,
                   featuredImage: featuredImage,
                   featuredImageAlt: imageAlt,
@@ -551,7 +564,9 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
                   switch (field) {
                     case "seoTitle": setSeoTitle(value); break;
                     case "metaDescription": setMetaDescription(value); break;
+                    case "primaryKeyphrase":
                     case "focusKeyword": setFocusKeyword(value); break;
+                    case "secondaryKeyphrases":
                     case "secondaryKeywords": setSecondaryKeywords(value); break;
                     case "slug": setSlug(value); break;
                     case "canonicalUrl": setCanonicalUrl(value); break;
@@ -736,7 +751,7 @@ export default function ProductEditor({ categories, fieldDefinitions, initialDat
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">Specifications (JSON format)</label>
-                  <textarea name="specifications" rows={10} defaultValue={initialData?.metadata ? JSON.stringify(JSON.parse(initialData.metadata).specifications || {}, null, 2) : "{}"}
+                  <textarea name="specifications" rows={10} defaultValue={JSON.stringify(initialMetadata?.specifications || {}, null, 2)}
                     className="w-full border rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50" />
                 </div>
               </div>
