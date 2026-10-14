@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { 
   Flame, BookOpen, Sparkles, MessageCircle, ArrowRight, 
-  Clock, ShieldCheck, ChevronRight, ShoppingBag 
+  Clock, ShieldCheck, ChevronRight, ShoppingBag, FolderKanban, Tag
 } from "lucide-react";
 import { normalizeImageUrl } from "@/lib/storage/client";
 
@@ -35,19 +35,84 @@ interface FeaturedCourse {
   level?: string | null;
 }
 
+export interface SidebarCategory {
+  id: string;
+  name: string;
+  slug: string;
+  postCount?: number;
+}
+
 interface BlogSidebarProps {
   recentPosts: RecentPost[];
   popularProducts: PopularProduct[];
   featuredCourses: FeaturedCourse[];
+  categories?: SidebarCategory[];
+  activeCategorySlug?: string | null;
 }
 
 export default function BlogSidebar({
   recentPosts,
   popularProducts,
   featuredCourses,
+  categories,
+  activeCategorySlug,
 }: BlogSidebarProps) {
   return (
     <aside className="space-y-6">
+      {/* ─ 0. Topics & Categories (If provided) ─ */}
+      {categories && categories.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+          <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+            <div className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+              <FolderKanban className="w-4 h-4 text-primary" />
+              <span>Topics &amp; Categories</span>
+            </div>
+            <Link
+              href="/news"
+              className="text-xs text-primary hover:underline font-semibold flex items-center"
+            >
+              All Topics <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <div className="space-y-1">
+            {categories.map((cat) => {
+              const isActive = activeCategorySlug === cat.slug;
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/news?category=${cat.slug}`}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all group ${
+                    isActive
+                      ? "bg-primary text-white shadow-xs font-bold"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 truncate">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isActive ? "bg-white" : "bg-slate-300 group-hover:bg-primary"
+                      } transition-colors`}
+                    />
+                    <span className="truncate">{cat.name}</span>
+                  </span>
+                  {cat.postCount !== undefined && (
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                      }`}
+                    >
+                      {cat.postCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {/* ─ 1. Popular Products & Digital Tools ─ */}
       {popularProducts.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">

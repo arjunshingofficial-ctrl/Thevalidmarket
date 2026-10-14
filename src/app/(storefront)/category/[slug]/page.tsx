@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import CategoryClient from "./CategoryClient";
 import CCCategoryTemplate from "./CCCategoryTemplate";
@@ -13,7 +13,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     where: { slug: resolvedParams.slug }
   });
 
-  if (!category) return { title: "Category Not Found" };
+  if (!category) {
+    const blogCategory = await prisma.blogCategory.findUnique({
+      where: { slug: resolvedParams.slug }
+    });
+    if (blogCategory) {
+      return {
+        title: blogCategory.seoTitle || `${blogCategory.name} News & Guides | Asia D Market`,
+        description: blogCategory.seoDescription || blogCategory.description || `Browse ${blogCategory.name} articles and guides on Asia D Market.`,
+        alternates: {
+          canonical: `/news?category=${blogCategory.slug}`,
+        },
+      };
+    }
+    return { title: "Category Not Found" };
+  }
 
   return {
     title: category.seoTitle || `${category.name} | Asia D Market`,
@@ -43,7 +57,15 @@ export default async function CategoryPage({
     where: { slug: resolvedParams.slug, isActive: true }
   });
 
-  if (!category) return notFound();
+  if (!category) {
+    const blogCategory = await prisma.blogCategory.findUnique({
+      where: { slug: resolvedParams.slug }
+    });
+    if (blogCategory) {
+      redirect(`/news?category=${blogCategory.slug}`);
+    }
+    return notFound();
+  }
 
   // ── CC & IB SPECIAL TEMPLATE ────────────────────────────────────────────────────
   if (category.displayMode === "SPECIAL_CC" || category.slug.toLowerCase() === "cc" || category.slug.toLowerCase() === "ib" || category.displayMode === "SPECIAL_BB") {
