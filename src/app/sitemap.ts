@@ -1,8 +1,12 @@
 import { MetadataRoute } from 'next';
 import { prisma } from '@/lib/prisma';
+import { getBaseUrl } from '@/lib/siteUrl';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.thevalidmarket.com').replace(/\/$/, '');
+  const baseUrl = getBaseUrl();
 
   // Get dynamic products
   const products = await prisma.product.findMany({

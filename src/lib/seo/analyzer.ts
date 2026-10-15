@@ -8,6 +8,8 @@
  * - Deterministic suggestions for instant 1-click fixes
  */
 
+import { getBaseUrl } from "@/lib/siteUrl";
+
 export interface KeyphraseMatch {
   keyphrase: string;
   isPrimary: boolean;
@@ -387,7 +389,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     ogImage = "",
     primaryKeyphrase = (safeInput as any).focusKeyword || "",
     secondaryKeyphrases = (safeInput as any).secondaryKeywords || [],
-    siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, ""),
+    siteUrl = getBaseUrl(),
   } = safeInput;
 
   const checks: SeoCheckItem[] = [];

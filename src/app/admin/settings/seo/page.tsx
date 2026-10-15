@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/actions/admin";
 import GlobalSeoForm from "./GlobalSeoForm";
+import { getBaseUrl } from "@/lib/siteUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function GlobalSEOPage() {
     } catch {}
   }
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "");
+  const siteUrl = getBaseUrl();
 
   return (
     <div className="space-y-6">

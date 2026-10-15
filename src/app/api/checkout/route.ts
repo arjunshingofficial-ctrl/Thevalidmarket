@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { getPaymentProvider } from "@/lib/payments";
 import { getWalletBalance, deductWalletFunds } from "@/lib/wallet";
 import { createUserNotification, createAdminNotification } from "@/lib/notifications";
+import { getBaseUrl } from "@/lib/siteUrl";
 
 export async function POST(req: NextRequest) {
   try {
@@ -136,7 +137,7 @@ export async function POST(req: NextRequest) {
       });
       
       try {
-        fetch(`${(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.thevalidmarket.com').replace(/\/$/, '')}/api/admin/payments/system-fulfill`, {
+        fetch(`${getBaseUrl()}/api/admin/payments/system-fulfill`, {
            method: 'POST', body: JSON.stringify({ orderId: order.id })
         }).catch(console.error);
       } catch(e) {}
@@ -215,7 +216,7 @@ export async function POST(req: NextRequest) {
         // (Usually there's a webhook or fulfillment logic to call, but setting to PAID triggers UI at least)
         // Note: Full automatic fulfillment logic should run here or via a job.
         try {
-          fetch(`${(process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://www.thevalidmarket.com').replace(/\/$/, '')}/api/admin/payments/system-fulfill`, {
+          fetch(`${getBaseUrl()}/api/admin/payments/system-fulfill`, {
              method: 'POST', body: JSON.stringify({ orderId: order.id })
           }).catch(console.error);
         } catch(e) {}

@@ -12,6 +12,7 @@ import { trackProductView } from "@/lib/analytics";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { formatUsd } from "@/lib/currency";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
+import { getBaseUrl } from "@/lib/siteUrl";
 
 import { unstable_cache } from "next/cache";
 
@@ -193,7 +194,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const isSale = product.salePrice !== null && product.salePrice < product.price;
   const discountAmount = isSale ? (product.price - product.salePrice!) : 0;
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "");
+  const siteUrl = getBaseUrl();
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",

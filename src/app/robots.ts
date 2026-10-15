@@ -1,7 +1,10 @@
 import { MetadataRoute } from 'next';
+import { getBaseUrl } from '@/lib/siteUrl';
+
+export const dynamic = 'force-dynamic';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.thevalidmarket.com').replace(/\/$/, '');
+  const baseUrl = getBaseUrl();
 
   return {
     rules: {

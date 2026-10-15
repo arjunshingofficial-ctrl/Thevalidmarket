@@ -12,6 +12,7 @@ import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
 import BlogShareButton from "@/components/blog/BlogShareButton";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
+import { getBaseUrl } from "@/lib/siteUrl";
 
 export const revalidate = 300; // Cache on Vercel CDN for 5 minutes, background revalidate
 
@@ -214,7 +215,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const approvedComments = (post as any).comments || [];
 
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "");
+  const siteUrl = getBaseUrl();
   const postUrl = `${siteUrl}/blog/${post.slug}`;
   const postImage = post.ogImage || post.featuredImage
     ? normalizeImageUrl((post.ogImage || post.featuredImage)!)

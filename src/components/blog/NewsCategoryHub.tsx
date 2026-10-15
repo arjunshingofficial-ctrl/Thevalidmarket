@@ -6,6 +6,7 @@ import {
   Calendar, BookOpen, Layers, CheckCircle2
 } from "lucide-react";
 import { normalizeImageUrl } from "@/lib/storage/client";
+import { getBaseUrl } from "@/lib/siteUrl";
 import BlogSidebar, { SidebarCategory } from "./BlogSidebar";
 
 export interface HubPost {
@@ -59,7 +60,7 @@ export default function NewsCategoryHub({
   recentPosts,
 }: NewsCategoryHubProps) {
   const totalPostsCount = categories.reduce((sum, c) => sum + (c.postCount || 0), 0);
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "");
+  const siteUrl = getBaseUrl();
 
   // Build JSON-LD structured data for SEO
   const jsonLd = {
