@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle, Package, RefreshCw } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ReconcileButton } from "./ReconcileButton";
+import { OrderDownloadsManager } from "./OrderDownloadsManager";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,75 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
   if (!order) {
     redirect("/admin/orders");
   }
+
+  // Fetch all active product files in the system so the admin can assign any file
+  const availableFiles = await prisma.productFile.findMany({
+    where: { isActive: true },
+    include: { product: true },
+    orderBy: [
+      { product: { name: "asc" } },
+      { createdAt: "desc" }
+    ]
+  });
+
+  // Collect download entitlements and resolve their files
+  const downloadEntitlements = order.entitlements.filter(e => e.type === "DOWNLOAD");
+  const fileIds = downloadEntitlements
+    .map(e => {
+      try { return JSON.parse(e.metadata || "{}")?.fileId; } catch { return null; }
+    })
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  const referencedFiles = fileIds.length > 0
+    ? await prisma.productFile.findMany({
+        where: { id: { in: fileIds } },
+        include: { product: true }
+      })
+    : [];
+
+  const downloadStats = await prisma.download.findMany({
+    where: { orderId: order.id }
+  });
+
+  const formattedAssignedDownloads = downloadEntitlements.map(ent => {
+    const meta = ent.metadata ? JSON.parse(ent.metadata) : {};
+    const targetFile = referencedFiles.find(f => f.id === meta.fileId);
+    const stats = targetFile
+      ? downloadStats.find(d => d.productFileId === targetFile.id)
+      : null;
+
+    return {
+      id: ent.id,
+      productId: ent.productId,
+      status: ent.status,
+      metadata: ent.metadata,
+      createdAt: ent.createdAt.toISOString(),
+      targetFile: targetFile ? {
+        id: targetFile.id,
+        originalName: targetFile.originalName,
+        fileSize: targetFile.fileSize,
+        version: targetFile.version,
+        productName: targetFile.product.name
+      } : null,
+      downloadStats: stats ? {
+        downloadCount: stats.downloadCount,
+        lastDownload: stats.lastDownload ? stats.lastDownload.toISOString() : null
+      } : null
+    };
+  });
+
+  const formattedAvailableFiles = availableFiles.map(f => ({
+    id: f.id,
+    filename: f.filename,
+    originalName: f.originalName,
+    fileSize: f.fileSize,
+    version: f.version,
+    product: {
+      id: f.product.id,
+      name: f.product.name,
+      type: f.product.type
+    }
+  }));
 
   return (
     <div className="space-y-6">
@@ -43,6 +113,7 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
+          {/* Order Items */}
           <div className="bg-white rounded-xl border shadow-sm">
             <div className="p-6 border-b">
               <h2 className="font-semibold text-lg text-slate-900">Order Items</h2>
@@ -72,10 +143,20 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
               </table>
             </div>
           </div>
+
+          {/* Assigned Download Files Manager */}
+          <OrderDownloadsManager
+            orderId={order.id}
+            orderNumber={order.id.slice(0, 8).toUpperCase()}
+            customerEmail={order.user.email}
+            availableFiles={formattedAvailableFiles}
+            initialAssignedDownloads={formattedAssignedDownloads}
+          />
           
+          {/* All Entitlements Overview */}
           <div className="bg-white rounded-xl border shadow-sm">
             <div className="p-6 border-b">
-              <h2 className="font-semibold text-lg text-slate-900">Entitlements</h2>
+              <h2 className="font-semibold text-lg text-slate-900">All Order Entitlements</h2>
             </div>
             <div className="p-6">
               {order.entitlements.length === 0 ? (

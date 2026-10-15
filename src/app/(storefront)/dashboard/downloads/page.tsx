@@ -41,6 +41,20 @@ export default async function DownloadsPage() {
     where: { userId: session.user.id }
   });
 
+  // Collect any direct file assignments from metadata
+  const metaFileIds = entitlements
+    .map(e => {
+      try { return JSON.parse(e.metadata || "{}")?.fileId; } catch { return null; }
+    })
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+  const extraFiles = metaFileIds.length > 0
+    ? await prisma.productFile.findMany({
+        where: { id: { in: metaFileIds } },
+        include: { product: true }
+      })
+    : [];
+
   return (
     <div className="space-y-6">
       <div>
@@ -59,8 +73,11 @@ export default async function DownloadsPage() {
           <ul className="divide-y divide-border">
             {entitlements.map(ent => {
               const meta = ent.metadata ? JSON.parse(ent.metadata) : {};
-              const targetFile = ent.product.files.find(f => f.id === meta.fileId) || ent.product.files[0];
+              const targetFile = ent.product?.files?.find(f => f.id === meta.fileId) 
+                || extraFiles.find(f => f.id === meta.fileId) 
+                || ent.product?.files?.[0];
               const downloadStats = targetFile ? downloadRecords.find(d => d.productFileId === targetFile.id && d.orderId === ent.orderId) : null;
+              const displayName = (targetFile as any)?.product?.name || ent.product?.name || meta.fileName || "Digital File";
               
               return (
                 <li key={ent.id} className="p-6 flex flex-col sm:flex-row gap-4 items-center justify-between hover:bg-slate-50 transition-colors">
@@ -69,7 +86,10 @@ export default async function DownloadsPage() {
                       <File className="h-6 w-6" />
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-semibold text-slate-900">{ent.product.name}</h4>
+                      <h4 className="font-semibold text-slate-900">{displayName}</h4>
+                      {targetFile && targetFile.originalName !== displayName && (
+                        <p className="text-xs text-slate-600 font-mono">{targetFile.originalName}</p>
+                      )}
                       <div className="text-sm text-slate-500 flex items-center flex-wrap gap-2">
                         <span>Order #{ent.orderId.slice(0,8).toUpperCase()}</span>
                         {targetFile && (

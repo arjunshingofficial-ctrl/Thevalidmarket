@@ -29,13 +29,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
     let hasEntitlement = isAdmin;
 
     if (!isAdmin) {
-      // Check if user has an active entitlement for this file
+      // Check if user has an active entitlement for this file (by productId or explicit fileId in metadata)
       const entitlementCount = await prisma.entitlement.count({
         where: {
           userId: session.user.id,
-          productId: file.productId,
           type: "DOWNLOAD",
-          status: "ACTIVE"
+          status: "ACTIVE",
+          OR: [
+            { productId: file.productId },
+            { metadata: { contains: file.id } }
+          ]
         }
       });
       if (entitlementCount > 0) hasEntitlement = true;
