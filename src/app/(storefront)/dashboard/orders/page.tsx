@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import ClientDateTime from "@/components/common/ClientDateTime";
 
 export default async function OrdersPage() {
   const session = await getServerSession(authOptions);
@@ -95,7 +96,7 @@ export default async function OrdersPage() {
                     <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 font-medium">#{order.id.slice(0, 8).toUpperCase()}</td>
                       <td className="px-6 py-4 text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        <ClientDateTime date={order.createdAt} format="stacked" />
                       </td>
                       <td className="px-6 py-4">
                         {order.items.length === 0 ? (
@@ -185,7 +186,9 @@ export default async function OrdersPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="font-bold text-base">#{order.id.slice(0, 8).toUpperCase()}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{new Date(order.createdAt).toLocaleDateString()}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        <ClientDateTime date={order.createdAt} format="compact" />
+                      </div>
                     </div>
                     <div className="text-right font-bold text-lg text-primary">${order.total.toFixed(2)}</div>
                   </div>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, Eye, Receipt, Edit3 } from "lucide-react";
+import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,7 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
         </Link>
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Order #{order.id.slice(0, 8).toUpperCase()}</h1>
-          <p className="text-muted-foreground mt-1">Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
+          <p className="text-muted-foreground mt-1">Placed on <ClientDateTime date={order.createdAt} format="full" showSeconds={true} /></p>
         </div>
       </div>
 

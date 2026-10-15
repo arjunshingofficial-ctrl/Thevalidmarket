@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
 import { Printer } from "lucide-react";
+import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             <div className="text-right">
               <h2 className="text-2xl font-semibold text-slate-300 uppercase tracking-widest">Invoice</h2>
               <p className="text-slate-900 font-medium mt-1">#{order.id.slice(0, 8).toUpperCase()}</p>
-              <p className="text-slate-500 text-sm mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>
+              <div className="text-slate-500 text-sm mt-1">
+                <ClientDateTime date={order.createdAt} format="compact" />
+              </div>
             </div>
           </div>
 

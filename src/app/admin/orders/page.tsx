@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Search, Filter, Eye, Edit3, Package } from "lucide-react";
 import OrderActionsDropdown from "@/components/admin/OrderActionsDropdown";
+import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +89,7 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
                       <input type="checkbox" className="rounded border-slate-300 text-primary focus:ring-primary" />
                     </td>
                     
-                    {/* Order & Date */}
+                    {/* Order & Date/Timing */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <Link 
                         href={`/admin/orders/${order.id}`}
@@ -96,9 +97,9 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
                       >
                         #{order.id.slice(0, 8).toUpperCase()}
                       </Link>
-                      <span className="text-xs text-slate-500">
-                        {order.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
+                      <div className="mt-0.5">
+                        <ClientDateTime date={order.createdAt} format="stacked" />
+                      </div>
                     </td>
 
                     {/* Customer */}

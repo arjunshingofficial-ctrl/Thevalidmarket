@@ -4,6 +4,7 @@ import { ArrowLeft, Edit3, ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ReconcileButton } from "./ReconcileButton";
 import { OrderDownloadsManager } from "./OrderDownloadsManager";
+import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
           </Link>
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">Order #{order.id.slice(0, 8).toUpperCase()}</h1>
-            <p className="text-slate-500 mt-1">Placed on {new Date(order.createdAt).toLocaleString()}</p>
+            <p className="text-slate-500 mt-1">Placed on <ClientDateTime date={order.createdAt} format="full" showSeconds={true} /></p>
           </div>
         </div>
         <div className="flex items-center gap-2">

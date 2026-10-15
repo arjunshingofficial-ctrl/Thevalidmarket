@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { CreditCard, Search } from "lucide-react";
+import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +107,7 @@ export default async function AdminPayments({ searchParams }: { searchParams: Pr
                       </span>
                     </td>
                     <td className="px-6 py-4 text-slate-500 text-xs">
-                      {new Date(payment.createdAt).toLocaleString()}
+                      <ClientDateTime date={payment.createdAt} format="compact" />
                     </td>
                   </tr>
                 ))

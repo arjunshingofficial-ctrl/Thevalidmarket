@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
 
@@ -139,7 +140,9 @@ export default async function DashboardHome() {
                   {recentOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-6 py-4 font-medium uppercase">#{order.id.slice(0,8)}</td>
-                      <td className="px-6 py-4 text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-muted-foreground">
+                        <ClientDateTime date={order.createdAt} format="compact" />
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           order.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
