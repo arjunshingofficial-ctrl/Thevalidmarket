@@ -9,7 +9,7 @@ export type HomepageSectionType =
   | "ProductSpotlight"
   | "BestSellers"
   | "NewArrivals"
-  | "WhyAsiaDMarket"
+  | "WhyTheValidMarket"
   | "Reviews"
   | "MarketplaceActivity"
   | "HowItWorks"

@@ -1,7 +1,7 @@
-# ARCHITECTURE.md - Asia D Market
+# ARCHITECTURE.md - The Valid Market
 
 ## System Architecture Overview
-Asia D Market follows a modern, scalable Serverless/Edge monolithic architecture utilizing Next.js as the core full-stack framework. 
+The Valid Market follows a modern, scalable Serverless/Edge monolithic architecture utilizing Next.js as the core full-stack framework. 
 
 ## Technology Stack
 - **Frontend/Backend:** Next.js (App Router), React, TypeScript.

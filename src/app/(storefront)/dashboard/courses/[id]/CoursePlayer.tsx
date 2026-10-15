@@ -150,7 +150,7 @@ export default function CoursePlayer({
               {course.product.name}
             </h1>
             <p className="text-[11px] text-slate-400">
-              Instructor: {course.instructor || "Asia D Market Academy"}
+              Instructor: {course.instructor || "The Valid Market Academy"}
             </p>
           </div>
         </div>

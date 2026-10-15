@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     canonical: "/store",
   },
   openGraph: {
-    title: "Store - Browse Digital Products, Software & Tools | Asia D Market",
+    title: "Store - Browse Digital Products, Software & Tools | The Valid Market",
     description: "Explore our complete digital catalog with instant delivery and secure payment.",
     url: "/store",
   },

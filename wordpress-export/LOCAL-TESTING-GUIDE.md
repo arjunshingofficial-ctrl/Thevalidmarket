@@ -1,6 +1,6 @@
-# ASIA D MARKET — LOCAL TESTING GUIDE
+# THE VALID MARKET — LOCAL TESTING GUIDE
 
-This document provides instructions for setting up a disposable Windows-based environment to run database integration tests on the Asia D Market WordPress Plugin.
+This document provides instructions for setting up a disposable Windows-based environment to run database integration tests on the The Valid Market WordPress Plugin.
 
 Because real financial transactions, row locking (`FOR UPDATE`), and unique database constraints are used in this application, **a live MySQL or MariaDB instance is strictly required to prove concurrency safety.** Mock unit tests cannot validate transaction atomicity or deadlock prevention.
 
@@ -12,7 +12,7 @@ We recommend using **Local by Flywheel** as it automatically provisions a locali
 
 1. Download and install **Local** from [localwp.com](https://localwp.com/).
 2. Open Local and click **Add Local Site**.
-3. Create a new site named `Asia D Market Staging`.
+3. Create a new site named `The Valid Market Staging`.
 4. Choose **Custom Environment**:
    - **PHP Version:** 7.4.x or 8.1.x
    - **Database:** MySQL 8.0.x (Important: We need `InnoDB` for transactions).
@@ -29,8 +29,8 @@ We recommend using **Local by Flywheel** as it automatically provisions a locali
 3. Navigate to the `wp-content/themes/` directory.
 4. Extract the contents of `wordpress-export/asia-d-market-theme.zip` into a new folder named `asia-d-market-theme`.
 5. Log in to your test WordPress Admin Dashboard (`http://asia-d-market-staging.local/wp-admin`).
-6. Go to **Plugins** and activate the `Asia D Market Core` plugin. 
-7. Go to **Appearance > Themes** and activate the `Asia D Market Theme`.
+6. Go to **Plugins** and activate the `The Valid Market Core` plugin. 
+7. Go to **Appearance > Themes** and activate the `The Valid Market Theme`.
 
 ---
 

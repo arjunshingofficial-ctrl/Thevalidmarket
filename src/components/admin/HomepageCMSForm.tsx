@@ -55,7 +55,7 @@ export default function HomepageCMSForm({ settings }: { settings: any }) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Sub-headline</label>
-                <textarea name="subheadline" className="w-full rounded-md border p-2 h-20" defaultValue={meta.subheadline || "Asia D Market is a modern digital marketplace where customers can discover, purchase, and manage legally distributed digital products."} />
+                <textarea name="subheadline" className="w-full rounded-md border p-2 h-20" defaultValue={meta.subheadline || "The Valid Market is a modern digital marketplace where customers can discover, purchase, and manage legally distributed digital products."} />
               </div>
             </div>
           </div>

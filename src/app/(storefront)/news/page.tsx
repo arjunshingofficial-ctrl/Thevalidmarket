@@ -24,11 +24,11 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       });
 
       if (category) {
-        const title = category.seoTitle || `${category.name} News, Guides & Tutorials | Asia D Market`;
+        const title = category.seoTitle || `${category.name} News, Guides & Tutorials | The Valid Market`;
         const description =
           category.seoDescription ||
           category.description ||
-          `Browse all in-depth articles, tutorials, and operational updates in the ${category.name} category on Asia D Market.`;
+          `Browse all in-depth articles, tutorials, and operational updates in the ${category.name} category on The Valid Market.`;
 
         return {
           title,
@@ -55,16 +55,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   }
 
   return {
-    title: "News, Insights & Technical Guides | Asia D Market",
+    title: "News, Insights & Technical Guides | The Valid Market",
     description:
-      "Read the latest tutorials, proxy configurations, cybersecurity breakdowns, and platform announcements from Asia D Market.",
+      "Read the latest tutorials, proxy configurations, cybersecurity breakdowns, and platform announcements from The Valid Market.",
     alternates: {
       canonical: "/news",
     },
     openGraph: {
-      title: "News, Insights & Technical Guides | Asia D Market",
+      title: "News, Insights & Technical Guides | The Valid Market",
       description:
-        "Read the latest tutorials, proxy configurations, cybersecurity breakdowns, and platform announcements from Asia D Market.",
+        "Read the latest tutorials, proxy configurations, cybersecurity breakdowns, and platform announcements from The Valid Market.",
       type: "website",
       url: "/news",
     },

@@ -959,7 +959,7 @@ const PRODUCT_TEMPLATES = [
 <h2>🛠️ Quick 3-Step Setup Guide</h2>
 <ol style="padding-left:1.5rem;line-height:2">
   <li><strong>Download the Installer:</strong> Click your secure order link to grab the latest official installer.</li>
-  <li><strong>Launch &amp; Enter Key:</strong> Open the setup wizard and paste your genuine Asia D Market license key.</li>
+  <li><strong>Launch &amp; Enter Key:</strong> Open the setup wizard and paste your genuine The Valid Market license key.</li>
   <li><strong>Ready to Use:</strong> Enjoy all pro features fully unlocked with 100% working guarantee.</li>
 </ol>
 
@@ -1094,7 +1094,7 @@ const PRODUCT_TEMPLATES = [
 <ol style="padding-left:1.5rem;line-height:2">
   <li>Log in to your platform account (Steam, Epic Games, PlayStation, Xbox, etc.).</li>
   <li>Navigate to <strong>Activate a Product Code</strong> or <strong>Redeem Code</strong>.</li>
-  <li>Enter your unique code received from Asia D Market.</li>
+  <li>Enter your unique code received from The Valid Market.</li>
   <li>Confirm activation and start downloading your game immediately!</li>
 </ol>
 

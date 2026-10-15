@@ -4,7 +4,7 @@ import { RegisterForm } from "./RegisterForm";
 
 export default async function RegisterPage() {
   const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
-  let telegramUrl = "https://t.me/asiadmarket"; // Fallback URL
+  let telegramUrl = "https://t.me/thevalidmarket"; // Fallback URL
   if (settings?.footerConfig) {
     try { 
       const parsed = JSON.parse(settings.footerConfig);

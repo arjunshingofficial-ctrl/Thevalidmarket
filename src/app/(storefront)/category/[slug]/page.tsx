@@ -19,8 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     });
     if (blogCategory) {
       return {
-        title: blogCategory.seoTitle || `${blogCategory.name} News & Guides | Asia D Market`,
-        description: blogCategory.seoDescription || blogCategory.description || `Browse ${blogCategory.name} articles and guides on Asia D Market.`,
+        title: blogCategory.seoTitle || `${blogCategory.name} News & Guides | The Valid Market`,
+        description: blogCategory.seoDescription || blogCategory.description || `Browse ${blogCategory.name} articles and guides on The Valid Market.`,
         alternates: {
           canonical: `/news?category=${blogCategory.slug}`,
         },
@@ -30,8 +30,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   return {
-    title: category.seoTitle || `${category.name} | Asia D Market`,
-    description: category.seoDescription || category.description || `Browse premium ${category.name} products on Asia D Market.`,
+    title: category.seoTitle || `${category.name} | The Valid Market`,
+    description: category.seoDescription || category.description || `Browse premium ${category.name} products on The Valid Market.`,
     alternates: {
       canonical: `/category/${category.slug}`,
     },

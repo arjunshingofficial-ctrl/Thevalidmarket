@@ -145,7 +145,7 @@ export default async function Home({ searchParams }: { searchParams: { preview?:
               />
             );
 
-          case "WhyAsiaDMarket":
+          case "WhyTheValidMarket":
             return <WhyUsSection key={section.id} />;
 
           case "HowItWorks":

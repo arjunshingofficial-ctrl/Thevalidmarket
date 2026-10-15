@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       createUserNotification({
         userId: user.id,
         type: "ACCOUNT",
-        title: "Welcome to Asia D Market",
+        title: "Welcome to The Valid Market",
         message: "Your account has been created successfully.",
         priority: "NORMAL",
         actionUrl: "/dashboard",

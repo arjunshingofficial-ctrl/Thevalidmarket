@@ -23,11 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
     console.error("Failed to fetch site settings in generateMetadata:", e);
   }
 
-  const siteName = settings?.siteName?.trim() || "Asia D Market";
-  const siteDescription = settings?.siteDescription?.trim() || "Explore Asia D Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery.";
+  const siteName = settings?.siteName?.trim() || "The Valid Market";
+  const siteDescription = settings?.siteDescription?.trim() || "Explore The Valid Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery.";
   const defaultOgImage = settings?.defaultOgImage?.trim() || "/og-image.jpg";
 
-  let twitterHandle = "@AsiaDMarket";
+  let twitterHandle = "@TheValidMarket";
   if (settings?.footerConfig) {
     try {
       const parsed = JSON.parse(settings.footerConfig);
@@ -120,10 +120,10 @@ export default async function RootLayout({
     console.error("Failed to fetch site settings in RootLayout:", e);
   }
 
-  const siteName = settings?.siteName?.trim() || "Asia D Market";
+  const siteName = settings?.siteName?.trim() || "The Valid Market";
   const siteDescription = settings?.siteDescription?.trim() || undefined;
 
-  let twitterHandle = "@AsiaDMarket";
+  let twitterHandle = "@TheValidMarket";
   if (settings?.footerConfig) {
     try {
       const parsed = JSON.parse(settings.footerConfig);
@@ -147,8 +147,8 @@ export default async function RootLayout({
           "caption": `${siteName} Logo`
         },
         "sameAs": [
-          "https://t.me/asiadmarket",
-          twitterClean ? `https://x.com/${twitterClean}` : "https://x.com/AsiaDMarket"
+          "https://t.me/thevalidmarket",
+          twitterClean ? `https://x.com/${twitterClean}` : "https://x.com/TheValidMarket"
         ].filter(Boolean)
       },
       {

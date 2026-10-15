@@ -46,10 +46,10 @@ export default function AdminTopbar({ session }: { session: any }) {
           {/* Mobile Brand Link */}
           <Link href="/admin" className="md:hidden flex items-center gap-2">
             <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center shadow-xs">
-              <span className="text-white text-xs font-black">A</span>
+              <span className="text-white text-xs font-black">V</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-900 font-bold text-sm tracking-tight">Asia D</span>
+              <span className="text-slate-900 font-bold text-sm tracking-tight">Valid Market</span>
               <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider">
                 Admin
               </span>
@@ -58,7 +58,7 @@ export default function AdminTopbar({ session }: { session: any }) {
 
           {/* Desktop Breadcrumb */}
           <div className="hidden md:flex items-center text-sm font-medium text-muted-foreground">
-            <span className="text-slate-400">Asia D Market</span>
+            <span className="text-slate-400">The Valid Market</span>
             <span className="text-slate-300 mx-2">/</span>
             <span className="text-slate-800 font-semibold">Admin Panel</span>
           </div>

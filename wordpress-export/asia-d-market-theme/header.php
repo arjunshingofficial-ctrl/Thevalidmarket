@@ -17,7 +17,7 @@
                         A
                     </div>
                     <span class="text-xl font-extrabold tracking-tight text-foreground group-hover:text-primary transition-colors hidden sm:block">
-                        Asia D Market
+                        The Valid Market
                     </span>
                 </a>
             </div>

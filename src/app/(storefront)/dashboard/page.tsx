@@ -55,7 +55,7 @@ export default async function DashboardHome() {
   const t1 = performance.now();
   console.log(`[Perf] /dashboard all sequential queries took ${(t1 - t0).toFixed(2)}ms`);
 
-  let telegramUrl = "https://t.me/asiadmarket";
+  let telegramUrl = "https://t.me/thevalidmarket";
   if (settings?.footerConfig) {
     try { 
       const parsed = JSON.parse(settings.footerConfig);

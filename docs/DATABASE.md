@@ -1,4 +1,4 @@
-# DATABASE.md - Asia D Market Schema Design
+# DATABASE.md - The Valid Market Schema Design
 
 ## Core Entities & Relationships
 

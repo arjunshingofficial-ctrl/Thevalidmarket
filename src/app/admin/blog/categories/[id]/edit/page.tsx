@@ -6,7 +6,7 @@ import { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Edit Blog Category | Admin - Asia D Market",
+  title: "Edit Blog Category | Admin - The Valid Market",
   description: "Edit existing blog category",
 };
 

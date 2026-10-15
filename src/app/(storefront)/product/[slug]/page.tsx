@@ -75,7 +75,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   keywords = Array.from(new Set(keywords.map(k => k.trim()).filter(Boolean)));
 
   const image = metadata.ogImage || metadata.image || product.course?.thumbnailUrl || "/og-image.jpg";
-  const desc = metadata.metaDescription || metadata.seoDescription || product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on Asia D Market with instant delivery and secure payment.`;
+  const desc = metadata.metaDescription || metadata.seoDescription || product.shortDesc || product.description?.slice(0, 160) || `Buy ${product.name} on The Valid Market with instant delivery and secure payment.`;
   const title = metadata.seoTitle || `${product.name} - Buy Online`;
   const canonicalUrl = metadata.canonicalUrl || `/product/${product.slug}`;
 
@@ -211,7 +211,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       "availability": product.stock === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
       "seller": {
         "@type": "Organization",
-        "name": "Asia D Market"
+        "name": "The Valid Market"
       }
     },
     ...(reviews.length > 0 && {

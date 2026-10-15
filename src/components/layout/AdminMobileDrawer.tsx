@@ -101,11 +101,11 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
             className="flex items-center gap-2.5"
           >
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
-              <span className="text-white text-xs font-black">A</span>
+              <span className="text-white text-xs font-black">V</span>
             </div>
             <div>
               <div className="text-white font-bold text-sm tracking-tight flex items-center gap-1.5">
-                Asia D Market
+                The Valid Market
                 <span className="bg-primary/20 text-primary text-[10px] font-bold px-1.5 py-0.2 rounded border border-primary/30 uppercase tracking-wider">
                   Admin
                 </span>

@@ -5,7 +5,7 @@ import { Metadata } from "next";
 import HackerHero from "@/components/home/HackerHero";
 
 export const metadata: Metadata = {
-  title: "Asia D Market - Secure Terminal",
+  title: "The Valid Market - Secure Terminal",
   description: "Access premium digital products, courses, software and tools.",
   robots: {
     index: false,

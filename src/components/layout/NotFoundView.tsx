@@ -113,7 +113,7 @@ export default function NotFoundView() {
           Lost in the Digital Grid?
         </h2>
         <p className="text-sm sm:text-base text-slate-600 max-w-xl leading-relaxed mb-8">
-          The product, course, tool, or secret drop you were searching for has been relocated, archived, or does not exist on Asia D Market.
+          The product, course, tool, or secret drop you were searching for has been relocated, archived, or does not exist on The Valid Market.
         </p>
 
         {/* Interactive Search Bar */}
@@ -220,7 +220,7 @@ export default function NotFoundView() {
           <div className="flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-violet-600" />
             <a 
-              href="https://t.me/asiadmarket" 
+              href="https://t.me/thevalidmarket" 
               target="_blank" 
               rel="noopener noreferrer"
               className="hover:text-violet-700 underline underline-offset-2 transition-colors"

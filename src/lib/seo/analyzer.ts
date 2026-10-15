@@ -1,5 +1,5 @@
 /**
- * Real-Time SEO Analyzer Engine for Asia D Market
+ * Real-Time SEO Analyzer Engine for The Valid Market
  * Implements Google & Seobility on-page audit criteria:
  * - Proportional pixel-width calculations for Title and Description
  * - 5 Focus Keyphrases analysis with matrix placement tracking
@@ -586,7 +586,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Expand Title",
           field: "seoTitle",
-          value: cleanPrimaryKey ? `${effectiveTitle} | Complete Guide & Tools` : `${effectiveTitle} | Asia D Market`,
+          value: cleanPrimaryKey ? `${effectiveTitle} | Complete Guide & Tools` : `${effectiveTitle} | The Valid Market`,
           tabId: "seo",
         },
       });
@@ -701,8 +701,8 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       score += 2;
     } else if (descLength < 80) {
       const enrichedDesc = cleanPrimaryKey
-        ? `${effectiveDesc} Discover complete guides, features, and verified tools for ${cleanPrimaryKey} at Asia D Market.`.slice(0, 155).trim()
-        : `${effectiveDesc} Instant access, verified downloads, and 24/7 dedicated assistance at Asia D Market.`.slice(0, 155).trim();
+        ? `${effectiveDesc} Discover complete guides, features, and verified tools for ${cleanPrimaryKey} at The Valid Market.`.slice(0, 155).trim()
+        : `${effectiveDesc} Instant access, verified downloads, and 24/7 dedicated assistance at The Valid Market.`.slice(0, 155).trim();
       checks.push({
         id: "desc_length",
         category: "description",
@@ -950,7 +950,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         title: `${presentSecondary} of ${cleanSecondaryKeys.length} Secondary Keyphrases Used in Content`,
       });
     } else {
-      const secondaryParagraph = `\n\n<p><strong>Related topics:</strong> ${cleanSecondaryKeys.map((k: string) => `${k.charAt(0).toUpperCase() + k.slice(1)}`).join(", ")} are supported with comprehensive documentation and verified access on Asia D Market.</p>`;
+      const secondaryParagraph = `\n\n<p><strong>Related topics:</strong> ${cleanSecondaryKeys.map((k: string) => `${k.charAt(0).toUpperCase() + k.slice(1)}`).join(", ")} are supported with comprehensive documentation and verified access on The Valid Market.</p>`;
       checks.push({
         id: "secondary_keyphrases_found",
         category: "keywords",
@@ -1095,7 +1095,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   // Content Length Check
   const minWordTarget = contentType === "blog" ? 600 : 200;
   if (wordCount < minWordTarget) {
-    const faqExpansion = `\n\n<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, Asia D Market provides 24/7 technical customer support for all active licenses and services.</p>\n<p><strong>Can I request custom configurations?</strong> Contact our technical team via live chat for bespoke enterprise requirements.</p>`;
+    const faqExpansion = `\n\n<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, The Valid Market provides 24/7 technical customer support for all active licenses and services.</p>\n<p><strong>Can I request custom configurations?</strong> Contact our technical team via live chat for bespoke enterprise requirements.</p>`;
     checks.push({
       id: "content_word_count",
       category: "headings",
@@ -1163,7 +1163,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Add Image Alt Text",
           field: "featuredImageAlt",
-          value: cleanPrimaryKey ? `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} - Asia D Market Guide` : `${effectiveTitle} - Asia D Market`,
+          value: cleanPrimaryKey ? `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} - The Valid Market Guide` : `${effectiveTitle} - The Valid Market`,
           tabId: "general",
         },
       });
@@ -1200,7 +1200,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
         fixAction: {
           label: "Include in Featured Alt",
           field: "featuredImageAlt",
-          value: `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} Overview - Asia D Market`,
+          value: `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} Overview - The Valid Market`,
           tabId: "general",
         },
       });
@@ -1209,14 +1209,14 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
 
   // Link Analysis Checks
   if (internalLinksCount === 0) {
-    const internalLinkSnippet = `\n\n<p>Explore more verified software, proxies, and accounts in the <a href="/store">Asia D Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
+    const internalLinkSnippet = `\n\n<p>Explore more verified software, proxies, and accounts in the <a href="/store">The Valid Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
     checks.push({
       id: "links_internal",
       category: "links",
       severity: "recommended",
       passed: false,
       title: "No Internal Links Found",
-      issue: "Content does not link to other pages, products, or tools on Asia D Market.",
+      issue: "Content does not link to other pages, products, or tools on The Valid Market.",
       impact: "Internal links pass PageRank and help search crawlers index your catalog.",
       fixAction: {
         label: "Add Store & Blog Link",
@@ -1241,7 +1241,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     improvedAnchorsContent = improvedAnchorsContent.replace(
       /<a\b([^>]*)>(click here|here|read more|learn more|link|this)<\/a>/gi,
       (match, attrs, anchor) => {
-        return `<a${attrs}>explore the full Asia D Market catalog</a>`;
+        return `<a${attrs}>explore the full The Valid Market catalog</a>`;
       }
     );
     checks.push({
@@ -1372,16 +1372,16 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   if (!effectiveDesc || effectiveDesc.length < 90) {
     const summaryCandidate = plainText.slice(0, 140).trim();
     if (cleanPrimaryKey) {
-      suggestedMetaDescription = `Explore ${cleanPrimaryKey} with instant delivery and verified security on Asia D Market. ${summaryCandidate}`.slice(0, 155).trim();
+      suggestedMetaDescription = `Explore ${cleanPrimaryKey} with instant delivery and verified security on The Valid Market. ${summaryCandidate}`.slice(0, 155).trim();
     } else {
-      suggestedMetaDescription = `${summaryCandidate} Available now on Asia D Market with verified instant delivery.`.slice(0, 155).trim();
+      suggestedMetaDescription = `${summaryCandidate} Available now on The Valid Market with verified instant delivery.`.slice(0, 155).trim();
     }
   }
 
   // Generate Suggested Alt Text
   const suggestedImageAlt = cleanPrimaryKey
-    ? `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} - Asia D Market Guide`
-    : `${effectiveTitle} - Asia D Market`;
+    ? `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} - The Valid Market Guide`
+    : `${effectiveTitle} - The Valid Market`;
 
   return {
     score: finalScore,

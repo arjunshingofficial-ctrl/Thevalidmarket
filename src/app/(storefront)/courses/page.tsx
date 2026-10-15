@@ -22,7 +22,7 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Courses & Masterclasses | Asia D Market",
+  title: "Courses & Masterclasses | The Valid Market",
   description: "Learn practical, industry-proven digital skills from verified experts. Instant dashboard access, step-by-step video curriculums, and lifetime mentorship.",
 };
 
@@ -289,7 +289,7 @@ export default async function CoursesPage({
         <section className="mt-20 pt-12 border-t border-slate-200/80">
           <div className="text-center max-w-xl mx-auto mb-10">
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Why Learn With Asia D Market?
+              Why Learn With The Valid Market?
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-2">
               Engineered for professionals seeking real practical execution over theoretical slides.

@@ -18,7 +18,7 @@ export function getBaseUrl(): string {
     }
 
     // In production, reject *.vercel.app staging URLs and legacy domains
-    if (!envUrl.includes("vercel.app") && !envUrl.includes("asiadmarket.com")) {
+    if (!envUrl.includes("vercel.app") && !envUrl.includes("thevalidmarket.com")) {
       return envUrl.replace(/\/$/, "");
     }
   }

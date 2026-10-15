@@ -1,7 +1,7 @@
-# PROJECT_SPEC.md - Asia D Market
+# PROJECT_SPEC.md - The Valid Market
 
 ## Overview
-**Asia D Market** is a modern, premium digital marketplace where customers can discover, purchase, access, and manage legally distributed digital products, courses, software, tools, VPN/proxy subscriptions, templates, digital assets, and services. 
+**The Valid Market** is a modern, premium digital marketplace where customers can discover, purchase, access, and manage legally distributed digital products, courses, software, tools, VPN/proxy subscriptions, templates, digital assets, and services. 
 
 **Tagline:** Digital Products. Software. Courses. Tools. Services.
 

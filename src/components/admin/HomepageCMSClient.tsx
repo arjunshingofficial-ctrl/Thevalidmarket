@@ -21,7 +21,7 @@ const SECTION_LABELS: Record<string, string> = {
   CategoryProducts: "📦 Category Product Grid",
   BlogPosts: "📝 Blog Posts",
   FeaturedCourses: "🎓 Featured Courses",
-  WhyAsiaDMarket: "✅ Why Asia D Market",
+  WhyTheValidMarket: "✅ Why The Valid Market",
   Reviews: "💬 Customer Reviews",
   MarketplaceActivity: "⚡ Recent Activity",
   HowItWorks: "🔄 How It Works",
@@ -538,7 +538,7 @@ export default function HomepageCMSClient({
         {/* All other sections */}
         <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Other Sections</p>
         <div className="flex flex-wrap justify-center gap-2">
-          {(["Hero", "Stats", "MarketplacePulse", "TrendingProducts", "Categories", "FeaturedProducts", "ProductSpotlight", "BestSellers", "NewArrivals", "WhyAsiaDMarket", "Reviews", "MarketplaceActivity", "HowItWorks", "TrustSecurity", "Newsletter", "FinalCTA"] as HomepageSectionType[]).map(type => (
+          {(["Hero", "Stats", "MarketplacePulse", "TrendingProducts", "Categories", "FeaturedProducts", "ProductSpotlight", "BestSellers", "NewArrivals", "WhyTheValidMarket", "Reviews", "MarketplaceActivity", "HowItWorks", "TrustSecurity", "Newsletter", "FinalCTA"] as HomepageSectionType[]).map(type => (
             <button key={type} onClick={() => addSection(type)} className="px-3 py-1.5 bg-white border rounded text-sm hover:bg-slate-100 flex items-center gap-1 shadow-sm">
               <Plus className="h-3 w-3" /> {type}
             </button>

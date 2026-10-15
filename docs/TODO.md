@@ -1,4 +1,4 @@
-# TODO.md - Asia D Market Progress Tracker
+# TODO.md - The Valid Market Progress Tracker
 
 ## Phase 1: Foundation + Brand + Public Website + Auth
 - [x] Initialize Next.js project

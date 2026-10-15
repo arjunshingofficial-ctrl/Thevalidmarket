@@ -25,7 +25,7 @@ export default async function ProfilePage() {
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden p-6 max-w-2xl flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-slate-900">User ID</h2>
-            <p className="text-sm text-slate-500">Use this ID to receive money from other Asia D Market users.</p>
+            <p className="text-sm text-slate-500">Use this ID to receive money from other The Valid Market users.</p>
           </div>
           <CopyUserId accountId={user.accountId} />
         </div>

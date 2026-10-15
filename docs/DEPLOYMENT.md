@@ -1,6 +1,6 @@
-# Asia D Market - Deployment Guide
+# The Valid Market - Deployment Guide
 
-This guide outlines the steps for deploying Asia D Market to a production environment.
+This guide outlines the steps for deploying The Valid Market to a production environment.
 
 ## 1. Prerequisites
 - Node.js (v18+)

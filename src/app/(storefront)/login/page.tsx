@@ -8,7 +8,7 @@ export default async function LoginPage() {
   const t1 = performance.now();
   console.log(`[Perf] /login settings query took ${(t1 - t0).toFixed(2)}ms`);
 
-  let telegramUrl = "https://t.me/asiadmarket"; // Fallback URL so the button always shows
+  let telegramUrl = "https://t.me/thevalidmarket"; // Fallback URL so the button always shows
   if (settings?.footerConfig) {
     try { 
       const parsed = JSON.parse(settings.footerConfig);

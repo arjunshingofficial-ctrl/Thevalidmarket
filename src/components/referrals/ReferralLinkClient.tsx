@@ -29,7 +29,7 @@ export default function ReferralLinkClient({ referralCode }: { referralCode: str
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: 'Join Asia D Market',
+        title: 'Join The Valid Market',
         text: 'Sign up using my referral link!',
         url: referralLink,
       }).catch(console.error);

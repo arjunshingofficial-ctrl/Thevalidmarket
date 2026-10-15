@@ -8,7 +8,7 @@ export default function HackerHero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [typedText, setTypedText] = useState("");
   
-  const fullText = "INITIALIZING CONNECTION...\n> ACCESS GRANTED\n> WELCOME TO ASIA D MARKET";
+  const fullText = "INITIALIZING CONNECTION...\n> ACCESS GRANTED\n> WELCOME TO THE VALID MARKET";
 
   // Typing effect
   useEffect(() => {

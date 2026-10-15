@@ -1,4 +1,4 @@
-# API.md - Asia D Market API Architecture
+# API.md - The Valid Market API Architecture
 
 We will primarily use **Next.js Server Actions** for form submissions and internal data mutations, and **Next.js Route Handlers (/api/*)** for webhooks, external integrations, and specific RESTful needs.
 

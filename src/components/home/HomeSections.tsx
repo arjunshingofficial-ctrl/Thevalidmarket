@@ -144,7 +144,7 @@ export function WhyUsSection() {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Why Asia D Market?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">Why The Valid Market?</h2>
           <p className="text-slate-400 max-w-2xl mx-auto text-lg">A marketplace built for security, speed, and premium quality.</p>
         </div>
         

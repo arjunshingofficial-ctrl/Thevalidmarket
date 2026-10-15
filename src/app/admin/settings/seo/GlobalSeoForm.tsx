@@ -27,8 +27,8 @@ interface GlobalSeoFormProps {
 }
 
 export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
-  const [siteName, setSiteName] = useState(initialData.siteName || "Asia D Market");
-  const [twitterHandle, setTwitterHandle] = useState(initialData.twitterHandle || "@AsiaDMarket");
+  const [siteName, setSiteName] = useState(initialData.siteName || "The Valid Market");
+  const [twitterHandle, setTwitterHandle] = useState(initialData.twitterHandle || "@TheValidMarket");
   const [siteDescription, setSiteDescription] = useState(initialData.siteDescription || "");
   const [defaultOgImage, setDefaultOgImage] = useState(initialData.defaultOgImage || "/og-image.jpg");
 
@@ -45,7 +45,7 @@ export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
         {
           "@type": "Organization",
           "@id": `${initialData.siteUrl}/#organization`,
-          "name": siteName.trim() || "Asia D Market",
+          "name": siteName.trim() || "The Valid Market",
           "url": initialData.siteUrl,
           "description": siteDescription.trim() || undefined,
           "logo": {
@@ -54,7 +54,7 @@ export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
             "caption": `${siteName.trim()} Logo`
           },
           "sameAs": [
-            "https://t.me/asiadmarket",
+            "https://t.me/thevalidmarket",
             handleClean ? `https://x.com/${handleClean}` : undefined
           ].filter(Boolean)
         }
@@ -161,7 +161,7 @@ export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
                 name="siteName"
                 value={siteName}
                 onChange={(e) => setSiteName(e.target.value)}
-                placeholder="Asia D Market"
+                placeholder="The Valid Market"
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all"
                 required
               />
@@ -191,7 +191,7 @@ export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
                   }
                   setTwitterHandle(val);
                 }}
-                placeholder="@AsiaDMarket"
+                placeholder="@TheValidMarket"
                 className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-primary/40 focus:outline-none transition-all"
               />
               <p className="text-[11px] text-slate-500">
@@ -285,14 +285,14 @@ export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
                 <div className="w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[9px]">
                   ADM
                 </div>
-                <span className="font-medium text-slate-800">{siteName || "Asia D Market"}</span>
+                <span className="font-medium text-slate-800">{siteName || "The Valid Market"}</span>
                 <span className="text-slate-400 font-mono text-[11px]">› {initialData.siteUrl.replace(/^https?:\/\//, "")}</span>
               </div>
               <h4 className="text-base font-medium text-[#1a0dab] hover:underline cursor-pointer leading-snug">
-                {siteName || "Asia D Market"} | Premium Digital Products, Tools &amp; Software
+                {siteName || "The Valid Market"} | Premium Digital Products, Tools &amp; Software
               </h4>
               <p className="text-xs text-[#4d5156] leading-relaxed line-clamp-2">
-                {siteDescription || "Explore Asia D Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery."}
+                {siteDescription || "Explore The Valid Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery."}
               </p>
             </div>
           </div>

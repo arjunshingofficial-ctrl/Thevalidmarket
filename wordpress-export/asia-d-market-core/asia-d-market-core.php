@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: Asia D Market Core
+ * Plugin Name: The Valid Market Core
  * Plugin URI:  https://www.thevalidmarket.com
- * Description: Bespoke e-commerce engine for Asia D Market. Handles wallets, orders, licensing, and P2P transfers.
+ * Description: Bespoke e-commerce engine for The Valid Market. Handles wallets, orders, licensing, and P2P transfers.
  * Version:     1.0.0
- * Author:      Asia D Market
+ * Author:      The Valid Market
  * Text Domain: asia-d-market
  */
 

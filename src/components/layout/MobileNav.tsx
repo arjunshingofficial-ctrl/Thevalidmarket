@@ -174,10 +174,10 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
             <div className="flex items-center justify-between p-4 shrink-0 h-[72px] border-b border-slate-800/60">
               <div className="flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm shadow-primary/20">
-                  <span className="text-white text-sm font-bold">A</span>
+                  <span className="text-white text-sm font-bold">V</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold tracking-tight text-white leading-none">Asia D Market</span>
+                  <span className="text-sm font-bold tracking-tight text-white leading-none">The Valid Market</span>
                   <span className="text-[10px] uppercase tracking-widest text-primary/90 mt-1 font-semibold">
                     {isAdmin ? "Admin" : isDashboard ? "Customer Dashboard" : "Main"}
                   </span>

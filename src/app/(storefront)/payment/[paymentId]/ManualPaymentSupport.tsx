@@ -32,7 +32,7 @@ export default function ManualPaymentSupport({ order, payment, settings, account
       ? formatInr((payment.baseAmount || order.total) * payment.fxRate)
       : formatInr(payment.amount || order.total);
 
-  const messageText = `Hello Asia D Market Support,
+  const messageText = `Hello The Valid Market Support,
 
 I want to buy ${productName}.
 
@@ -117,7 +117,7 @@ Thank you.`;
         </button>
 
         <p className="text-xs text-slate-500 mt-4 text-center">
-          Your message will include your order details and Asia D Market User ID.
+          Your message will include your order details and The Valid Market User ID.
         </p>
       </div>
     </div>

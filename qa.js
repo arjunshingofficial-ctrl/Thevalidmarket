@@ -3,12 +3,12 @@ const prisma = new PrismaClient();
 
 async function report() {
   const admin = await prisma.user.findFirst({
-    where: { email: 'admin@asiadmarket.com' },
+    where: { email: 'admin@thevalidmarket.com' },
     include: { role: true, wallet: true }
   });
 
   const cust = await prisma.user.findFirst({
-    where: { email: { not: 'admin@asiadmarket.com' } },
+    where: { email: { not: 'admin@thevalidmarket.com' } },
     include: { role: true, wallet: true, referralCode: true }
   });
 

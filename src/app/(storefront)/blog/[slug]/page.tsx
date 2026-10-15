@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   
   if (!post || post.status !== "PUBLISHED") {
-    return { title: "Post Not Found - Asia D Market" };
+    return { title: "Post Not Found - The Valid Market" };
   }
 
   let keywords: string[] = [];
@@ -235,12 +235,12 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "dateModified": new Date(post.updatedAt).toISOString(),
     "author": {
       "@type": "Organization",
-      "name": "Asia D Market Editorial Team",
+      "name": "The Valid Market Editorial Team",
       "url": siteUrl,
     },
     "publisher": {
       "@type": "Organization",
-      "name": "Asia D Market",
+      "name": "The Valid Market",
       "logo": {
         "@type": "ImageObject",
         "url": `${siteUrl}/logo.png`,
@@ -341,7 +341,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-extrabold text-slate-900">Asia D Market Research</span>
+                      <span className="text-sm font-extrabold text-slate-900">The Valid Market Research</span>
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     </div>
                     <p className="text-xs text-slate-400">Verified Technical Editorial Team</p>
@@ -361,7 +361,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 >
                   <Image
                     src={normalizeImageUrl(post.featuredImage)}
-                    alt={(post as any).featuredImageAlt || `${post.title} - Asia D Market`}
+                    alt={(post as any).featuredImageAlt || `${post.title} - The Valid Market`}
                     fill
                     priority
                     quality={75}
@@ -409,7 +409,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 <div className="text-xs">
                   <p className="font-bold text-white mb-0.5">Verified Knowledge Base Guarantee</p>
                   <p className="text-slate-400">
-                    All guides, scripts, and product configurations on Asia D Market are tested for safety, zero backdoors, and maximum performance.
+                    All guides, scripts, and product configurations on The Valid Market are tested for safety, zero backdoors, and maximum performance.
                   </p>
                 </div>
               </div>

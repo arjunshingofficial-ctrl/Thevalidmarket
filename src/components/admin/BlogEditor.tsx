@@ -90,7 +90,7 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
       alert("Please provide an article title first to generate alt text.");
       return;
     }
-    setFeaturedImageAlt(`${title.trim()} - Asia D Market Guide`);
+    setFeaturedImageAlt(`${title.trim()} - The Valid Market Guide`);
   };
 
   const addTagsFromString = (input: string) => {
@@ -181,8 +181,8 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
     }
   };
 
-  const previewSnippetTitle = (seoTitle || title || "Untitled Article Title") + " | Asia D Market";
-  const previewSnippetDesc = metaDescription || excerpt || "Read comprehensive tutorials, proxy setup walkthroughs, and verified software insights on Asia D Market.";
+  const previewSnippetTitle = (seoTitle || title || "Untitled Article Title") + " | The Valid Market";
+  const previewSnippetDesc = metaDescription || excerpt || "Read comprehensive tutorials, proxy setup walkthroughs, and verified software insights on The Valid Market.";
   const previewSlug = slug || "article-slug";
 
   return (
@@ -340,7 +340,7 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                       setFeaturedImage(url); 
                       setShowMediaSelector(false);
                       if (!featuredImageAlt && title) {
-                        setFeaturedImageAlt(`${title} - Asia D Market`);
+                        setFeaturedImageAlt(`${title} - The Valid Market`);
                       }
                     }} 
                   />

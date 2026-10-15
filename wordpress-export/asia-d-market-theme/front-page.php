@@ -8,11 +8,11 @@
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                 </span>
-                <span class="text-sm font-medium">Asia D Market Core v1.0 Active</span>
+                <span class="text-sm font-medium">The Valid Market Core v1.0 Active</span>
             </div>
             
             <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-8">
-                Welcome to <span class="text-primary">Asia D Market</span>
+                Welcome to <span class="text-primary">The Valid Market</span>
             </h1>
             
             <p class="text-xl md:text-2xl text-muted-foreground mb-12">

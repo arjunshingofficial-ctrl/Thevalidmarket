@@ -4,7 +4,7 @@
         <div class="container max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
-                    <h3 class="text-lg font-bold text-foreground mb-4">Asia D Market</h3>
+                    <h3 class="text-lg font-bold text-foreground mb-4">The Valid Market</h3>
                     <p class="text-sm text-muted-foreground">Your premium marketplace for digital products, VPNs, and proxies.</p>
                 </div>
                 <div>
@@ -29,7 +29,7 @@
             </div>
             <div class="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
                 <p class="text-sm text-muted-foreground">
-                    &copy; <?php echo date('Y'); ?> Asia D Market. All rights reserved.
+                    &copy; <?php echo date('Y'); ?> The Valid Market. All rights reserved.
                 </p>
             </div>
         </div>

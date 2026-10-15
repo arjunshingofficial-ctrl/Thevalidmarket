@@ -50,7 +50,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           
           <div className="flex justify-between items-start mb-12">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-slate-900">ASIA D MARKET</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">THE VALID MARKET</h1>
               <p className="text-slate-500 mt-1">Digital Products. Software. Courses.</p>
             </div>
             <div className="text-right">
@@ -116,7 +116,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           </div>
 
           <div className="mt-16 pt-8 border-t text-center text-sm text-slate-400">
-            <p>Thank you for shopping with Asia D Market.</p>
+            <p>Thank you for shopping with The Valid Market.</p>
           </div>
         </div>
       </div>

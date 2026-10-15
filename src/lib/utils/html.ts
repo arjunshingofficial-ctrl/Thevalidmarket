@@ -24,7 +24,7 @@ export function optimizeDescriptionHtml(html?: string | null, fallbackAlt?: stri
   );
 
   // 4. Ensure all <img> tags have a valid, non-empty alt attribute for SEO & accessibility
-  const cleanAlt = (fallbackAlt || "Asia D Market Digital Guide").replace(/["<>]/g, "").trim();
+  const cleanAlt = (fallbackAlt || "The Valid Market Digital Guide").replace(/["<>]/g, "").trim();
   processed = processed.replace(/<img\b([^>]*?)>/gi, (match, attrs) => {
     // If alt is completely missing:
     if (!/\balt\s*=/i.test(attrs)) {

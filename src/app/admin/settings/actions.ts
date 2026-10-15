@@ -156,10 +156,10 @@ export async function updateGlobalSEOSettings(formData: FormData) {
     const { requireAdmin, createAuditLog } = await import("@/lib/actions/admin");
     await requireAdmin("Settings", "Manage");
 
-    const siteName = formData.get("siteName")?.toString()?.trim() || "Asia D Market";
+    const siteName = formData.get("siteName")?.toString()?.trim() || "The Valid Market";
     const siteDescription = formData.get("siteDescription")?.toString()?.trim() || "";
     const defaultOgImage = formData.get("defaultOgImage")?.toString()?.trim() || "/og-image.jpg";
-    const twitterHandle = formData.get("twitterHandle")?.toString()?.trim() || "@AsiaDMarket";
+    const twitterHandle = formData.get("twitterHandle")?.toString()?.trim() || "@TheValidMarket";
 
     let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
     if (!settings) {

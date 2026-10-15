@@ -42,10 +42,10 @@ export default function AdminSidebar() {
       <div className="h-16 flex items-center px-5 border-b border-slate-800 shrink-0 bg-slate-950">
         <Link href="/admin" className="flex items-center gap-2">
           <div className="h-7 w-7 rounded bg-primary flex items-center justify-center">
-            <span className="text-white text-xs font-bold">A</span>
+            <span className="text-white text-xs font-bold">V</span>
           </div>
           <div>
-            <div className="text-white font-bold text-sm leading-none">Asia D Market</div>
+            <div className="text-white font-bold text-sm leading-none">The Valid Market</div>
             <div className="text-primary text-[10px] uppercase tracking-widest">Admin</div>
           </div>
         </Link>

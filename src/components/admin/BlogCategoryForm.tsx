@@ -248,7 +248,7 @@ export default function BlogCategoryForm({
                 type="text"
                 value={seoTitle}
                 onChange={(e) => setSeoTitle(e.target.value)}
-                placeholder={name ? `${name} Articles & News | Asia D Market` : "Custom meta title..."}
+                placeholder={name ? `${name} Articles & News | The Valid Market` : "Custom meta title..."}
                 className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all text-slate-900 bg-slate-50/50 focus:bg-white"
               />
             </div>
@@ -277,13 +277,13 @@ export default function BlogCategoryForm({
                 Search Result Preview
               </span>
               <p className="text-blue-600 font-semibold text-sm truncate hover:underline cursor-pointer">
-                {seoTitle || (name ? `${name} | Asia D Market News` : "Category Title | Asia D Market")}
+                {seoTitle || (name ? `${name} | The Valid Market News` : "Category Title | The Valid Market")}
               </p>
               <p className="text-emerald-700 text-xs font-mono truncate">
                 https://www.thevalidmarket.com/news?category={slug || "category-slug"}
               </p>
               <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed">
-                {seoDescription || description || "Explore the latest insights, tutorials, and developments on Asia D Market."}
+                {seoDescription || description || "Explore the latest insights, tutorials, and developments on The Valid Market."}
               </p>
             </div>
           </div>

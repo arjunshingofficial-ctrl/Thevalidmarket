@@ -1,4 +1,4 @@
-# CHANGELOG.md - Asia D Market
+# CHANGELOG.md - The Valid Market
 
 ## [Unreleased]
 - **Phase 3 In Progress:**

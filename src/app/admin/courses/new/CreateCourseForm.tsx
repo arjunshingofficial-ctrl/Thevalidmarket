@@ -76,7 +76,7 @@ export default function CreateCourseForm() {
             type="text"
             name="instructor"
             placeholder="e.g. Dr. John Doe"
-            defaultValue="Asia D Market Academy"
+            defaultValue="The Valid Market Academy"
             className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>

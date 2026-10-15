@@ -69,7 +69,7 @@ export default function NewsCategoryHub({
     "name": activeCategory ? (activeCategory.seoTitle || `${activeCategory.name} News & Guides`) : "News, Insights & Technical Guides",
     "description": activeCategory
       ? (activeCategory.seoDescription || activeCategory.description || `Browse expert articles and news on ${activeCategory.name}.`)
-      : "Official technical news, proxy configurations, security analyses, and tutorials from Asia D Market.",
+      : "Official technical news, proxy configurations, security analyses, and tutorials from The Valid Market.",
     "url": activeCategory ? `${siteUrl}${basePath}?category=${activeCategory.slug}` : `${siteUrl}${basePath}`,
     "mainEntity": {
       "@type": "ItemList",
@@ -158,7 +158,7 @@ export default function NewsCategoryHub({
               ) : (
                 <>
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Asia D Market Hub</span>
+                  <span>The Valid Market Hub</span>
                 </>
               )}
             </div>
@@ -424,7 +424,7 @@ export default function NewsCategoryHub({
 
                         {/* Post Excerpt */}
                         <p className="text-slate-500 text-xs sm:text-sm line-clamp-3 mb-6 flex-1 leading-relaxed">
-                          {post.excerpt || "Read this complete technical guide and breakdown from Asia D Market."}
+                          {post.excerpt || "Read this complete technical guide and breakdown from The Valid Market."}
                         </p>
 
                         {/* Footer Link */}

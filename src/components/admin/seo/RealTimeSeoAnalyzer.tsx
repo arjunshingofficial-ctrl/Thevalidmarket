@@ -123,7 +123,7 @@ export default function RealTimeSeoAnalyzer({
       if (!item.fixAction || item.fixAction.value === undefined) return;
       if (item.fixAction.field === "content") {
         if (item.id === "links_internal") {
-          const internalSnippet = `<p>Explore more verified software, proxies, and accounts in the <a href="/store">Asia D Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
+          const internalSnippet = `<p>Explore more verified software, proxies, and accounts in the <a href="/store">The Valid Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
           if (!nextContent.includes("/store")) {
             nextContent = nextContent ? `${nextContent}\n\n${internalSnippet}` : internalSnippet;
           }
@@ -141,14 +141,14 @@ export default function RealTimeSeoAnalyzer({
             nextContent = nextContent ? `${nextContent}\n\n${h2Snippet}` : h2Snippet;
           }
         } else if (item.id === "content_word_count") {
-          const faqSnippet = `<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, Asia D Market provides 24/7 technical customer support for all active licenses and services.</p>`;
+          const faqSnippet = `<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, The Valid Market provides 24/7 technical customer support for all active licenses and services.</p>`;
           if (!nextContent.includes("Frequently Asked Questions")) {
             nextContent = nextContent ? `${nextContent}\n\n${faqSnippet}` : faqSnippet;
           }
         } else if (item.id === "links_vague_anchors") {
           nextContent = nextContent.replace(
             /<a\b([^>]*)>(click here|here|read more|learn more|link|this)<\/a>/gi,
-            `<a$1>explore the full Asia D Market catalog</a>`
+            `<a$1>explore the full The Valid Market catalog</a>`
           );
         } else {
           nextContent = item.fixAction.value;
@@ -525,7 +525,7 @@ export default function RealTimeSeoAnalyzer({
                 { name: "Digital Products Store", url: "/store" },
                 { name: "Verified Courses", url: "/courses" },
                 { name: "Live Support & VIP Chat", url: "/chat" },
-                { name: "Asia D Market Blog Index", url: "/blog" },
+                { name: "The Valid Market Blog Index", url: "/blog" },
                 { name: "Software Licenses", url: "/category/software" },
                 { name: "Proxy & VPN Tools", url: "/category/proxy" },
               ].map(link => (
@@ -794,7 +794,7 @@ export default function RealTimeSeoAnalyzer({
                 A
               </div>
               <div className="truncate">
-                <span className="font-semibold text-slate-800">Asia D Market</span>
+                <span className="font-semibold text-slate-800">The Valid Market</span>
                 <span className="text-slate-400 mx-1.5">›</span>
                 <span className="text-slate-500">
                   {data.contentType === "blog" ? "blog" : "product"} › {data.slug || "url-slug"}
@@ -803,11 +803,11 @@ export default function RealTimeSeoAnalyzer({
             </div>
 
             <h3 className="text-lg font-medium text-blue-800 hover:underline leading-snug cursor-pointer line-clamp-2 pt-0.5">
-              {(data.seoTitle || data.name || "Untitled Page Title") + " | Asia D Market"}
+              {(data.seoTitle || data.name || "Untitled Page Title") + " | The Valid Market"}
             </h3>
 
             <p className="text-xs text-slate-600 leading-relaxed pt-1 line-clamp-2">
-              {data.metaDescription || data.excerpt || "Discover verified software, proxy solutions, and online courses on Asia D Market with instant delivery and 24/7 technical support."}
+              {data.metaDescription || data.excerpt || "Discover verified software, proxy solutions, and online courses on The Valid Market with instant delivery and 24/7 technical support."}
             </p>
           </div>
 
@@ -1021,7 +1021,7 @@ export default function RealTimeSeoAnalyzer({
                     {data.ogTitle || data.seoTitle || data.name || "Headline Title"}
                   </h4>
                   <p className="text-xs text-slate-500 line-clamp-2">
-                    {data.ogDescription || data.metaDescription || data.excerpt || "Explore verified solutions and tutorials on Asia D Market."}
+                    {data.ogDescription || data.metaDescription || data.excerpt || "Explore verified solutions and tutorials on The Valid Market."}
                   </p>
                 </div>
               </div>

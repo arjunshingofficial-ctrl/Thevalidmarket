@@ -13,7 +13,7 @@ export default async function GlobalSEOPage() {
     settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
   }
 
-  let twitterHandle = "@AsiaDMarket";
+  let twitterHandle = "@TheValidMarket";
   if (settings.footerConfig) {
     try {
       const parsed = JSON.parse(settings.footerConfig);
@@ -34,7 +34,7 @@ export default async function GlobalSEOPage() {
 
       <GlobalSeoForm
         initialData={{
-          siteName: settings.siteName || "Asia D Market",
+          siteName: settings.siteName || "The Valid Market",
           twitterHandle,
           siteDescription: settings.siteDescription || "",
           defaultOgImage: settings.defaultOgImage || "/og-image.jpg",

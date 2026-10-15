@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   });
 
   if (!product || product.status !== "PUBLISHED") {
-    return { title: "Course Not Found - Asia D Market" };
+    return { title: "Course Not Found - The Valid Market" };
   }
 
   const metadata = (() => {
@@ -37,10 +37,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const image = metadata.image || null;
 
   return {
-    title: `${product.name} | Asia D Market Academy`,
-    description: product.shortDesc || "Master advanced skills with this technical masterclass from Asia D Market.",
+    title: `${product.name} | The Valid Market Academy`,
+    description: product.shortDesc || "Master advanced skills with this technical masterclass from The Valid Market.",
     openGraph: {
-      title: `${product.name} | Asia D Market Academy`,
+      title: `${product.name} | The Valid Market Academy`,
       description: product.shortDesc || undefined,
       images: image ? [{ url: normalizeImageUrl(image) }] : undefined,
     },
