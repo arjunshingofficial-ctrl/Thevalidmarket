@@ -2,65 +2,153 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { createAuditLog } from "@/lib/actions/admin";
 
 export async function updateTelegramUrl(formData: FormData) {
-  const url = formData.get("telegramUrl")?.toString() || "";
-
-  let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
-  if (!settings) {
-    settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
-  }
-
-  let footerConfig = {};
   try {
-    footerConfig = settings.footerConfig ? JSON.parse(settings.footerConfig) : {};
-  } catch (e) {}
+    const session = await getServerSession(authOptions) as any;
+    if (!session?.user) {
+      return { success: false, message: "Unauthorized. Please log in as an administrator." };
+    }
+    const allowed = ["ADMIN", "STAFF", "MANAGER", "SUPER_ADMIN"];
+    if (!allowed.includes(session.user?.role as string)) {
+      return { success: false, message: "Forbidden. You do not have permissions to modify settings." };
+    }
 
-  footerConfig = { ...footerConfig, telegramUrl: url };
+    const url = formData.get("telegramUrl")?.toString()?.trim() || "";
 
-  await prisma.siteSettings.update({
-    where: { id: "GLOBAL" },
-    data: { footerConfig: JSON.stringify(footerConfig) }
-  });
+    let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+    if (!settings) {
+      settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
+    }
 
-  revalidatePath("/login");
-  revalidatePath("/admin/settings");
+    let footerConfig: any = {};
+    try {
+      footerConfig = settings.footerConfig ? JSON.parse(settings.footerConfig) : {};
+    } catch (e) {
+      footerConfig = {};
+    }
+
+    footerConfig = { ...footerConfig, telegramUrl: url };
+
+    await prisma.siteSettings.update({
+      where: { id: "GLOBAL" },
+      data: { footerConfig: JSON.stringify(footerConfig) }
+    });
+
+    await createAuditLog({
+      action: "TELEGRAM_LINK_UPDATED",
+      entity: "SiteSettings",
+      entityId: "GLOBAL",
+      metadata: { telegramUrl: url }
+    });
+
+    revalidatePath("/login");
+    revalidatePath("/admin/settings");
+    revalidatePath("/");
+    revalidatePath("/store");
+
+    return { success: true, message: "Community Telegram link updated successfully!" };
+  } catch (error: any) {
+    console.error("Failed to update telegram link:", error);
+    return {
+      success: false,
+      message: error?.message || "Failed to update community link. Please try again.",
+    };
+  }
 }
 
 export async function updateGeneralSettings(formData: FormData) {
-  const storeName = formData.get("storeName")?.toString() || "Asia D Market";
-  const supportEmail = formData.get("supportEmail")?.toString() || "support@thevalidmarket.com";
-  const primaryCurrency = formData.get("primaryCurrency")?.toString() || "USD";
-  const defaultOrderStatus = formData.get("defaultOrderStatus")?.toString() || "COMPLETED";
-
-  let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
-  if (!settings) {
-    settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
-  }
-
-  let fxConfig: any = {};
   try {
-    fxConfig = settings.fxConfig ? JSON.parse(settings.fxConfig) : {};
-  } catch (e) {}
-
-  fxConfig = { 
-    ...fxConfig, 
-    primaryCurrency,
-    defaultOrderStatus
-  };
-
-  await prisma.siteSettings.update({
-    where: { id: "GLOBAL" },
-    data: { 
-      siteName: storeName,
-      fxConfig: JSON.stringify(fxConfig)
+    const session = await getServerSession(authOptions) as any;
+    if (!session?.user) {
+      return { success: false, message: "Unauthorized. Please log in as an administrator." };
     }
-  });
+    const allowed = ["ADMIN", "STAFF", "MANAGER", "SUPER_ADMIN"];
+    if (!allowed.includes(session.user?.role as string)) {
+      return { success: false, message: "Forbidden. You do not have permissions to modify settings." };
+    }
 
-  revalidatePath("/admin/settings");
-  revalidatePath("/");
-  revalidatePath("/store");
-  revalidatePath("/admin/dashboard");
+    const storeName = formData.get("storeName")?.toString()?.trim() || "The Valid Market";
+    const supportEmail = formData.get("supportEmail")?.toString()?.trim() || "support@thevalidmarket.com";
+    const primaryCurrency = formData.get("primaryCurrency")?.toString()?.trim() || "USD";
+    const defaultOrderStatus = formData.get("defaultOrderStatus")?.toString()?.trim() || "COMPLETED";
+
+    let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+    if (!settings) {
+      settings = await prisma.siteSettings.create({ data: { id: "GLOBAL" } });
+    }
+
+    let fxConfig: any = {};
+    try {
+      fxConfig = settings.fxConfig ? JSON.parse(settings.fxConfig) : {};
+    } catch (e) {
+      fxConfig = {};
+    }
+
+    fxConfig = { 
+      ...fxConfig, 
+      primaryCurrency,
+      defaultOrderStatus
+    };
+
+    let footerConfig: any = {};
+    try {
+      footerConfig = settings.footerConfig ? JSON.parse(settings.footerConfig) : {};
+    } catch (e) {
+      footerConfig = {};
+    }
+
+    footerConfig = {
+      ...footerConfig,
+      supportEmail,
+    };
+
+    await prisma.siteSettings.update({
+      where: { id: "GLOBAL" },
+      data: { 
+        siteName: storeName,
+        fxConfig: JSON.stringify(fxConfig),
+        footerConfig: JSON.stringify(footerConfig),
+      }
+    });
+
+    await createAuditLog({
+      action: "PLATFORM_SETTINGS_UPDATED",
+      entity: "SiteSettings",
+      entityId: "GLOBAL",
+      metadata: {
+        siteName: storeName,
+        supportEmail,
+        primaryCurrency,
+        defaultOrderStatus,
+      }
+    });
+
+    revalidatePath("/admin/settings");
+    revalidatePath("/");
+    revalidatePath("/store");
+    revalidatePath("/admin/dashboard");
+
+    return { 
+      success: true, 
+      message: "Platform settings updated successfully!",
+      data: {
+        storeName,
+        supportEmail,
+        primaryCurrency,
+        defaultOrderStatus,
+      }
+    };
+  } catch (error: any) {
+    console.error("Failed to update platform settings:", error);
+    return {
+      success: false,
+      message: error?.message || "Failed to update platform settings. Please try again.",
+    };
+  }
 }
 
 export async function updateGlobalSEOSettings(formData: FormData) {

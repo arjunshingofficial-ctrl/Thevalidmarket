@@ -28,6 +28,15 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts", "@tiptap/react"],
+    serverActions: {
+      allowedOrigins: [
+        "thevalidmarket.com",
+        "www.thevalidmarket.com",
+        "*.thevalidmarket.com",
+        "*.vercel.app",
+        "localhost:3000",
+      ],
+    },
   },
   typescript: {
     ignoreBuildErrors: true,
