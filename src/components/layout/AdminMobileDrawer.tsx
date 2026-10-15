@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { 
@@ -100,9 +101,13 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
             onClick={onClose} 
             className="flex items-center gap-2.5"
           >
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
-              <span className="text-white text-xs font-black">V</span>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="The Valid Market"
+              width={34}
+              height={34}
+              className="h-8 w-8 rounded-lg shrink-0 shadow-sm object-cover"
+            />
             <div>
               <div className="text-white font-bold text-sm tracking-tight flex items-center gap-1.5">
                 The Valid Market

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, User, Sparkles, Loader2 } from "lucide-react";
 import CartIcon from "./CartIcon";
 import { addToCart } from "@/lib/cart";
@@ -75,10 +76,15 @@ export default function HeaderClient({ session, menuItems, walletBalance }: { se
         
         {/* Left: Brand + Nav */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 group z-10">
-            <div className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
-              V
-            </div>
+          <Link href="/" className="flex items-center gap-2.5 group z-10">
+            <Image
+              src="/logo.png"
+              alt="The Valid Market Logo"
+              width={36}
+              height={36}
+              className="w-9 h-9 rounded-xl shadow-sm group-hover:scale-105 transition-transform object-cover"
+              priority
+            />
             <span className="text-xl font-extrabold tracking-tight text-slate-900 group-hover:text-primary transition-colors hidden sm:block">
               The Valid Market
             </span>

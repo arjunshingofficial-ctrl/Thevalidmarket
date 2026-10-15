@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useState, useTransition } from "react";
@@ -40,13 +41,17 @@ export default function AdminSidebar() {
     <div className="hidden md:flex w-64 bg-slate-900 text-slate-300 flex-col h-screen overflow-hidden shrink-0">
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-slate-800 shrink-0 bg-slate-950">
-        <Link href="/admin" className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded bg-primary flex items-center justify-center">
-            <span className="text-white text-xs font-bold">V</span>
-          </div>
+        <Link href="/admin" className="flex items-center gap-2.5">
+          <Image
+            src="/logo.png"
+            alt="The Valid Market Logo"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-lg shrink-0 shadow-sm object-cover"
+          />
           <div>
             <div className="text-white font-bold text-sm leading-none">The Valid Market</div>
-            <div className="text-primary text-[10px] uppercase tracking-widest">Admin</div>
+            <div className="text-primary text-[10px] uppercase tracking-widest mt-0.5">Admin</div>
           </div>
         </Link>
       </div>

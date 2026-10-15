@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   Menu, X, User, LayoutDashboard, ShoppingBag, DownloadCloud, Key, 
   Repeat, BookOpen, Heart, Star, Ticket, Users, Bell, LifeBuoy, 
@@ -173,9 +174,13 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
             {/* Header */}
             <div className="flex items-center justify-between p-4 shrink-0 h-[72px] border-b border-slate-800/60">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm shadow-primary/20">
-                  <span className="text-white text-sm font-bold">V</span>
-                </div>
+                <Image
+                  src="/logo.png"
+                  alt="The Valid Market Logo"
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 rounded-xl shrink-0 shadow-sm object-cover"
+                />
                 <div className="flex flex-col">
                   <span className="text-sm font-bold tracking-tight text-white leading-none">The Valid Market</span>
                   <span className="text-[10px] uppercase tracking-widest text-primary/90 mt-1 font-semibold">
