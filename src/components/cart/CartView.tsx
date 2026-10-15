@@ -499,23 +499,6 @@ export default function CartView() {
                 </div>
               </div>
             </div>
-
-            {/* Support Box */}
-            <div className="bg-gradient-to-br from-indigo-900 to-slate-950 text-white rounded-3xl p-5 shadow-sm text-center">
-              <h4 className="font-extrabold text-sm text-amber-400 mb-1">
-                Need Help with this Order?
-              </h4>
-              <p className="text-xs text-indigo-200 mb-3 leading-relaxed">
-                Our support team is online 24/7 to help you configure your proxy, software license, or server details.
-              </p>
-              <Link
-                href="/chat"
-                className="stylish-btn btn-emerald btn-xs inline-flex items-center gap-1.5 font-bold px-4 py-2"
-              >
-                <Headphones className="w-3.5 h-3.5" />
-                <span>Live Client Support</span>
-              </Link>
-            </div>
           </div>
         </div>
 
