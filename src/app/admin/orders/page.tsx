@@ -58,103 +58,154 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-slate-50 text-slate-600 border-b">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50/80 text-slate-700 text-xs uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="px-6 py-3 w-12">
-                  <input type="checkbox" className="rounded border-slate-300" />
+                <th className="py-3 px-4 w-10 text-center">
+                  <input type="checkbox" className="rounded border-slate-300 text-primary focus:ring-primary" />
                 </th>
-                <th className="px-6 py-3 font-semibold">Order</th>
-                <th className="px-6 py-3 font-semibold">Date</th>
-                <th className="px-6 py-3 font-semibold">Customer</th>
-                <th className="px-6 py-3 font-semibold">Products</th>
-                <th className="px-6 py-3 font-semibold">Payment Status</th>
-                <th className="px-6 py-3 font-semibold">Fulfillment</th>
-                <th className="px-6 py-3 font-semibold text-right">Total</th>
-                <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                <th className="py-3 px-4 font-semibold">Order</th>
+                <th className="py-3 px-4 font-semibold">Customer</th>
+                <th className="py-3 px-4 font-semibold min-w-[190px]">Products</th>
+                <th className="py-3 px-4 font-semibold">Status</th>
+                <th className="py-3 px-4 font-semibold text-right">Total</th>
+                <th className="py-3 px-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
-                    <p className="text-lg font-medium text-slate-900">No orders found</p>
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                    <Package className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                    <p className="text-base font-semibold text-slate-900">No orders found</p>
+                    <p className="text-xs text-slate-500 mt-1">Orders placed by customers will appear here.</p>
                   </td>
                 </tr>
               ) : (
                 orders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <input type="checkbox" className="rounded border-slate-300" />
+                  <tr key={order.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <td className="py-3.5 px-4 text-center">
+                      <input type="checkbox" className="rounded border-slate-300 text-primary focus:ring-primary" />
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-900">
+                    
+                    {/* Order & Date */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <Link 
                         href={`/admin/orders/${order.id}`}
-                        className="hover:text-primary hover:underline font-bold"
+                        className="font-bold text-slate-900 hover:text-primary hover:underline block"
                       >
                         #{order.id.slice(0, 8).toUpperCase()}
                       </Link>
+                      <span className="text-xs text-slate-500">
+                        {order.createdAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {order.createdAt.toLocaleDateString()}
+
+                    {/* Customer */}
+                    <td className="py-3.5 px-4">
+                      <div className="max-w-[160px]">
+                        <div className="font-medium text-slate-900 truncate" title={order.user.name || "Customer"}>
+                          {order.user.name || "Customer"}
+                        </div>
+                        <div className="text-xs text-slate-500 truncate" title={order.user.email}>
+                          {order.user.email}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      <div className="font-medium text-slate-900">{order.user.name || "Customer"}</div>
-                      <div className="text-xs text-slate-500">{order.user.email}</div>
-                    </td>
-                    <td className="px-6 py-4">
+
+                    {/* Products & Direct Edit */}
+                    <td className="py-3.5 px-4">
                       {order.items.length === 0 ? (
                         <span className="text-xs text-slate-400 italic">No products</span>
                       ) : (
-                        <div className="flex flex-col gap-1.5 min-w-[200px] max-w-[280px]">
-                          {order.items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-colors"
+                        <div className="flex flex-col gap-1 max-w-[230px]">
+                          <div className="flex items-center justify-between gap-1.5 p-1 rounded bg-slate-50 border border-slate-100">
+                            <span
+                              className="font-medium text-xs text-slate-900 truncate"
+                              title={order.items[0].product.name}
                             >
-                              <span
-                                className="font-semibold text-xs text-slate-900 truncate"
-                                title={item.product.name}
-                              >
-                                {item.product.name}
-                              </span>
-                              <Link
-                                href={`/admin/products/${item.product.id}/edit`}
-                                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 shrink-0 transition-colors"
-                                title={`Edit product: ${item.product.name}`}
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                <span>Edit</span>
-                              </Link>
-                            </div>
-                          ))}
+                              {order.items[0].product.name}
+                            </span>
+                            <Link
+                              href={`/admin/products/${order.items[0].product.id}/edit`}
+                              className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0 transition-colors"
+                              title={`Edit product: ${order.items[0].product.name}`}
+                            >
+                              <Edit3 className="w-2.5 h-2.5" />
+                              <span>Edit</span>
+                            </Link>
+                          </div>
+
+                          {order.items.length > 1 && (
+                            <details className="group text-xs">
+                              <summary className="cursor-pointer text-[11px] font-semibold text-primary hover:text-primary/80 select-none flex items-center gap-1 list-none mt-0.5">
+                                <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold">
+                                  +{order.items.length - 1} more {order.items.length - 1 === 1 ? 'item' : 'items'}
+                                </span>
+                                <span className="text-slate-400 text-[10px] group-open:rotate-180 transition-transform">▼</span>
+                              </summary>
+                              <div className="mt-1 space-y-1 pl-1 border-l-2 border-primary/20 py-1">
+                                {order.items.slice(1).map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="flex items-center justify-between gap-1.5 p-1 rounded bg-slate-50 border border-slate-100"
+                                  >
+                                    <span
+                                      className="text-xs text-slate-800 truncate"
+                                      title={item.product.name}
+                                    >
+                                      {item.product.name}
+                                    </span>
+                                    <Link
+                                      href={`/admin/products/${item.product.id}/edit`}
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 shrink-0 transition-colors"
+                                      title={`Edit product: ${item.product.name}`}
+                                    >
+                                      <Edit3 className="w-2.5 h-2.5" />
+                                      <span>Edit</span>
+                                    </Link>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        order.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 
-                        order.paymentStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' : 
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {order.paymentStatus}
-                      </span>
+
+                    {/* Status */}
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                          order.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 
+                          order.paymentStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' : 
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {order.paymentStatus}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          order.orderStatus === 'FULFILLED' ? 'bg-blue-100 text-blue-700' : 
+                          order.orderStatus === 'PENDING' ? 'bg-slate-100 text-slate-600' : 
+                          'bg-slate-100 text-slate-600'
+                        }`}>
+                          {order.orderStatus}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        order.orderStatus === 'FULFILLED' ? 'bg-blue-100 text-blue-700' : 
-                        order.orderStatus === 'PENDING' ? 'bg-amber-100 text-amber-700' : 
-                        'bg-slate-100 text-slate-700'
-                      }`}>
-                        {order.orderStatus}
-                      </span>
+
+                    {/* Total */}
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <span className="font-bold text-slate-900">${order.total}</span>
                     </td>
-                    <td className="px-6 py-4 text-right font-medium text-slate-900">
-                      ${order.total}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link href={`/admin/orders/${order.id}`} className="p-1.5 text-slate-400 hover:text-primary rounded hover:bg-slate-100" title="View Details">
+
+                    {/* Actions */}
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link 
+                          href={`/admin/orders/${order.id}`} 
+                          className="p-1.5 text-slate-500 hover:text-primary rounded-md hover:bg-slate-100 transition-colors" 
+                          title="View Order Details"
+                        >
                           <Eye className="h-4 w-4" />
                         </Link>
                         <OrderActionsDropdown 
