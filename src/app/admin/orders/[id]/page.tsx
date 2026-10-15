@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Edit3, ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ReconcileButton } from "./ReconcileButton";
 import { OrderDownloadsManager } from "./OrderDownloadsManager";
@@ -125,18 +125,47 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
                     <th className="px-6 py-3 font-semibold">Product</th>
                     <th className="px-6 py-3 font-semibold">Type</th>
                     <th className="px-6 py-3 font-semibold text-right">Price</th>
+                    <th className="px-6 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {order.items.map(item => (
                     <tr key={item.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 font-medium text-slate-900">{item.product.name}</td>
+                      <td className="px-6 py-4 font-medium text-slate-900">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-slate-900">{item.product.name}</span>
+                          <span className="text-xs text-slate-400 font-mono">ID: {item.product.id}</span>
+                        </div>
+                      </td>
                       <td className="px-6 py-4">
                         <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-[10px] uppercase font-bold tracking-wider">
                           {item.product.type}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right font-medium text-slate-900">${item.price}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/products/${item.product.id}/edit`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-xs"
+                            title={`Edit product: ${item.product.name}`}
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit Product</span>
+                          </Link>
+                          {item.product.slug && (
+                            <Link
+                              href={`/product/${item.product.slug}`}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+                              title="View on storefront"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">View</span>
+                            </Link>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

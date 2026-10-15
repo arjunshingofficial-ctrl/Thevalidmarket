@@ -1,4 +1,4 @@
-import { Eye, Download } from "lucide-react";
+import { Eye, Download, Edit3 } from "lucide-react";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +11,9 @@ export default async function OrdersPage() {
   if (!session?.user?.id) {
     redirect("/login");
   }
+
+  const userRole = (session?.user as { role?: string })?.role;
+  const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
 
   const orders = await prisma.order.findMany({
     where: { userId: session.user.id },
@@ -94,9 +97,34 @@ export default async function OrdersPage() {
                       <td className="px-6 py-4 text-muted-foreground">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 max-w-[200px] truncate">
-                        {order.items.length > 0 ? order.items[0].product.name : "Unknown"}
-                        {order.items.length > 1 ? ` + ${order.items.length - 1} more` : ""}
+                      <td className="px-6 py-4">
+                        {order.items.length === 0 ? (
+                          <span className="text-muted-foreground">Unknown</span>
+                        ) : (
+                          <div className="flex flex-col gap-1.5 min-w-[180px] max-w-[260px]">
+                            {order.items.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between gap-2">
+                                <Link
+                                  href={`/product/${item.product.slug}`}
+                                  className="font-medium text-slate-800 hover:text-primary hover:underline truncate"
+                                  title={item.product.name}
+                                >
+                                  {item.product.name}
+                                </Link>
+                                {isAdmin && (
+                                  <Link
+                                    href={`/admin/products/${item.product.id}/edit`}
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 transition-colors shrink-0"
+                                    title={`Edit product: ${item.product.name}`}
+                                  >
+                                    <Edit3 className="w-2.5 h-2.5" />
+                                    <span>Edit</span>
+                                  </Link>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 font-medium">${order.total.toFixed(2)}</td>
                       <td className="px-6 py-4 font-medium">{paymentMethod}</td>
@@ -162,9 +190,30 @@ export default async function OrdersPage() {
                     <div className="text-right font-bold text-lg text-primary">${order.total.toFixed(2)}</div>
                   </div>
                   
-                  <div className="text-sm font-medium p-3 bg-muted/30 rounded-lg">
-                    {order.items.length > 0 ? order.items[0].product.name : "Unknown"}
-                    {order.items.length > 1 ? ` + ${order.items.length - 1} more` : ""}
+                  <div className="text-sm font-medium p-3 bg-muted/30 rounded-lg flex flex-col gap-2">
+                    {order.items.length === 0 ? (
+                      <span className="text-muted-foreground">Unknown</span>
+                    ) : (
+                      order.items.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between gap-2">
+                          <Link
+                            href={`/product/${item.product.slug}`}
+                            className="font-medium text-slate-800 hover:text-primary hover:underline truncate"
+                          >
+                            {item.product.name}
+                          </Link>
+                          {isAdmin && (
+                            <Link
+                              href={`/admin/products/${item.product.id}/edit`}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 shrink-0"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Edit</span>
+                            </Link>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                   
                   <div className="flex flex-wrap gap-2 items-center text-xs">

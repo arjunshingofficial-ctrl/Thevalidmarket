@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Download, Eye, Receipt } from "lucide-react";
+import { ArrowLeft, Download, Eye, Receipt, Edit3 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,8 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
   const resolvedParams = await params;
   const session = await getServerSession(authOptions) as any;
   if (!session?.user?.id) redirect("/login");
+
+  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN";
 
   const order = await prisma.order.findUnique({
     where: { id: resolvedParams.id },
@@ -131,7 +133,25 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
                       return (
                         <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-6 py-4 font-medium">
-                            {item.product.name}
+                            <div className="flex items-center gap-2">
+                              <Link 
+                                href={`/product/${item.product.slug}`}
+                                className="hover:text-primary hover:underline font-semibold"
+                                title="View product on storefront"
+                              >
+                                {item.product.name}
+                              </Link>
+                              {isAdmin && (
+                                <Link
+                                  href={`/admin/products/${item.product.id}/edit`}
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 transition-colors shrink-0"
+                                  title={`Edit product in admin: ${item.product.name}`}
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Edit</span>
+                                </Link>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             <span className="px-2 py-1 bg-slate-100 text-slate-700 rounded-md text-[10px] uppercase font-bold tracking-wider">
@@ -194,7 +214,23 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
                   return (
                     <div key={item.id} className="p-4 flex flex-col gap-3">
                       <div className="flex justify-between items-start">
-                        <div className="font-bold text-base">{item.product.name}</div>
+                        <div className="flex flex-col gap-1">
+                          <Link 
+                            href={`/product/${item.product.slug}`}
+                            className="font-bold text-base hover:text-primary hover:underline"
+                          >
+                            {item.product.name}
+                          </Link>
+                          {isAdmin && (
+                            <Link
+                              href={`/admin/products/${item.product.id}/edit`}
+                              className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 w-fit"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Edit Product</span>
+                            </Link>
+                          )}
+                        </div>
                         <div className="text-lg font-bold text-primary">${item.price.toLocaleString()}</div>
                       </div>
                       
