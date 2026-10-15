@@ -214,7 +214,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const approvedComments = (post as any).comments || [];
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "");
   const postUrl = `${siteUrl}/blog/${post.slug}`;
   const postImage = post.ogImage || post.featuredImage
     ? normalizeImageUrl((post.ogImage || post.featuredImage)!)

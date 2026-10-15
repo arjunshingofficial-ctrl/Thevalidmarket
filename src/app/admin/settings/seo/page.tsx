@@ -20,7 +20,7 @@ export default async function GlobalSEOPage() {
     } catch {}
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "");
 
   return (
     <div className="space-y-6">

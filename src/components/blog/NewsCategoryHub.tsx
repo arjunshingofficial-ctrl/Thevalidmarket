@@ -59,7 +59,7 @@ export default function NewsCategoryHub({
   recentPosts,
 }: NewsCategoryHubProps) {
   const totalPostsCount = categories.reduce((sum, c) => sum + (c.postCount || 0), 0);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "");
 
   // Build JSON-LD structured data for SEO
   const jsonLd = {

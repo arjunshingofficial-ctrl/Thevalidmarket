@@ -202,7 +202,7 @@ export default function BlogCategoryForm({
                 className="w-full px-3.5 py-2.5 text-sm font-mono rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition-all text-slate-900 bg-slate-50/50 focus:bg-white"
               />
               <p className="text-[11px] text-slate-400 font-mono">
-                Preview: asiadmarket.com/news?category={slug || "slug"}
+                Preview: thevalidmarket.com/news?category={slug || "slug"}
               </p>
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function BlogCategoryForm({
                 {seoTitle || (name ? `${name} | Asia D Market News` : "Category Title | Asia D Market")}
               </p>
               <p className="text-emerald-700 text-xs font-mono truncate">
-                https://asiadmarket.com/news?category={slug || "category-slug"}
+                https://www.thevalidmarket.com/news?category={slug || "category-slug"}
               </p>
               <p className="text-slate-600 text-xs line-clamp-2 leading-relaxed">
                 {seoDescription || description || "Explore the latest insights, tutorials, and developments on Asia D Market."}

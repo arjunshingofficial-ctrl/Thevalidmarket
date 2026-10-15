@@ -6,7 +6,9 @@ import { Copy, Check, Share2 } from "lucide-react";
 export default function ReferralLinkClient({ referralCode }: { referralCode: string }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
-  const [baseUrl, setBaseUrl] = useState("https://asiadmarket.com");
+  const [baseUrl, setBaseUrl] = useState(
+    (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, "")
+  );
   
   useEffect(() => {
     setBaseUrl(window.location.origin);

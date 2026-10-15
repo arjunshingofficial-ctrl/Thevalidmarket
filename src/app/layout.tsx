@@ -11,7 +11,8 @@ const inter = Inter({
   preload: true 
 });
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://asiadmarket.com";
+const rawBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com";
+const baseUrl = rawBaseUrl.replace(/\/$/, "");
 
 export async function generateMetadata(): Promise<Metadata> {
   let settings = null;

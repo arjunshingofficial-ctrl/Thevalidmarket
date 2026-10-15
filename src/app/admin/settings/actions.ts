@@ -29,7 +29,7 @@ export async function updateTelegramUrl(formData: FormData) {
 
 export async function updateGeneralSettings(formData: FormData) {
   const storeName = formData.get("storeName")?.toString() || "Asia D Market";
-  const supportEmail = formData.get("supportEmail")?.toString() || "support@asiadmarket.com";
+  const supportEmail = formData.get("supportEmail")?.toString() || "support@thevalidmarket.com";
   const primaryCurrency = formData.get("primaryCurrency")?.toString() || "USD";
   const defaultOrderStatus = formData.get("defaultOrderStatus")?.toString() || "COMPLETED";
 

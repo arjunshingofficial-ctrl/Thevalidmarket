@@ -11,7 +11,7 @@ Disallow: /checkout/
 Disallow: /cart/
 Disallow: /dashboard/
 
-Sitemap: https://asiadmarket.com/sitemap.xml`;
+Sitemap: https://www.thevalidmarket.com/sitemap.xml`;
 
   return (
     <div className="space-y-6">

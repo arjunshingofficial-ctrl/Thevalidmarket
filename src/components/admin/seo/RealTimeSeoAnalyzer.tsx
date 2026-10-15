@@ -922,7 +922,7 @@ export default function RealTimeSeoAnalyzer({
               <label className="text-xs font-bold text-slate-800 block">URL Slug</label>
               <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs">
                 <span className="text-slate-400 font-mono select-none">
-                  https://asiadmarket.com/{data.contentType === "blog" ? "blog" : "product"}/
+                  https://www.thevalidmarket.com/{data.contentType === "blog" ? "blog" : "product"}/
                 </span>
                 <input
                   type="text"
@@ -1016,7 +1016,7 @@ export default function RealTimeSeoAnalyzer({
                   )}
                 </div>
                 <div className="p-4 space-y-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">asiadmarket.com</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">thevalidmarket.com</span>
                   <h4 className="text-sm font-bold text-slate-900 line-clamp-1">
                     {data.ogTitle || data.seoTitle || data.name || "Headline Title"}
                   </h4>

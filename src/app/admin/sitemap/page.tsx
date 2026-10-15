@@ -22,7 +22,7 @@ export default function AdminSitemap() {
             <div>
               <h2 className="font-semibold text-slate-900">Sitemap URL</h2>
               <a href="/sitemap.xml" target="_blank" className="text-xs text-emerald-600 hover:underline">
-                https://asiadmarket.com/sitemap.xml
+                https://www.thevalidmarket.com/sitemap.xml
               </a>
             </div>
           </div>

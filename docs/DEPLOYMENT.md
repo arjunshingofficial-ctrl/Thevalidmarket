@@ -15,7 +15,7 @@ Copy `.env.example` to `.env.production` and configure all secrets.
 ### Required Variables
 - `DATABASE_URL`: Production database connection string.
 - `NEXTAUTH_SECRET`: Random 32+ char string (use `openssl rand -base64 32`).
-- `NEXTAUTH_URL`: Canonical URL of the production site (e.g., `https://asiadmarket.com`).
+- `NEXTAUTH_URL`: Canonical URL of the production site (e.g., `https://www.thevalidmarket.com`).
 - `ADMIN_EMAIL`: Initial admin user for bootstrapping.
 
 ## 3. Database Preparation

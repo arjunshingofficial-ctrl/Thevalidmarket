@@ -200,7 +200,7 @@ export interface ExtractedLink {
 }
 
 // Extract links from HTML with dynamic parameter and nofollow detection
-export function extractLinks(html: string, siteHost: string = "asiadmarket.com"): ExtractedLink[] {
+export function extractLinks(html: string, siteHost: string = "thevalidmarket.com"): ExtractedLink[] {
   if (!html) return [];
   const matches = html.matchAll(/<a\b([^>]*?)>(.*?)<\/a>/gi);
   const links: ExtractedLink[] = [];
@@ -235,7 +235,7 @@ export function extractLinks(html: string, siteHost: string = "asiadmarket.com")
 
 // ─── Automated Content Fix Helpers ──────────────────────────────────────────
 
-export function cleanDynamicInternalLinks(contentHtml: string, siteHost: string = "asiadmarket.com"): string {
+export function cleanDynamicInternalLinks(contentHtml: string, siteHost: string = "thevalidmarket.com"): string {
   if (!contentHtml) return "";
   return contentHtml.replace(/<a\b([^>]*?)>(.*?)<\/a>/gi, (fullMatch, attrs, linkBody) => {
     const hrefMatch = attrs.match(/\bhref\s*=\s*["']([^"']+)["']/i);
@@ -387,7 +387,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     ogImage = "",
     primaryKeyphrase = (safeInput as any).focusKeyword || "",
     secondaryKeyphrases = (safeInput as any).secondaryKeywords || [],
-    siteUrl = "https://asiadmarket.com",
+    siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.thevalidmarket.com").replace(/\/$/, ""),
   } = safeInput;
 
   const checks: SeoCheckItem[] = [];
