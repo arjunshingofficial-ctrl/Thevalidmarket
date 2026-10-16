@@ -140,7 +140,7 @@ export default function ContentWithShortcodes({
 
         if (chunk.type === "cc_shortcode") {
           return (
-            <div key={index} className="my-8 not-prose">
+            <div key={index} className="my-6 not-prose w-full overflow-hidden">
               <CCProductsShortcode {...chunk.props} />
             </div>
           );
