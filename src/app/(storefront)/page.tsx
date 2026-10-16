@@ -5,11 +5,18 @@ import { Metadata } from "next";
 import HackerHero from "@/components/home/HackerHero";
 
 export const metadata: Metadata = {
-  title: "The Valid Market - Secure Terminal",
-  description: "Access premium digital products, courses, software and tools.",
+  title: "The Valid Market | Premium Digital Products, Tools & Software Marketplace",
+  description: "Explore The Valid Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery.",
   robots: {
-    index: false,
-    follow: false,
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
