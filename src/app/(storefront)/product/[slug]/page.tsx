@@ -13,6 +13,7 @@ import { normalizeImageUrl } from "@/lib/storage/client";
 import { formatUsd } from "@/lib/currency";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
 import { getBaseUrl } from "@/lib/siteUrl";
+import ContentWithShortcodes from "@/components/shortcodes/ContentWithShortcodes";
 
 import { unstable_cache } from "next/cache";
 
@@ -392,9 +393,9 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               <h2 className="text-2xl font-bold text-slate-900 mb-8 border-b border-slate-100 pb-6 flex items-center gap-2">
                 <BookOpen className="w-6 h-6 text-primary" /> Product Overview
               </h2>
-              <div 
+              <ContentWithShortcodes 
+                content={optimizeDescriptionHtml(product.description)}
                 className="product-description"
-                dangerouslySetInnerHTML={{ __html: optimizeDescriptionHtml(product.description) }}
               />
             </div>
 

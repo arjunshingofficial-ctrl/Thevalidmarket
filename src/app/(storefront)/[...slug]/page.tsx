@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
+import ContentWithShortcodes from "@/components/shortcodes/ContentWithShortcodes";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
     if (redirectRule.statusCode === 301) {
       redirect(redirectRule.newUrl);
     } else {
-      redirect(redirectRule.newUrl); // Next.js `redirect` defaults to 307 which is fine, or permanentRedirect for 301. Wait, Next.js `permanentRedirect` is available in 'next/navigation'.
+      redirect(redirectRule.newUrl);
     }
   }
 
@@ -48,11 +49,11 @@ export default async function CatchAllPage({ params }: { params: Promise<{ slug:
     if (page && page.status === "PUBLISHED") {
       return (
         <div className="min-h-screen py-16 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <h1 className="text-4xl font-extrabold text-slate-900 mb-8">{page.title}</h1>
-            <div 
+            <ContentWithShortcodes 
+              content={page.content} 
               className="prose prose-slate prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: page.content }}
             />
           </div>
         </div>

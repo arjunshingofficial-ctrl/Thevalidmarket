@@ -94,6 +94,12 @@ export default function PageEditor({ initialData, mode, pageId }: PageEditorProp
               <div>
                 <label className="block text-sm font-medium mb-1">Content</label>
                 <RichTextEditor name="content" defaultValue={initialData?.content || ""} />
+                <div className="mt-2 text-xs text-slate-600 bg-indigo-50/70 border border-indigo-100 rounded-lg p-3 flex items-start gap-2">
+                  <span className="font-bold text-indigo-700 whitespace-nowrap">💡 Shortcode:</span>
+                  <span>
+                    Paste <code className="bg-white border border-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded font-mono font-semibold select-all">[cc_products]</code> anywhere in your text to embed the live CC products table with instant Buy Now buttons, search, and country filters.
+                  </span>
+                </div>
               </div>
             </div>
           )}

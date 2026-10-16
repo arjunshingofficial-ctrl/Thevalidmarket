@@ -13,6 +13,7 @@ import BlogShareButton from "@/components/blog/BlogShareButton";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
 import { getBaseUrl } from "@/lib/siteUrl";
+import ContentWithShortcodes from "@/components/shortcodes/ContentWithShortcodes";
 
 export const revalidate = 300; // Cache on Vercel CDN for 5 minutes, background revalidate
 
@@ -337,7 +338,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               <div className="flex items-center justify-between pb-6 mb-8 border-b border-slate-100 flex-wrap gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-primary to-indigo-700 text-white font-extrabold flex items-center justify-center shadow-sm">
-                    ADM
+                    TVM
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
@@ -379,9 +380,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               )}
 
               {/* Article HTML Content */}
-              <div
+              <ContentWithShortcodes
+                content={optimizeDescriptionHtml(post.content, (post as any).featuredImageAlt || post.title)}
                 className="product-description text-slate-800 leading-relaxed text-base"
-                dangerouslySetInnerHTML={{ __html: optimizeDescriptionHtml(post.content, (post as any).featuredImageAlt || post.title) }}
               />
 
               {/* Article Tags */}
