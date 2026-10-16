@@ -100,15 +100,19 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: {
       icon: [
         { url: "/favicon.ico", sizes: "any" },
+        { url: "/favicon-48x48.png", type: "image/png", sizes: "48x48" },
+        { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+        { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+        { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
         { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
         { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
-        { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
       ],
       shortcut: "/favicon.ico",
       apple: [
         { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
       ],
     },
+    manifest: "/site.webmanifest",
     verification: {
       google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "uf1qeBxnVcDdD8V4huDTRAt_WdOa8kv82GHEHEAZE4k",
       other: {
@@ -182,9 +186,11 @@ export default async function RootLayout({
     <html lang="en" className="h-full">
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
         <meta name="msvalidate.01" content={process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || "85554159FE50FA2E9F59653F52156EC9"} />
         <meta name="google-site-verification" content={process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "uf1qeBxnVcDdD8V4huDTRAt_WdOa8kv82GHEHEAZE4k"} />
         <link rel="preconnect" href="https://dvtmzispblbufuzoimkk.supabase.co" crossOrigin="anonymous" />
