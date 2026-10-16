@@ -12,6 +12,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { NAV_GROUPS, NavItem } from "./adminNavConfig";
+import { useAdminBadges } from "@/components/providers/AdminBadgeContext";
 
 interface AdminMobileDrawerProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface AdminMobileDrawerProps {
 
 export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMobileDrawerProps) {
   const pathname = usePathname();
+  const { byPath, byGroup } = useAdminBadges();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -259,9 +261,21 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                       }`}>
                         {group.label}
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 font-semibold">
-                        {group.items.length}
-                      </span>
+                      {byGroup[group.label] > 0 ? (
+                        <span className="flex items-center gap-1.5 ml-1">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-extrabold">
+                            {byGroup[group.label]}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400 font-semibold">
+                          {group.items.length}
+                        </span>
+                      )}
                     </div>
                     {isCollapsed ? (
                       <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
@@ -276,6 +290,7 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                       {group.items.map((item) => {
                         const active = isActive(item.href);
                         const Icon = item.icon;
+                        const badgeCount = byPath[item.href] || 0;
 
                         return (
                           <Link
@@ -292,9 +307,29 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                               <Icon className={`h-4 w-4 shrink-0 ${active ? "text-white" : "text-slate-400"}`} />
                               <span className="truncate">{item.name}</span>
                             </div>
-                            {active && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
-                            )}
+
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              {badgeCount > 0 && (
+                                <span className="flex items-center gap-1.5">
+                                  <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                  </span>
+                                  <span
+                                    className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-full leading-tight ${
+                                      active
+                                        ? "bg-white/20 text-white border border-white/30"
+                                        : "bg-rose-500 text-white shadow-xs"
+                                    }`}
+                                  >
+                                    {badgeCount > 99 ? "99+" : badgeCount}
+                                  </span>
+                                </span>
+                              )}
+                              {active && !badgeCount && (
+                                <div className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
+                              )}
+                            </div>
                           </Link>
                         );
                       })}
