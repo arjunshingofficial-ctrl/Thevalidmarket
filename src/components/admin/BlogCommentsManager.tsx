@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   MessageSquare, CheckCircle, XCircle, Edit3, Trash2,
   Search, Filter, ExternalLink, Clock, ShieldCheck, RefreshCw,
-  AlertCircle, Eye, Check, X
+  AlertCircle, Eye, Check, X, CornerDownRight
 } from "lucide-react";
 
 interface CommentData {
@@ -29,6 +29,22 @@ interface CommentData {
     email: string;
     image: string | null;
   } | null;
+}
+
+function parseReplyMeta(raw: string): { isReply: boolean; parentAuthor?: string; cleanText: string } {
+  if (!raw) return { isReply: false, cleanText: "" };
+  const match = raw.match(/^\[reply:([^:]+):@([^\]]+)\]\s*\n*/);
+  if (match) {
+    return {
+      isReply: true,
+      parentAuthor: match[2],
+      cleanText: raw.slice(match[0].length).trim(),
+    };
+  }
+  return {
+    isReply: false,
+    cleanText: raw,
+  };
 }
 
 export default function BlogCommentsManager() {
@@ -349,9 +365,22 @@ export default function BlogCommentsManager() {
                     </div>
 
                     {/* Comment Content */}
-                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                      {comment.content}
-                    </div>
+                    {(() => {
+                      const meta = parseReplyMeta(comment.content);
+                      return (
+                        <div className="space-y-1.5">
+                          {meta.isReply && (
+                            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-md">
+                              <CornerDownRight className="w-3.5 h-3.5" />
+                              <span>Replying to <strong>@{meta.parentAuthor}</strong></span>
+                            </div>
+                          )}
+                          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100 text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                            {meta.cleanText}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Actions Column */}

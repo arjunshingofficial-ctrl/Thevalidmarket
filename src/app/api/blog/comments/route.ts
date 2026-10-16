@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const body = await req.json();
 
-    const { postId, content, authorName, authorEmail } = body;
+    const { postId, content, authorName, authorEmail, parentId, parentAuthor } = body;
 
     if (!postId || typeof postId !== "string") {
       return NextResponse.json({ error: "Post ID is required." }, { status: 400 });
@@ -56,9 +56,15 @@ export async function POST(req: Request) {
     }
 
     // Sanitize comment text to prevent XSS
-    const cleanContent = sanitizeHtml(content.trim());
+    let cleanContent = sanitizeHtml(content.trim());
 
-    // By default, all new comments go to PENDING approval
+    // If this is a reply to an existing comment, record parent association
+    if (parentId && typeof parentId === "string") {
+      const parentName = typeof parentAuthor === "string" && parentAuthor.trim() ? parentAuthor.trim() : "Member";
+      cleanContent = `[reply:${parentId.trim()}:@${parentName}]\n\n${cleanContent}`;
+    }
+
+    // By default, all new comments and replies go to PENDING approval
     const comment = await prisma.blogComment.create({
       data: {
         postId,
@@ -72,7 +78,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Your comment has been submitted and is awaiting moderator approval.",
+      message: parentId ? "Thank you for your reply!" : "Thank You for commenting!",
       comment: {
         id: comment.id,
         authorName: comment.authorName,
