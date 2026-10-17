@@ -320,6 +320,49 @@ export async function deleteModuleAction(moduleId: string) {
   return { success: true };
 }
 
+export async function reorderModulesAction(courseId: string, moduleIds: string[]) {
+  await requireAdmin("Courses", "Edit");
+
+  await prisma.$transaction(
+    moduleIds.map((id, index) =>
+      prisma.courseModule.update({
+        where: { id },
+        data: { sortOrder: index }
+      })
+    )
+  );
+
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath(`/dashboard/courses/${courseId}`);
+
+  return { success: true };
+}
+
+export async function reorderLessonsAction(moduleId: string, lessonIds: string[]) {
+  await requireAdmin("Courses", "Edit");
+
+  const mod = await prisma.courseModule.findUnique({
+    where: { id: moduleId },
+    select: { courseId: true }
+  });
+
+  await prisma.$transaction(
+    lessonIds.map((id, index) =>
+      prisma.courseLesson.update({
+        where: { id },
+        data: { sortOrder: index }
+      })
+    )
+  );
+
+  if (mod) {
+    revalidatePath(`/admin/courses/${mod.courseId}`);
+    revalidatePath(`/dashboard/courses/${mod.courseId}`);
+  }
+
+  return { success: true };
+}
+
 // ----------------------------------------------------
 // 3. ADMIN ACTIONS: LESSONS CRUD
 // ----------------------------------------------------

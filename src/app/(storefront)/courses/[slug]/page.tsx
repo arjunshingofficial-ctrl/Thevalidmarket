@@ -251,10 +251,18 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                     <div key={mod.id} className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50">
                       <div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-black text-xs flex items-center justify-center">
+                          <span className="w-7 h-7 rounded-lg bg-primary/10 text-primary font-black text-xs flex items-center justify-center shrink-0">
                             {idx + 1}
                           </span>
-                          <h3 className="font-extrabold text-sm text-slate-900">{mod.title}</h3>
+                          <div>
+                            <h3 className="font-extrabold text-sm text-slate-900">{mod.title}</h3>
+                            {mod.description && (
+                              <div
+                                className="text-xs text-slate-500 mt-1 prose prose-xs max-w-none"
+                                dangerouslySetInnerHTML={{ __html: mod.description }}
+                              />
+                            )}
+                          </div>
                         </div>
                         <span className="text-xs text-slate-400">{mod.lessons.length} lessons</span>
                       </div>

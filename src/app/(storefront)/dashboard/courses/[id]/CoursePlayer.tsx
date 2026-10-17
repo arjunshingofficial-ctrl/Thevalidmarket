@@ -281,9 +281,16 @@ export default function CoursePlayer({
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     <FileText className="w-4 h-4 text-emerald-400" /> Lesson Content & Notes
                   </h3>
-                  <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
-                    {activeLesson.content}
-                  </div>
+                  {/<[a-z][\s\S]*>/i.test(activeLesson.content) ? (
+                    <div
+                      className="prose prose-invert max-w-none text-sm text-slate-300 leading-relaxed font-sans"
+                      dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                    />
+                  ) : (
+                    <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
+                      {activeLesson.content}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

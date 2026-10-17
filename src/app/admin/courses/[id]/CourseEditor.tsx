@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowUp,
+  ArrowDown,
   BookOpen,
   Plus,
+  Pencil,
   Trash2,
   Video,
   FileText,
@@ -28,15 +31,21 @@ import {
   Award,
   Globe,
   Tag,
-  DollarSign
+  DollarSign,
+  X,
 } from "lucide-react";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 import {
   updateCourseAction,
   setCoursePublishStatusAction,
   addModuleAction,
+  updateModuleAction,
   deleteModuleAction,
+  reorderModulesAction,
   addLessonAction,
+  updateLessonAction,
   deleteLessonAction,
+  reorderLessonsAction,
 } from "@/lib/actions/courses";
 
 interface CourseEditorProps {
@@ -82,17 +91,38 @@ export default function CourseEditor({ course }: CourseEditorProps) {
   const [detailsSaving, setDetailsSaving] = useState(false);
 
   // Curriculum State
+  const [courseModules, setCourseModules] = useState<any[]>(course.modules || []);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setCourseModules(course.modules || []);
+  }, [course.modules]);
+
+  // Add Module State
   const [showModuleModal, setShowModuleModal] = useState(false);
   const [moduleTitle, setModuleTitle] = useState("");
   const [moduleDesc, setModuleDesc] = useState("");
 
+  // Edit Module State
+  const [editingModule, setEditingModule] = useState<any | null>(null);
+  const [editModuleTitle, setEditModuleTitle] = useState("");
+  const [editModuleDesc, setEditModuleDesc] = useState("");
+
+  // Add Lesson State
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [lessonTitle, setLessonTitle] = useState("");
   const [lessonContent, setLessonContent] = useState("");
   const [lessonVideoUrl, setLessonVideoUrl] = useState("");
   const [lessonDuration, setLessonDuration] = useState("10");
   const [lessonIsFree, setLessonIsFree] = useState(false);
+
+  // Edit Lesson State
+  const [editingLesson, setEditingLesson] = useState<any | null>(null);
+  const [editLessonTitle, setEditLessonTitle] = useState("");
+  const [editLessonContent, setEditLessonContent] = useState("");
+  const [editLessonVideoUrl, setEditLessonVideoUrl] = useState("");
+  const [editLessonDuration, setEditLessonDuration] = useState("10");
+  const [editLessonIsFree, setEditLessonIsFree] = useState(false);
 
   // Copy Link Handler
   const handleCopyLink = async () => {
@@ -161,6 +191,58 @@ export default function CourseEditor({ course }: CourseEditorProps) {
     }
   }
 
+  // Move Module Up / Down (Change Sequence)
+  async function handleMoveModule(index: number, direction: "up" | "down") {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= courseModules.length) return;
+
+    const updated = [...courseModules];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, moved);
+
+    setCourseModules(updated);
+    setMsg(null);
+
+    try {
+      await reorderModulesAction(course.id, updated.map(m => m.id));
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: "error", text: err.message || "Failed to update module sequence." });
+      setCourseModules(course.modules || []);
+    }
+  }
+
+  // Move Lesson Up / Down within Module (Change Sequence)
+  async function handleMoveLesson(moduleId: string, lessonIndex: number, direction: "up" | "down") {
+    const modIndex = courseModules.findIndex(m => m.id === moduleId);
+    if (modIndex === -1) return;
+
+    const mod = courseModules[modIndex];
+    const targetIndex = direction === "up" ? lessonIndex - 1 : lessonIndex + 1;
+    if (targetIndex < 0 || targetIndex >= mod.lessons.length) return;
+
+    const updatedLessons = [...mod.lessons];
+    const [moved] = updatedLessons.splice(lessonIndex, 1);
+    updatedLessons.splice(targetIndex, 0, moved);
+
+    const updatedModules = [...courseModules];
+    updatedModules[modIndex] = {
+      ...mod,
+      lessons: updatedLessons,
+    };
+
+    setCourseModules(updatedModules);
+    setMsg(null);
+
+    try {
+      await reorderLessonsAction(moduleId, updatedLessons.map(l => l.id));
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: "error", text: err.message || "Failed to update lesson sequence." });
+      setCourseModules(course.modules || []);
+    }
+  }
+
   // Add Module
   async function handleAddModule(e: React.FormEvent) {
     e.preventDefault();
@@ -168,16 +250,55 @@ export default function CourseEditor({ course }: CourseEditorProps) {
     setLoading(true);
     setMsg(null);
     try {
-      await addModuleAction(course.id, {
+      const res = await addModuleAction(course.id, {
         title: moduleTitle.trim(),
         description: moduleDesc.trim() || undefined,
       });
+      if (res.module) {
+        setCourseModules(prev => [...prev, { ...res.module, lessons: [] }]);
+      }
       setShowModuleModal(false);
       setModuleTitle("");
       setModuleDesc("");
+      setMsg({ type: "success", text: "Module added successfully!" });
       router.refresh();
     } catch (err: any) {
       setMsg({ type: "error", text: err.message || "Failed to add module" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Open Edit Module Modal
+  const handleOpenEditModule = (mod: any) => {
+    setEditingModule(mod);
+    setEditModuleTitle(mod.title || "");
+    setEditModuleDesc(mod.description || "");
+  };
+
+  // Update Module
+  async function handleUpdateModule(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingModule || !editModuleTitle.trim()) return;
+    setLoading(true);
+    setMsg(null);
+    try {
+      await updateModuleAction(editingModule.id, {
+        title: editModuleTitle.trim(),
+        description: editModuleDesc.trim() || undefined,
+      });
+      setCourseModules(prev =>
+        prev.map(m =>
+          m.id === editingModule.id
+            ? { ...m, title: editModuleTitle.trim(), description: editModuleDesc }
+            : m
+        )
+      );
+      setEditingModule(null);
+      setMsg({ type: "success", text: "Module updated successfully!" });
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: "error", text: err.message || "Failed to update module" });
     } finally {
       setLoading(false);
     }
@@ -189,6 +310,8 @@ export default function CourseEditor({ course }: CourseEditorProps) {
     setLoading(true);
     try {
       await deleteModuleAction(moduleId);
+      setCourseModules(prev => prev.filter(m => m.id !== moduleId));
+      setMsg({ type: "success", text: "Module deleted." });
       router.refresh();
     } catch (err: any) {
       setMsg({ type: "error", text: err.message || "Failed to delete module" });
@@ -204,22 +327,74 @@ export default function CourseEditor({ course }: CourseEditorProps) {
     setLoading(true);
     setMsg(null);
     try {
-      await addLessonAction(activeModuleId, {
+      const res = await addLessonAction(activeModuleId, {
         title: lessonTitle.trim(),
-        content: lessonContent.trim() || undefined,
+        content: lessonContent || undefined,
         videoUrl: lessonVideoUrl.trim() || undefined,
         duration: parseInt(lessonDuration) || 0,
         isFree: lessonIsFree,
       });
+      if (res.lesson) {
+        setCourseModules(prev =>
+          prev.map(m =>
+            m.id === activeModuleId
+              ? { ...m, lessons: [...m.lessons, res.lesson] }
+              : m
+          )
+        );
+      }
       setActiveModuleId(null);
       setLessonTitle("");
       setLessonContent("");
       setLessonVideoUrl("");
       setLessonDuration("10");
       setLessonIsFree(false);
+      setMsg({ type: "success", text: "Lesson created successfully!" });
       router.refresh();
     } catch (err: any) {
       setMsg({ type: "error", text: err.message || "Failed to add lesson" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Open Edit Lesson Modal
+  const handleOpenEditLesson = (lesson: any) => {
+    setEditingLesson(lesson);
+    setEditLessonTitle(lesson.title || "");
+    setEditLessonContent(lesson.content || "");
+    setEditLessonVideoUrl(lesson.videoUrl || "");
+    setEditLessonDuration(String(lesson.duration ?? 0));
+    setEditLessonIsFree(!!lesson.isFree);
+  };
+
+  // Update Lesson
+  async function handleUpdateLesson(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingLesson || !editLessonTitle.trim()) return;
+    setLoading(true);
+    setMsg(null);
+    try {
+      const res = await updateLessonAction(editingLesson.id, {
+        title: editLessonTitle.trim(),
+        content: editLessonContent || "",
+        videoUrl: editLessonVideoUrl.trim() || "",
+        duration: parseInt(editLessonDuration) || 0,
+        isFree: editLessonIsFree,
+      });
+      setCourseModules(prev =>
+        prev.map(m => ({
+          ...m,
+          lessons: m.lessons.map((l: any) =>
+            l.id === editingLesson.id ? { ...l, ...res.lesson } : l
+          ),
+        }))
+      );
+      setEditingLesson(null);
+      setMsg({ type: "success", text: "Lesson updated successfully!" });
+      router.refresh();
+    } catch (err: any) {
+      setMsg({ type: "error", text: err.message || "Failed to update lesson" });
     } finally {
       setLoading(false);
     }
@@ -231,6 +406,13 @@ export default function CourseEditor({ course }: CourseEditorProps) {
     setLoading(true);
     try {
       await deleteLessonAction(lessonId);
+      setCourseModules(prev =>
+        prev.map(m => ({
+          ...m,
+          lessons: m.lessons.filter((l: any) => l.id !== lessonId),
+        }))
+      );
+      setMsg({ type: "success", text: "Lesson deleted." });
       router.refresh();
     } catch (err: any) {
       setMsg({ type: "error", text: err.message || "Failed to delete lesson" });
@@ -239,7 +421,7 @@ export default function CourseEditor({ course }: CourseEditorProps) {
     }
   }
 
-  const totalLessons = course.modules.reduce((acc: number, m: any) => acc + m.lessons.length, 0);
+  const totalLessons = courseModules.reduce((acc: number, m: any) => acc + (m.lessons?.length || 0), 0);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-16">
@@ -581,12 +763,12 @@ export default function CourseEditor({ course }: CourseEditorProps) {
             </div>
 
             <div className="space-y-1.5">
-              <textarea
-                rows={8}
+              <RichTextEditor
+                name="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Write full course breakdown, prerequisites, learning outcomes, lab specifications, etc. HTML tags or rich formatting supported..."
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/40 text-slate-900 leading-relaxed"
+                defaultValue={description}
+                onChange={(html) => setDescription(html)}
+                placeholder="Write full course breakdown, prerequisites, learning outcomes, lab specifications, etc. Full rich block formatting supported..."
               />
             </div>
           </div>
@@ -628,7 +810,7 @@ export default function CourseEditor({ course }: CourseEditorProps) {
                   <span>Curriculum &amp; Syllabus Modules</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Organize video lessons, notes, durations, and free previews
+                  Reorder modules &amp; lessons, design syllabus notes with the block editor, attach videos, and set free previews
                 </p>
               </div>
 
@@ -643,7 +825,7 @@ export default function CourseEditor({ course }: CourseEditorProps) {
             </div>
 
             <div className="p-5 space-y-5">
-              {course.modules.length === 0 ? (
+              {courseModules.length === 0 ? (
                 <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
                   <FolderPlus className="mx-auto w-10 h-10 text-slate-300 mb-2" />
                   <p className="font-bold text-slate-800 text-sm">No modules added yet</p>
@@ -659,25 +841,68 @@ export default function CourseEditor({ course }: CourseEditorProps) {
                   </button>
                 </div>
               ) : (
-                course.modules.map((mod: any, modIdx: number) => (
+                courseModules.map((mod: any, modIdx: number) => (
                   <div key={mod.id} className="border border-slate-200/90 rounded-2xl overflow-hidden bg-slate-50/30 shadow-2xs">
                     {/* Module Header */}
-                    <div className="p-4 bg-slate-100/80 border-b border-slate-200/80 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-lg bg-primary text-white text-xs font-black flex items-center justify-center">
+                    <div className="p-4 bg-slate-100/80 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        {/* Module Sequence Reordering Buttons (Up & Down) */}
+                        <div className="flex flex-col gap-0.5 shrink-0 bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
+                          <button
+                            type="button"
+                            disabled={modIdx === 0}
+                            onClick={() => handleMoveModule(modIdx, "up")}
+                            className="p-1 text-slate-500 hover:text-primary hover:bg-slate-100 rounded disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+                            title="Move Module Up in sequence"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={modIdx === courseModules.length - 1}
+                            onClick={() => handleMoveModule(modIdx, "down")}
+                            className="p-1 text-slate-500 hover:text-primary hover:bg-slate-100 rounded disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+                            title="Move Module Down in sequence"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <span className="w-7 h-7 rounded-lg bg-primary text-white text-xs font-black flex items-center justify-center shrink-0">
                           {modIdx + 1}
                         </span>
-                        <div>
-                          <h3 className="font-extrabold text-slate-900 text-sm">{mod.title}</h3>
-                          {mod.description && <p className="text-xs text-slate-500">{mod.description}</p>}
+
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2 flex-wrap">
+                            <span>{mod.title}</span>
+                            <span className="text-[11px] font-medium text-slate-400">
+                              ({mod.lessons?.length || 0} {mod.lessons?.length === 1 ? "lesson" : "lessons"})
+                            </span>
+                          </h3>
+                          {mod.description && (
+                            <div
+                              className="text-xs text-slate-500 mt-1 line-clamp-2 prose prose-xs max-w-none"
+                              dangerouslySetInnerHTML={{ __html: mod.description }}
+                            />
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModule(mod)}
+                          className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1 shadow-2xs transition-colors"
+                          title="Edit Module Details &amp; Syllabus Notes"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Edit Module</span>
+                        </button>
+
                         <button
                           type="button"
                           onClick={() => setActiveModuleId(mod.id)}
-                          className="px-2.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1 shadow-2xs"
+                          className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 flex items-center gap-1 shadow-2xs transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5 text-emerald-600" />
                           <span>Add Lesson</span>
@@ -696,7 +921,7 @@ export default function CourseEditor({ course }: CourseEditorProps) {
 
                     {/* Lessons List */}
                     <div className="divide-y divide-slate-100 bg-white">
-                      {mod.lessons.length === 0 ? (
+                      {!mod.lessons || mod.lessons.length === 0 ? (
                         <div className="p-4 text-center text-xs text-slate-400">
                           No lessons inside this module yet. Click &ldquo;Add Lesson&rdquo; above.
                         </div>
@@ -706,14 +931,36 @@ export default function CourseEditor({ course }: CourseEditorProps) {
                             key={lesson.id}
                             className="p-3 sm:px-4 flex items-center justify-between hover:bg-slate-50/80 transition-colors"
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* Lesson Sequence Reordering Buttons (Up & Down) */}
+                              <div className="flex flex-col gap-0.5 shrink-0 bg-slate-50 border border-slate-200/80 rounded p-0.5">
+                                <button
+                                  type="button"
+                                  disabled={lessonIdx === 0}
+                                  onClick={() => handleMoveLesson(mod.id, lessonIdx, "up")}
+                                  className="p-0.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded disabled:opacity-20 transition-colors"
+                                  title="Move Lesson Up in sequence"
+                                >
+                                  <ArrowUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={lessonIdx === mod.lessons.length - 1}
+                                  onClick={() => handleMoveLesson(mod.id, lessonIdx, "down")}
+                                  className="p-0.5 text-slate-400 hover:text-primary hover:bg-slate-100 rounded disabled:opacity-20 transition-colors"
+                                  title="Move Lesson Down in sequence"
+                                >
+                                  <ArrowDown className="w-3 h-3" />
+                                </button>
+                              </div>
+
                               <PlaySquare className="w-4 h-4 text-slate-400 shrink-0" />
-                              <div>
-                                <div className="flex items-center gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <span className="text-xs text-slate-400 font-mono">
                                     {modIdx + 1}.{lessonIdx + 1}
                                   </span>
-                                  <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                                  <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
                                     {lesson.title}
                                   </span>
                                   {lesson.isFree ? (
@@ -734,27 +981,38 @@ export default function CourseEditor({ course }: CourseEditorProps) {
                                     </span>
                                   )}
                                   {lesson.videoUrl && (
-                                    <span className="flex items-center gap-1 text-blue-600 font-medium">
+                                    <span className="flex items-center gap-1 text-blue-600 font-medium truncate max-w-xs">
                                       <Video className="w-3 h-3" /> Video Attached
                                     </span>
                                   )}
                                   {lesson.content && (
-                                    <span className="flex items-center gap-1">
-                                      <FileText className="w-3 h-3" /> Notes Included
+                                    <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                                      <FileText className="w-3 h-3" /> Rich Content / Notes
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteLesson(lesson.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                              title="Delete lesson"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditLesson(lesson)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit Lesson &amp; Rich Block Notes"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLesson(lesson.id)}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                title="Delete lesson"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
                         ))
                       )}
@@ -767,54 +1025,70 @@ export default function CourseEditor({ course }: CourseEditorProps) {
         </div>
       )}
 
-      {/* ── Modal: Add Module ── */}
+      {/* ── Modal 1: Add Module ── */}
       {showModuleModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <h3 className="text-base font-bold text-slate-900">Add New Module</h3>
-            <form onSubmit={handleAddModule} className="space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-emerald-600" />
+                <span>Add Curriculum &amp; Syllabus Module</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowModuleModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddModule} className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Module Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Module 1: Reconnaissance & OSINT"
+                  placeholder="e.g. Module 1: Core Fundamentals &amp; Setup"
                   value={moduleTitle}
                   onChange={(e) => setModuleTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Description (optional)
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Module Syllabus &amp; Overview (Block Editor)
                 </label>
-                <textarea
-                  rows={2}
-                  placeholder="Summary of this syllabus module..."
+                <p className="text-[11px] text-slate-400">
+                  Write module objectives, prerequisites, syllabus overview, tables, callouts, or notes:
+                </p>
+                <RichTextEditor
+                  name="moduleDesc"
                   value={moduleDesc}
-                  onChange={(e) => setModuleDesc(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+                  defaultValue={moduleDesc}
+                  onChange={(html) => setModuleDesc(html)}
+                  placeholder="Add module syllabus, learning objectives, lab requirements, or breakdown..."
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowModuleModal(false)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-xs"
+                  className="px-5 py-2 text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-xs flex items-center gap-1.5"
                 >
-                  {loading && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />}
-                  Create Module
+                  {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Create Module</span>
                 </button>
               </div>
             </form>
@@ -822,42 +1096,126 @@ export default function CourseEditor({ course }: CourseEditorProps) {
         </div>
       )}
 
-      {/* ── Modal: Add Lesson ── */}
-      {activeModuleId && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
-            <h3 className="text-base font-bold text-slate-900">Add New Lesson</h3>
-            <form onSubmit={handleAddLesson} className="space-y-4">
+      {/* ── Modal 2: Edit Module ── */}
+      {editingModule && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-blue-600" />
+                <span>Edit Module &amp; Syllabus Notes</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingModule(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateModule} className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Module Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Module 1: Core Fundamentals &amp; Setup"
+                  value={editModuleTitle}
+                  onChange={(e) => setEditModuleTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Module Syllabus &amp; Overview (Block Editor)
+                </label>
+                <p className="text-[11px] text-slate-400">
+                  Update syllabus overview, learning outcomes, tables, links, or notes:
+                </p>
+                <RichTextEditor
+                  name="editModuleDesc"
+                  value={editModuleDesc}
+                  defaultValue={editModuleDesc}
+                  onChange={(html) => setEditModuleDesc(html)}
+                  placeholder="Edit module syllabus, learning objectives, lab requirements, or breakdown..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEditingModule(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-5 py-2 text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-xs flex items-center gap-1.5"
+                >
+                  {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal 3: Add Lesson ── */}
+      {activeModuleId && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <PlaySquare className="w-5 h-5 text-emerald-600" />
+                <span>Add Lesson to Module</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setActiveModuleId(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddLesson} className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                   Lesson Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. 1.1 Network Scanning & Port Enumeration"
+                  placeholder="e.g. 1.1 Introduction to the Lab Environment"
                   value={lessonTitle}
                   onChange={(e) => setLessonTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Video URL (YouTube / Vimeo / MP4 / Cloudflare Stream)
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Video URL (YouTube / Vimeo / Direct MP4 / Cloudflare Stream)
                 </label>
                 <input
                   type="url"
-                  placeholder="https://www.youtube.com/watch?v=... or direct MP4"
+                  placeholder="https://www.youtube.com/watch?v=... or direct MP4 link"
                   value={lessonVideoUrl}
                   onChange={(e) => setLessonVideoUrl(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                     Duration (Minutes)
                   </label>
                   <input
@@ -865,53 +1223,179 @@ export default function CourseEditor({ course }: CourseEditorProps) {
                     min="0"
                     value={lessonDuration}
                     onChange={(e) => setLessonDuration(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
 
-                <div className="flex items-center pt-5">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="flex items-center pt-2 sm:pt-6">
+                  <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors w-full">
                     <input
                       type="checkbox"
                       checked={lessonIsFree}
                       onChange={(e) => setLessonIsFree(e.target.checked)}
                       className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
                     />
-                    <span className="text-xs font-bold text-slate-800">
-                      Free Preview Lesson
-                    </span>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">
+                        Free Preview Lesson
+                      </span>
+                      <span className="text-[11px] text-slate-400 block">
+                        Allow prospective students to preview this lesson without enrolling
+                      </span>
+                    </div>
                   </label>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Lesson Notes &amp; Lab Instructions (Markdown / Text)
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Lesson Content, Notes &amp; Lab Instructions (Block Editor)
                 </label>
-                <textarea
-                  rows={4}
-                  placeholder="Key concepts, commands, step-by-step instructions, lab downloads..."
+                <p className="text-[11px] text-slate-400">
+                  Write detailed notes, step-by-step guides, code snippets, download links, callout warnings, tables, and images:
+                </p>
+                <RichTextEditor
+                  name="lessonContent"
                   value={lessonContent}
-                  onChange={(e) => setLessonContent(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  defaultValue={lessonContent}
+                  onChange={(html) => setLessonContent(html)}
+                  placeholder="Write lesson notes, code snippets, cheat sheets, step-by-step lab instructions, images, tables..."
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setActiveModuleId(null)}
-                  className="px-3.5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-xs"
+                  className="px-5 py-2 text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-xs flex items-center gap-1.5"
                 >
-                  {loading && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />}
-                  Save Lesson
+                  {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Save Lesson</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal 4: Edit Lesson ── */}
+      {editingLesson && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 my-8 max-h-[92vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Pencil className="w-5 h-5 text-blue-600" />
+                <span>Edit Lesson &amp; Rich Block Notes</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingLesson(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateLesson} className="flex-1 overflow-y-auto py-3 space-y-4 pr-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Lesson Title <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 1.1 Introduction to the Lab Environment"
+                  value={editLessonTitle}
+                  onChange={(e) => setEditLessonTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Video URL (YouTube / Vimeo / Direct MP4 / Cloudflare Stream)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=... or direct MP4 link"
+                  value={editLessonVideoUrl}
+                  onChange={(e) => setEditLessonVideoUrl(e.target.value)}
+                  className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Duration (Minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editLessonDuration}
+                    onChange={(e) => setEditLessonDuration(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+
+                <div className="flex items-center pt-2 sm:pt-6">
+                  <label className="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors w-full">
+                    <input
+                      type="checkbox"
+                      checked={editLessonIsFree}
+                      onChange={(e) => setEditLessonIsFree(e.target.checked)}
+                      className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">
+                        Free Preview Lesson
+                      </span>
+                      <span className="text-[11px] text-slate-400 block">
+                        Allow prospective students to preview this lesson without enrolling
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Lesson Content, Notes &amp; Lab Instructions (Block Editor)
+                </label>
+                <p className="text-[11px] text-slate-400">
+                  Update detailed notes, step-by-step guides, code snippets, download links, callouts, tables, and images:
+                </p>
+                <RichTextEditor
+                  name="editLessonContent"
+                  value={editLessonContent}
+                  defaultValue={editLessonContent}
+                  onChange={(html) => setEditLessonContent(html)}
+                  placeholder="Edit lesson notes, code snippets, cheat sheets, step-by-step lab instructions, images, tables..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setEditingLesson(null)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-5 py-2 text-xs font-bold bg-primary hover:bg-primary/90 text-white rounded-xl shadow-xs flex items-center gap-1.5"
+                >
+                  {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Save Changes</span>
                 </button>
               </div>
             </form>
