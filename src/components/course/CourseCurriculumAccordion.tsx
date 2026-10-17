@@ -15,11 +15,13 @@ import {
   FileText,
   Sparkles,
   ShoppingBag,
+  DollarSign,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
+import { formatUsd } from "@/lib/currency";
 
 export interface Lesson {
   id: string;
@@ -489,9 +491,9 @@ export default function CourseCurriculumAccordion({
                   href={`/product/${courseSlug}`}
                   className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0"
                 >
-                  <ShoppingBag className="w-4 h-4" />
+                  <DollarSign className="w-4 h-4" />
                   <span>
-                    Enroll Full Course {displayPrice ? `(৳ ${displayPrice})` : ""}
+                    Enroll Full Course {displayPrice ? `(${formatUsd(displayPrice)})` : ""}
                   </span>
                 </Link>
               )}
@@ -533,9 +535,9 @@ export default function CourseCurriculumAccordion({
                   href={`/product/${courseSlug}`}
                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"
                 >
-                  <ShoppingBag className="w-4 h-4" />
+                  <DollarSign className="w-4 h-4" />
                   <span>
-                    Enroll in Course {displayPrice ? `(৳ ${displayPrice})` : ""}
+                    Enroll in Course {displayPrice ? `(${formatUsd(displayPrice)})` : ""}
                   </span>
                 </Link>
               )}

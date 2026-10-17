@@ -4,8 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import CoursePlayer from "./CoursePlayer";
 import Link from "next/link";
-import { Lock, BookOpen, ArrowLeft, ShoppingBag } from "lucide-react";
+import { Lock, BookOpen, ArrowLeft, ShoppingBag, DollarSign } from "lucide-react";
 import CourseCurriculumAccordion from "@/components/course/CourseCurriculumAccordion";
+import { formatUsd } from "@/lib/currency";
 
 export const dynamic = "force-dynamic";
 
@@ -105,7 +106,7 @@ export default async function DashboardCourseLearningPage({
               href={`/product/${course.product.slug}`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm shadow-md transition-colors"
             >
-              <ShoppingBag className="w-4 h-4" /> Enroll Now (৳ {course.product.salePrice || course.product.price})
+              <DollarSign className="w-4 h-4" /> Enroll Now ({formatUsd(course.product.salePrice || course.product.price)})
             </Link>
           </div>
         </div>

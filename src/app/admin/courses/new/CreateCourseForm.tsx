@@ -84,7 +84,7 @@ export default function CreateCourseForm() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Regular Price (৳) <span className="text-red-500">*</span>
+              Regular Price ($) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -99,7 +99,7 @@ export default function CreateCourseForm() {
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Sale / Discount Price (৳) <span className="text-slate-400 font-normal">(Optional)</span>
+              Sale / Discount Price ($) <span className="text-slate-400 font-normal">(Optional)</span>
             </label>
             <input
               type="number"
