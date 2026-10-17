@@ -407,6 +407,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   modules={product.course.modules}
                   courseTitle={product.name}
                   courseSlug={product.slug}
+                  productId={product.id}
+                  courseThumbnail={image}
                   price={product.price}
                   salePrice={product.salePrice}
                 />

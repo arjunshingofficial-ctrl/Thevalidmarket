@@ -235,6 +235,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
                 modules={modules}
                 courseTitle={product.name}
                 courseSlug={product.slug}
+                productId={product.id}
+                courseThumbnail={image}
                 price={product.price}
                 salePrice={product.salePrice}
               />

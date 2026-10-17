@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   PlayCircle,
   Play,
@@ -16,12 +17,14 @@ import {
   Sparkles,
   ShoppingBag,
   DollarSign,
+  Loader2,
   ExternalLink,
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
 import { formatUsd } from "@/lib/currency";
+import { addToCart } from "@/lib/cart";
 
 export interface Lesson {
   id: string;
@@ -43,6 +46,8 @@ export interface CourseCurriculumAccordionProps {
   modules: Module[];
   courseTitle: string;
   courseSlug?: string;
+  productId?: string;
+  courseThumbnail?: string | null;
   price?: number;
   salePrice?: number | null;
 }
@@ -105,9 +110,14 @@ export default function CourseCurriculumAccordion({
   modules,
   courseTitle,
   courseSlug,
+  productId,
+  courseThumbnail,
   price,
   salePrice,
 }: CourseCurriculumAccordionProps) {
+  const router = useRouter();
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
   // Collapsed state for modules
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
@@ -175,6 +185,33 @@ export default function CourseCurriculumAccordion({
     lessonIdx: number
   ) => {
     setActivePreview({ lesson, moduleTitle, modIdx, lessonIdx });
+  };
+
+  const handleEnroll = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    setIsEnrolling(true);
+
+    if (productId) {
+      addToCart({
+        id: productId,
+        name: courseTitle,
+        slug: courseSlug || "",
+        price: (salePrice !== null && salePrice !== undefined && salePrice > 0 ? salePrice : price) || 0,
+        image: courseThumbnail || undefined,
+      });
+    }
+
+    // Unlock body scroll and close modal
+    document.body.style.overflow = "";
+    setActivePreview(null);
+    setLockedLesson(null);
+
+    // Navigate to checkout
+    router.push("/checkout");
   };
 
   const currentFreeIndex = activePreview
@@ -486,17 +523,26 @@ export default function CourseCurriculumAccordion({
                 </p>
               </div>
 
-              {courseSlug && (
-                <Link
-                  href={`/product/${courseSlug}`}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0"
-                >
-                  <DollarSign className="w-4 h-4" />
-                  <span>
-                    Enroll Full Course {displayPrice ? `(${formatUsd(displayPrice)})` : ""}
-                  </span>
-                </Link>
-              )}
+              <button
+                type="button"
+                onClick={handleEnroll}
+                disabled={isEnrolling}
+                className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-75 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 shrink-0 cursor-pointer"
+              >
+                {isEnrolling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Enrolling...</span>
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4" />
+                    <span>
+                      Enroll Full Course {displayPrice ? `(${formatUsd(displayPrice)})` : ""}
+                    </span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -530,17 +576,26 @@ export default function CourseCurriculumAccordion({
             </div>
 
             <div className="pt-2 flex flex-col gap-2">
-              {courseSlug && (
-                <Link
-                  href={`/product/${courseSlug}`}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"
-                >
-                  <DollarSign className="w-4 h-4" />
-                  <span>
-                    Enroll in Course {displayPrice ? `(${formatUsd(displayPrice)})` : ""}
-                  </span>
-                </Link>
-              )}
+              <button
+                type="button"
+                onClick={handleEnroll}
+                disabled={isEnrolling}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-75 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                {isEnrolling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Enrolling...</span>
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4" />
+                    <span>
+                      Enroll in Course {displayPrice ? `(${formatUsd(displayPrice)})` : ""}
+                    </span>
+                  </>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={() => setLockedLesson(null)}

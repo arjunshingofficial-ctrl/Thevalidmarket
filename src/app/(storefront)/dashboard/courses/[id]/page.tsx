@@ -116,6 +116,8 @@ export default async function DashboardCourseLearningPage({
           modules={course.modules}
           courseTitle={course.product.name}
           courseSlug={course.product.slug}
+          productId={course.productId}
+          courseThumbnail={course.thumbnailUrl}
           price={course.product.price}
           salePrice={course.product.salePrice}
         />
