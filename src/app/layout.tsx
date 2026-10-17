@@ -119,6 +119,10 @@ export async function generateMetadata(): Promise<Metadata> {
         "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || "85554159FE50FA2E9F59653F52156EC9",
       },
     },
+    other: {
+      bingbot: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+      msnbot: "index, follow",
+    },
   };
 }
 
