@@ -7,11 +7,17 @@ export default async function AdminSettings() {
   const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
   
   let telegramUrl = "";
+  let telegramActive = true;
+  let whatsappUrl = "";
+  let whatsappActive = true;
   let supportEmail = "support@thevalidmarket.com";
   if (settings?.footerConfig) {
     try { 
       const parsedFooter = JSON.parse(settings.footerConfig);
-      if (parsedFooter.telegramUrl) telegramUrl = parsedFooter.telegramUrl;
+      if (parsedFooter.telegramUrl !== undefined) telegramUrl = parsedFooter.telegramUrl;
+      if (parsedFooter.telegramActive !== undefined) telegramActive = !!parsedFooter.telegramActive;
+      if (parsedFooter.whatsappUrl !== undefined) whatsappUrl = parsedFooter.whatsappUrl;
+      if (parsedFooter.whatsappActive !== undefined) whatsappActive = !!parsedFooter.whatsappActive;
       if (parsedFooter.supportEmail) supportEmail = parsedFooter.supportEmail;
     } catch(e) {}
   }
@@ -41,6 +47,9 @@ export default async function AdminSettings() {
           primaryCurrency,
           defaultOrderStatus,
           telegramUrl,
+          telegramActive,
+          whatsappUrl,
+          whatsappActive,
         }}
       />
     </div>

@@ -8,7 +8,7 @@ import {
   Menu, X, User, LayoutDashboard, ShoppingBag, DownloadCloud, Key, 
   Repeat, BookOpen, Heart, Star, Ticket, Users, Bell, LifeBuoy, 
   UserCircle, ShieldCheck, LogOut, Package, Folders, FileText, 
-  Settings, Globe, ChevronRight, Briefcase, ChevronDown, Wallet, MessageSquare, Copy, Check
+  Settings, Globe, ChevronRight, Briefcase, ChevronDown, Wallet, MessageSquare, Copy, Check, Headphones
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
@@ -95,6 +95,7 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
         { name: "VPN & Proxy", href: "/vpn-proxy", icon: ShieldCheck },
         { name: "Services", href: "/services", icon: Briefcase },
         { name: "News", href: "/blog", icon: FileText },
+        { name: "Contact Us", href: "/contact", icon: Headphones },
       ];
 
   const dashboardLinks = [

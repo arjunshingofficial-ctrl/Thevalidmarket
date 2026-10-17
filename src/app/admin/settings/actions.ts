@@ -6,7 +6,27 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { createAuditLog } from "@/lib/actions/admin";
 
-export async function updateTelegramUrl(formData: FormData) {
+function normalizeTelegramUrl(input: string): string {
+  if (!input) return "";
+  const trimmed = input.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  const clean = trimmed.replace(/^@/, "");
+  return `https://t.me/${clean}`;
+}
+
+function normalizeWhatsAppUrl(input: string): string {
+  if (!input) return "";
+  const trimmed = input.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  const digits = trimmed.replace(/[^\d]/g, "");
+  return digits ? `https://wa.me/${digits}` : "";
+}
+
+export async function updateSupportChannels(formData: FormData) {
   try {
     const session = await getServerSession(authOptions) as any;
     if (!session?.user) {
@@ -17,7 +37,13 @@ export async function updateTelegramUrl(formData: FormData) {
       return { success: false, message: "Forbidden. You do not have permissions to modify settings." };
     }
 
-    const url = formData.get("telegramUrl")?.toString()?.trim() || "";
+    const rawTelegram = formData.get("telegramUrl")?.toString()?.trim() || "";
+    const telegramUrl = normalizeTelegramUrl(rawTelegram);
+    const telegramActive = formData.get("telegramActive") === "true" || formData.get("telegramActive") === "on";
+
+    const rawWhatsApp = formData.get("whatsappUrl")?.toString()?.trim() || "";
+    const whatsappUrl = normalizeWhatsAppUrl(rawWhatsApp);
+    const whatsappActive = formData.get("whatsappActive") === "true" || formData.get("whatsappActive") === "on";
 
     let settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
     if (!settings) {
@@ -31,7 +57,13 @@ export async function updateTelegramUrl(formData: FormData) {
       footerConfig = {};
     }
 
-    footerConfig = { ...footerConfig, telegramUrl: url };
+    footerConfig = {
+      ...footerConfig,
+      telegramUrl,
+      telegramActive,
+      whatsappUrl,
+      whatsappActive,
+    };
 
     await prisma.siteSettings.update({
       where: { id: "GLOBAL" },
@@ -39,25 +71,34 @@ export async function updateTelegramUrl(formData: FormData) {
     });
 
     await createAuditLog({
-      action: "TELEGRAM_LINK_UPDATED",
+      action: "SUPPORT_CHANNELS_UPDATED",
       entity: "SiteSettings",
       entityId: "GLOBAL",
-      metadata: { telegramUrl: url }
+      metadata: { telegramUrl, telegramActive, whatsappUrl, whatsappActive }
     });
 
     revalidatePath("/login");
     revalidatePath("/admin/settings");
+    revalidatePath("/contact");
     revalidatePath("/");
     revalidatePath("/store");
 
-    return { success: true, message: "Community Telegram link updated successfully!" };
+    return { 
+      success: true, 
+      message: "Telegram & WhatsApp support channels updated successfully!",
+      data: { telegramUrl, telegramActive, whatsappUrl, whatsappActive }
+    };
   } catch (error: any) {
-    console.error("Failed to update telegram link:", error);
+    console.error("Failed to update support channels:", error);
     return {
       success: false,
-      message: error?.message || "Failed to update community link. Please try again.",
+      message: error?.message || "Failed to update support channels. Please try again.",
     };
   }
+}
+
+export async function updateTelegramUrl(formData: FormData) {
+  return updateSupportChannels(formData);
 }
 
 export async function updateGeneralSettings(formData: FormData) {
