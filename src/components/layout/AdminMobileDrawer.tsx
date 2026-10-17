@@ -22,7 +22,7 @@ interface AdminMobileDrawerProps {
 
 export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMobileDrawerProps) {
   const pathname = usePathname();
-  const { byPath, byGroup } = useAdminBadges();
+  const { hasUnseen, hasUnseenGroup, getBadgeCount, markAsSeen } = useAdminBadges();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -215,7 +215,10 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                     <Link
                       key={`${groupLabel}-${item.name}`}
                       href={item.href}
-                      onClick={onClose}
+                      onClick={() => {
+                        markAsSeen(item.href);
+                        onClose();
+                      }}
                       className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-colors ${
                         active
                           ? "bg-primary text-white font-medium shadow-sm"
@@ -239,6 +242,7 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
             /* GROUPED CATEGORIES ACCORDION VIEW */
             NAV_GROUPS.map((group) => {
               const groupHasActive = group.items.some(item => isActive(item.href));
+              const isGroupUnseen = hasUnseenGroup(group.label, group.items);
               // Default to expanded if group contains active item, or check state
               const isCollapsed = collapsedGroups[group.label] !== undefined
                 ? collapsedGroups[group.label]
@@ -261,14 +265,11 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                       }`}>
                         {group.label}
                       </span>
-                      {byGroup[group.label] > 0 ? (
+                      {isGroupUnseen ? (
                         <span className="flex items-center gap-1.5 ml-1">
                           <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                          </span>
-                          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500 text-white font-extrabold">
-                            {byGroup[group.label]}
                           </span>
                         </span>
                       ) : (
@@ -290,13 +291,17 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                       {group.items.map((item) => {
                         const active = isActive(item.href);
                         const Icon = item.icon;
-                        const badgeCount = byPath[item.href] || 0;
+                        const itemUnseen = hasUnseen(item.href);
+                        const badgeCount = getBadgeCount(item.href);
 
                         return (
                           <Link
                             key={`${group.label}-${item.name}`}
                             href={item.href}
-                            onClick={onClose}
+                            onClick={() => {
+                              markAsSeen(item.href);
+                              onClose();
+                            }}
                             className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                               active
                                 ? "bg-primary text-white shadow-sm font-semibold"
@@ -309,7 +314,7 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                              {badgeCount > 0 && (
+                              {itemUnseen && badgeCount > 0 && (
                                 <span className="flex items-center gap-1.5">
                                   <span className="relative flex h-2 w-2">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -326,7 +331,7 @@ export default function AdminMobileDrawer({ isOpen, onClose, session }: AdminMob
                                   </span>
                                 </span>
                               )}
-                              {active && !badgeCount && (
+                              {active && !itemUnseen && (
                                 <div className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />
                               )}
                             </div>

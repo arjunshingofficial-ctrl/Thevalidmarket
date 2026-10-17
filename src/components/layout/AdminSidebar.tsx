@@ -13,13 +13,14 @@ import { useAdminBadges } from "@/components/providers/AdminBadgeContext";
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { byPath, byGroup } = useAdminBadges();
+  const { hasUnseen, hasUnseenGroup, getBadgeCount, markAsSeen } = useAdminBadges();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [isPending, startTransition] = useTransition();
   const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   const handleNavigation = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
+    markAsSeen(href);
     if (pathname === href) return;
     setPendingPath(href);
     startTransition(() => {
@@ -62,7 +63,7 @@ export default function AdminSidebar() {
         {NAV_GROUPS.map((group) => {
           const groupActive = isGroupActive(group.items);
           const isCollapsed = collapsed[group.label] ?? false;
-          const groupBadgeCount = byGroup[group.label] || 0;
+          const isGroupUnseen = hasUnseenGroup(group.label, group.items);
 
           return (
             <div key={group.label} className="mb-1">
@@ -74,7 +75,7 @@ export default function AdminSidebar() {
               >
                 <div className="flex items-center gap-1.5">
                   <span>{group.label}</span>
-                  {groupBadgeCount > 0 && (
+                  {isGroupUnseen && (
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
@@ -93,7 +94,8 @@ export default function AdminSidebar() {
                   {group.items.map((item) => {
                     const active = isActive(item.href);
                     const isItemPending = pendingPath === item.href;
-                    const badgeCount = byPath[item.href] || 0;
+                    const itemUnseen = hasUnseen(item.href);
+                    const badgeCount = getBadgeCount(item.href);
 
                     return (
                       <Link
@@ -112,7 +114,7 @@ export default function AdminSidebar() {
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {badgeCount > 0 && (
+                          {itemUnseen && badgeCount > 0 && (
                             <span className="flex items-center gap-1.5">
                               <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>

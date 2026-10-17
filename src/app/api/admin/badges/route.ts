@@ -17,16 +17,36 @@ export async function GET() {
     const now = new Date();
     const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Run parallel count queries with resilient fallbacks
+    const maxIso = (...isos: (string | null | undefined)[]): string | null => {
+      const valid = isos.filter((s): s is string => Boolean(s));
+      if (valid.length === 0) return null;
+      valid.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+      return valid[0];
+    };
+
+    const toIso = (date?: Date | null): string | null => {
+      if (!date || isNaN(date.getTime())) return null;
+      return date.toISOString();
+    };
+
+    // Run parallel count and latest timestamp queries with resilient fallbacks
     const [
       pendingOrders,
+      latestOrder,
       pendingOrderPayments,
+      latestOrderPayment,
       pendingWalletDeposits,
+      latestWalletDeposit,
       newCustomers,
+      latestUser,
       pendingChats,
+      latestChat,
       openTickets,
+      latestTicket,
       pendingComments,
+      latestComment,
       pendingReviews,
+      latestReview,
     ] = await Promise.all([
       // 1. Pending / Needs Fulfillment Orders
       prisma.order.count({
@@ -37,6 +57,16 @@ export async function GET() {
           ],
         },
       }).catch(() => 0),
+      prisma.order.findFirst({
+        where: {
+          OR: [
+            { orderStatus: "PENDING" },
+            { paymentStatus: "PENDING" },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }).catch(() => null),
 
       // 2. Order Payments in Review
       prisma.payment.count({
@@ -45,6 +75,14 @@ export async function GET() {
           mode: "MANUAL",
         },
       }).catch(() => 0),
+      prisma.payment.findFirst({
+        where: {
+          status: "PAYMENT_REVIEW",
+          mode: "MANUAL",
+        },
+        orderBy: { updatedAt: "desc" },
+        select: { updatedAt: true, createdAt: true },
+      }).catch(() => null),
 
       // 3. Wallet Deposits in Review
       prisma.walletDeposit.count({
@@ -52,6 +90,13 @@ export async function GET() {
           status: "PAYMENT_REVIEW",
         },
       }).catch(() => 0),
+      prisma.walletDeposit.findFirst({
+        where: {
+          status: "PAYMENT_REVIEW",
+        },
+        orderBy: { updatedAt: "desc" },
+        select: { updatedAt: true, createdAt: true },
+      }).catch(() => null),
 
       // 4. New Customers in last 24h
       prisma.user.count({
@@ -59,6 +104,13 @@ export async function GET() {
           createdAt: { gte: since24h },
         },
       }).catch(() => 0),
+      prisma.user.findFirst({
+        where: {
+          createdAt: { gte: since24h },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }).catch(() => null),
 
       // 5. Chat Messages pending moderation
       prisma.chatMessage.count({
@@ -66,6 +118,13 @@ export async function GET() {
           status: "PENDING",
         },
       }).catch(() => 0),
+      prisma.chatMessage.findFirst({
+        where: {
+          status: "PENDING",
+        },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }).catch(() => null),
 
       // 6. Open / Pending Support Tickets
       prisma.supportTicket.count({
@@ -73,6 +132,13 @@ export async function GET() {
           status: { in: ["OPEN", "PENDING"] },
         },
       }).catch(() => 0),
+      prisma.supportTicket.findFirst({
+        where: {
+          status: { in: ["OPEN", "PENDING"] },
+        },
+        orderBy: { updatedAt: "desc" },
+        select: { updatedAt: true, createdAt: true },
+      }).catch(() => null),
 
       // 7. Blog Comments awaiting moderation
       prisma.blogComment.count({
@@ -80,6 +146,13 @@ export async function GET() {
           status: "PENDING",
         },
       }).catch(() => 0),
+      prisma.blogComment.findFirst({
+        where: {
+          status: "PENDING",
+        },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }).catch(() => null),
 
       // 8. Product Reviews awaiting approval
       prisma.review.count({
@@ -87,9 +160,27 @@ export async function GET() {
           status: "PENDING",
         },
       }).catch(() => 0),
+      prisma.review.findFirst({
+        where: {
+          status: "PENDING",
+        },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }).catch(() => null),
     ]);
 
     const totalPaymentReviews = pendingOrderPayments + pendingWalletDeposits;
+
+    const latestOrderAt = toIso(latestOrder?.createdAt);
+    const latestPaymentAt = maxIso(
+      toIso(latestOrderPayment?.updatedAt || latestOrderPayment?.createdAt),
+      toIso(latestWalletDeposit?.updatedAt || latestWalletDeposit?.createdAt)
+    );
+    const latestCustomerAt = toIso(latestUser?.createdAt);
+    const latestChatAt = toIso(latestChat?.createdAt);
+    const latestTicketAt = toIso(latestTicket?.updatedAt || latestTicket?.createdAt);
+    const latestCommentAt = toIso(latestComment?.createdAt);
+    const latestReviewAt = toIso(latestReview?.createdAt);
 
     const badges = {
       orders: pendingOrders,
@@ -101,7 +192,32 @@ export async function GET() {
       reviews: pendingReviews,
     };
 
-    const byPath: Record<string, number> = {
+    const byPath: Record<string, { count: number; latestAt: string | null }> = {
+      "/admin/orders": { count: pendingOrders, latestAt: latestOrderAt },
+      "/admin/payments/review": { count: totalPaymentReviews, latestAt: latestPaymentAt },
+      "/admin/customers": { count: newCustomers, latestAt: latestCustomerAt },
+      "/admin/chat": { count: pendingChats, latestAt: latestChatAt },
+      "/admin/support": { count: openTickets, latestAt: latestTicketAt },
+      "/admin/blog/comments": { count: pendingComments, latestAt: latestCommentAt },
+      "/admin/reviews": { count: pendingReviews, latestAt: latestReviewAt },
+    };
+
+    const byGroup: Record<string, { count: number; latestAt: string | null }> = {
+      "ORDERS & COMMERCE": {
+        count: pendingOrders + totalPaymentReviews,
+        latestAt: maxIso(latestOrderAt, latestPaymentAt),
+      },
+      "CUSTOMERS": {
+        count: newCustomers + pendingChats + openTickets + pendingReviews,
+        latestAt: maxIso(latestCustomerAt, latestChatAt, latestTicketAt, latestReviewAt),
+      },
+      "CONTENT": {
+        count: pendingComments,
+        latestAt: latestCommentAt,
+      },
+    };
+
+    const counts: Record<string, number> = {
       "/admin/orders": pendingOrders,
       "/admin/payments/review": totalPaymentReviews,
       "/admin/customers": newCustomers,
@@ -109,12 +225,6 @@ export async function GET() {
       "/admin/support": openTickets,
       "/admin/blog/comments": pendingComments,
       "/admin/reviews": pendingReviews,
-    };
-
-    const byGroup: Record<string, number> = {
-      "ORDERS & COMMERCE": pendingOrders + totalPaymentReviews,
-      "CUSTOMERS": newCustomers + pendingChats + openTickets + pendingReviews,
-      "CONTENT": pendingComments,
     };
 
     const total =
@@ -217,6 +327,7 @@ export async function GET() {
       badges,
       byPath,
       byGroup,
+      counts,
       total,
       recentItems,
     });

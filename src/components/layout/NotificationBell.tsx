@@ -23,7 +23,7 @@ export function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const { recentItems, total: badgesTotal } = useAdminBadges();
+  const { recentItems, unseenTotal, hasUnseen, markAsSeen, markAllAsSeen } = useAdminBadges();
 
   const fetchNotifications = async () => {
     try {
@@ -80,6 +80,9 @@ export function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
 
   const markAllAsRead = async () => {
     try {
+      if (isAdmin) {
+        markAllAsSeen();
+      }
       const url = isAdmin ? "/api/admin/notifications/read" : "/api/notifications/read";
       await fetch(url, {
         method: "POST",
@@ -94,7 +97,8 @@ export function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
     }
   };
 
-  const totalActionCount = isAdmin ? (badgesTotal + unreadCount) : unreadCount;
+  const totalActionCount = isAdmin ? (unseenTotal + unreadCount) : unreadCount;
+  const unseenRecentItems = isAdmin ? recentItems.filter(item => hasUnseen(item.href)) : [];
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -122,7 +126,7 @@ export function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
                 </span>
               )}
             </div>
-            {unreadCount > 0 && (
+            {(unreadCount > 0 || (isAdmin && unseenTotal > 0)) && (
               <button
                 onClick={markAllAsRead}
                 className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer"
@@ -134,7 +138,7 @@ export function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
 
           <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
             {/* Admin Action Center for Pending Items */}
-            {isAdmin && recentItems.length > 0 && (
+            {isAdmin && unseenRecentItems.length > 0 && (
               <div className="p-3 bg-gradient-to-b from-indigo-50/60 to-slate-50/30">
                 <div className="flex items-center justify-between mb-2 px-1">
                   <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
@@ -142,15 +146,18 @@ export function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                     </span>
-                    Needs Action ({recentItems.length})
+                    Needs Action ({unseenRecentItems.length})
                   </span>
                 </div>
                 <div className="space-y-1.5">
-                  {recentItems.map((item) => (
+                  {unseenRecentItems.map((item) => (
                     <Link
                       key={item.id}
                       href={item.href}
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => {
+                        markAsSeen(item.href);
+                        setIsOpen(false);
+                      }}
                       className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-indigo-100/80 hover:border-indigo-300 hover:shadow-xs transition-all group"
                     >
                       <div className="min-w-0 pr-2">
