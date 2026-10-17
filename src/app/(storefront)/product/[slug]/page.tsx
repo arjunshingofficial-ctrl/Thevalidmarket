@@ -14,6 +14,7 @@ import { formatUsd } from "@/lib/currency";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
 import { getBaseUrl } from "@/lib/siteUrl";
 import ContentWithShortcodes from "@/components/shortcodes/ContentWithShortcodes";
+import CourseCurriculumAccordion from "@/components/course/CourseCurriculumAccordion";
 
 import { unstable_cache } from "next/cache";
 
@@ -399,52 +400,16 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               />
             </div>
 
-            {/* Course Section */}
+            {/* Course Curriculum & Syllabus with Interactive Free Preview */}
             {product.course && product.course.modules.length > 0 && (
-              <div className="bg-white rounded-3xl p-8 lg:p-12 shadow-sm border border-slate-200/60">
-                <div className="border-b border-slate-100 pb-6 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Curriculum & Syllabus</h2>
-                    <p className="text-sm text-slate-500 mt-1.5 font-medium">
-                      Instructor: <span className="font-bold text-slate-800">{product.course.instructor || "Lead Instructor"}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-bold text-primary bg-primary/5 px-4 py-2 rounded-lg border border-primary/10">
-                    {product.course.modules.length} Modules • {product.course.modules.reduce((acc, m) => acc + m.lessons.length, 0)} Lessons
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {product.course.modules.map((mod, modIdx) => (
-                    <div key={mod.id} className="border border-slate-200/60 rounded-2xl overflow-hidden bg-white shadow-sm hover:border-slate-300 transition-colors">
-                      <div className="p-5 bg-slate-50 border-b border-slate-100 font-bold text-slate-900 flex justify-between items-center">
-                        <span className="flex items-center gap-3">
-                          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white text-primary shadow-sm border border-slate-100 text-xs">{modIdx + 1}</span>
-                          {mod.title}
-                        </span>
-                        <span className="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-full font-medium border border-slate-100">{mod.lessons.length} lessons</span>
-                      </div>
-                      <div className="divide-y divide-slate-100">
-                        {mod.lessons.map((lesson, lessonIdx) => (
-                          <div key={lesson.id} className="p-4 px-6 flex items-center justify-between text-sm group hover:bg-slate-50/50 transition-colors">
-                            <div className="flex items-center gap-3">
-                              <span className="text-slate-300 font-mono text-xs w-6">{modIdx + 1}.{lessonIdx + 1}</span>
-                              <span className="text-slate-700 font-medium group-hover:text-slate-900 transition-colors">{lesson.title}</span>
-                              {lesson.isFree && (
-                                <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 rounded-md">
-                                  FREE PREVIEW
-                                </span>
-                              )}
-                            </div>
-                            {lesson.duration && lesson.duration > 0 ? (
-                              <span className="text-slate-400 text-xs font-medium bg-slate-100 px-2 py-1 rounded">{lesson.duration}m</span>
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div id="curriculum">
+                <CourseCurriculumAccordion
+                  modules={product.course.modules}
+                  courseTitle={product.name}
+                  courseSlug={product.slug}
+                  price={product.price}
+                  salePrice={product.salePrice}
+                />
               </div>
             )}
 

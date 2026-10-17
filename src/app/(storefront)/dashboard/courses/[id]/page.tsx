@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation";
 import CoursePlayer from "./CoursePlayer";
 import Link from "next/link";
 import { Lock, BookOpen, ArrowLeft, ShoppingBag } from "lucide-react";
+import CourseCurriculumAccordion from "@/components/course/CourseCurriculumAccordion";
 
 export const dynamic = "force-dynamic";
 
@@ -109,35 +110,14 @@ export default async function DashboardCourseLearningPage({
           </div>
         </div>
 
-        {/* Syllabus Preview with lock indicators */}
-        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-          <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-emerald-600" /> Course Curriculum ({course.modules.length} Modules)
-          </h3>
-          <div className="space-y-4">
-            {course.modules.map((mod, modIdx) => (
-              <div key={mod.id} className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="p-3.5 bg-slate-50 font-semibold text-slate-900 text-xs sm:text-sm">
-                  Module {modIdx + 1}: {mod.title}
-                </div>
-                <div className="divide-y divide-slate-100 bg-white">
-                  {mod.lessons.map((lesson, lessonIdx) => (
-                    <div key={lesson.id} className="p-3 px-4 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <span className="font-mono text-slate-400">{modIdx + 1}.{lessonIdx + 1}</span>
-                        <span>{lesson.title}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-slate-400">
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Locked</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Interactive Syllabus Preview with Free Previews */}
+        <CourseCurriculumAccordion
+          modules={course.modules}
+          courseTitle={course.product.name}
+          courseSlug={course.product.slug}
+          price={course.product.price}
+          salePrice={course.product.salePrice}
+        />
       </div>
     );
   }
