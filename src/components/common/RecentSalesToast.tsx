@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, Star, X, Check } from "lucide-react";
+import { ShoppingCart, Star, X, Check, ShieldCheck } from "lucide-react";
 import { addToCart } from "@/lib/cart";
 import { normalizeImageUrl } from "@/lib/storage/client";
 
@@ -18,7 +18,7 @@ interface SocialProduct {
   stars?: number;
 }
 
-// Indian cities prominently mixed with major global hubs
+// Indian locations mixed with major global hubs
 const GLOBAL_LOCATIONS = [
   // India locations
   "Mumbai, India",
@@ -61,10 +61,9 @@ const TIME_AGO_OPTIONS = [
   "About 7 minutes ago",
   "About 11 minutes ago",
   "About 16 minutes ago",
-  "About 23 minutes ago",
+  "About 22 minutes ago",
   "About 27 minutes ago",
-  "About 34 minutes ago",
-  "About 42 minutes ago",
+  "About 35 minutes ago",
   "Just now",
 ];
 
@@ -114,8 +113,8 @@ export default function RecentSalesToast() {
     const randomLocation = GLOBAL_LOCATIONS[Math.floor(Math.random() * GLOBAL_LOCATIONS.length)];
     // Pick random timestamp
     const randomTime = TIME_AGO_OPTIONS[Math.floor(Math.random() * TIME_AGO_OPTIONS.length)];
-    // Pick rating: 80% 5-star, 20% 4-star
-    const randomRating = Math.random() > 0.25 ? 5 : 4;
+    // Pick rating: 85% 5-star, 15% 4-star
+    const randomRating = Math.random() > 0.15 ? 5 : 4;
 
     setCurrentProduct(randomProduct);
     setLocation(randomLocation);
@@ -197,128 +196,143 @@ export default function RecentSalesToast() {
   };
 
   const imageUrl = normalizeImageUrl(currentProduct.image || "/images/cards/cards-deck.jpg");
+  const isWhiteLogo =
+    imageUrl.includes("/cards/") &&
+    !imageUrl.includes("cards-deck") &&
+    !imageUrl.includes("amex");
 
   return (
     <div
-      className="fixed top-24 right-3 sm:top-24 sm:right-6 z-[100] max-w-[calc(100vw-1.5rem)] sm:max-w-[430px] animate-in fade-in slide-in-from-top-4 sm:slide-in-from-right-4 duration-300 select-none group"
+      className="fixed top-[108px] inset-x-3 max-w-[390px] mx-auto sm:mx-0 sm:left-auto sm:right-6 sm:top-28 sm:w-[380px] z-[90] animate-in fade-in slide-in-from-top-4 sm:slide-in-from-right-4 duration-300 select-none group"
       role="status"
       aria-live="polite"
     >
-      {/* Enhanced Pill Container with Red Glow and Glassmorphism */}
-      <div className="relative flex items-center bg-gradient-to-r from-[#0d0d12] via-[#09090c] to-[#0d0d12] border border-neutral-700/80 hover:border-red-500/50 rounded-full p-2.5 pr-4 sm:pr-5 shadow-[0_10px_35px_-5px_rgba(0,0,0,0.85),0_0_20px_rgba(239,68,68,0.18)] backdrop-blur-2xl ring-1 ring-white/10 transition-all duration-300 overflow-hidden">
+      {/* Sleek Floating Glassmorphic Card */}
+      <div className="relative bg-gradient-to-br from-[#0e0e14]/98 via-[#09090e]/98 to-[#050508]/98 border border-neutral-700/80 hover:border-red-500/50 rounded-2xl p-3 sm:p-3.5 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.85),0_0_20px_rgba(239,68,68,0.18)] backdrop-blur-2xl ring-1 ring-white/10 transition-all duration-300 overflow-hidden">
         
         {/* Subtle animated progress bar at the bottom */}
-        <div 
-          className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 rounded-full opacity-80"
+        <div
+          className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-red-600 via-rose-500 to-amber-400 opacity-90"
           style={{
-            animation: "salesProgress 6.5s linear forwards",
+            animation: "salesCardProgress 6.5s linear forwards",
           }}
         />
 
-        {/* Dismiss Button */}
-        <button
-          type="button"
-          onClick={handleDismiss}
-          className="absolute -top-1 -right-1 w-5 h-5 bg-neutral-900 border border-neutral-700 text-neutral-400 hover:text-white rounded-full flex items-center justify-center opacity-85 sm:opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-md hover:bg-neutral-800"
-          aria-label="Close notification"
-        >
-          <X className="w-3 h-3" />
-        </button>
-
-        {/* Circular Product Thumbnail with glow ring */}
-        <Link
-          href={`/product/${currentProduct.slug}`}
-          className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden shrink-0 border-2 border-red-500/50 bg-neutral-950 flex items-center justify-center cursor-pointer group-hover:scale-105 transition-transform shadow-inner ring-2 ring-black"
-        >
-          <Image
-            src={imageUrl}
-            alt={currentProduct.name}
-            fill
-            sizes="64px"
-            className="object-cover"
-          />
-        </Link>
-
-        {/* Text & Action Details */}
-        <div className="ml-3 sm:ml-3.5 flex-1 min-w-0 pr-1">
-          {/* Top Line: Red accent text with pulsing live dot */}
-          <div className="flex items-center gap-1.5 leading-tight">
+        {/* Top Meta Row: Live pulse + Location + Timestamp + Dismiss */}
+        <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-neutral-800/80">
+          <div className="flex items-center gap-1.5 min-w-0">
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <p className="text-[11px] sm:text-xs font-semibold text-[#ff334b] truncate">
-              Someone in <span className="text-white font-bold underline decoration-[#ff334b]/60">{location}</span> purchased a
+            <p className="text-[11px] sm:text-xs text-neutral-300 font-medium truncate">
+              Someone in <span className="text-[#ff3850] font-bold">{location}</span>
             </p>
           </div>
 
-          {/* Product Name: Bold uppercase white text */}
-          <Link
-            href={`/product/${currentProduct.slug}`}
-            className="block text-white font-black text-xs sm:text-[13px] tracking-wide uppercase truncate leading-tight mt-1 hover:text-red-400 transition-colors drop-shadow"
-            title={currentProduct.displayName || currentProduct.name}
-          >
-            {currentProduct.displayName || currentProduct.name}
-          </Link>
-
-          {/* Stars line: coral/amber rating */}
-          <div className="flex items-center gap-0.5 my-1">
-            {[1, 2, 3, 4, 5].map((starIdx) => {
-              const isFilled = starIdx <= ratingPattern;
-              return (
-                <Star
-                  key={starIdx}
-                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${
-                    isFilled
-                      ? "fill-[#f59e0b] text-[#f59e0b] drop-shadow-[0_0_2px_rgba(245,158,11,0.5)]"
-                      : "text-[#f59e0b] stroke-[1.5]"
-                  }`}
-                />
-              );
-            })}
-          </div>
-
-          {/* Bottom Line: Timestamp on left, Add to cart button on right */}
-          <div className="flex items-center justify-between gap-2 mt-0.5">
-            <span className="text-[10px] sm:text-[11px] font-medium text-rose-400/90 truncate">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] text-neutral-400 font-medium">
               {timeAgo}
             </span>
-
-            {/* Red pill button with cyan circular cart icon */}
             <button
               type="button"
-              onClick={handleAddToCart}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1 sm:py-1 rounded-full text-xs font-black transition-all active:scale-95 shadow-md ${
-                isAdded
-                  ? "bg-emerald-500 text-white shadow-emerald-500/30"
-                  : "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-black shadow-red-600/40"
-              }`}
-              aria-label={`Add ${currentProduct.name} to cart`}
+              onClick={handleDismiss}
+              className="w-5 h-5 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-700/60 text-neutral-400 hover:text-white flex items-center justify-center transition-colors"
+              aria-label="Close notification"
             >
-              {isAdded ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-white stroke-[3]" />
-                  <span className="font-extrabold text-[11px] sm:text-xs">Added!</span>
-                </>
-              ) : (
-                <>
-                  {/* Cyan circle with red cart icon */}
-                  <span className="w-4 h-4 sm:w-[18px] sm:h-[18px] rounded-full bg-[#00f2fe] flex items-center justify-center shrink-0 shadow-sm">
-                    <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-600 fill-red-600 stroke-[2.5]" />
-                  </span>
-                  <span className="text-black font-extrabold text-[11px] sm:text-xs tracking-tight">
-                    Add to cart
-                  </span>
-                </>
-              )}
+              <X className="w-3 h-3" />
             </button>
           </div>
+        </div>
+
+        {/* Main Product Row */}
+        <div className="flex items-center gap-3 pt-2.5">
+          {/* Thumbnail */}
+          <Link
+            href={`/product/${currentProduct.slug}`}
+            className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden shrink-0 border border-neutral-700/80 bg-neutral-900 flex items-center justify-center cursor-pointer group-hover:scale-105 transition-transform shadow-md"
+          >
+            <Image
+              src={imageUrl}
+              alt={currentProduct.name}
+              fill
+              sizes="56px"
+              className={isWhiteLogo ? "object-contain p-1.5 bg-white" : "object-cover"}
+            />
+          </Link>
+
+          {/* Product Info */}
+          <div className="flex-1 min-w-0">
+            <Link
+              href={`/product/${currentProduct.slug}`}
+              className="block font-black text-white text-xs sm:text-[13px] tracking-wide uppercase truncate leading-snug hover:text-red-400 transition-colors"
+              title={currentProduct.displayName || currentProduct.name}
+            >
+              {currentProduct.displayName || currentProduct.name}
+            </Link>
+
+            {/* Stars & Price */}
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="flex items-center gap-0.5">
+                {[1, 2, 3, 4, 5].map((starIdx) => {
+                  const isFilled = starIdx <= ratingPattern;
+                  return (
+                    <Star
+                      key={starIdx}
+                      className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+                        isFilled
+                          ? "fill-[#f59e0b] text-[#f59e0b]"
+                          : "text-[#f59e0b] stroke-[1.5]"
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+
+              <span className="text-[11px] sm:text-xs font-bold text-emerald-400">
+                ${Number(currentProduct.price || 0).toFixed(2)}
+              </span>
+
+              <span className="hidden sm:inline-flex items-center gap-0.5 text-[9px] font-semibold text-neutral-400 uppercase tracking-wider bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
+                Verified
+              </span>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black transition-all active:scale-95 shadow-md ${
+              isAdded
+                ? "bg-emerald-500 text-white shadow-emerald-500/30"
+                : "bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-600/30"
+            }`}
+            aria-label={`Add ${currentProduct.name} to cart`}
+          >
+            {isAdded ? (
+              <>
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                <span className="font-extrabold text-[11px] sm:text-xs">Added!</span>
+              </>
+            ) : (
+              <>
+                <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-[#00f2fe] flex items-center justify-center shrink-0 shadow-sm">
+                  <ShoppingCart className="w-2.5 h-2.5 text-red-600 fill-red-600 stroke-[2.5]" />
+                </span>
+                <span className="font-extrabold text-[11px] sm:text-xs whitespace-nowrap">
+                  Add to cart
+                </span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Embedded keyframe animation for the progress bar */}
       <style jsx global>{`
-        @keyframes salesProgress {
+        @keyframes salesCardProgress {
           0% {
             width: 100%;
           }
