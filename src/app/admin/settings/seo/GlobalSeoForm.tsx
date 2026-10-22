@@ -289,7 +289,7 @@ export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
                 <span className="text-slate-400 font-mono text-[11px]">› {initialData.siteUrl.replace(/^https?:\/\//, "")}</span>
               </div>
               <h4 className="text-base font-medium text-[#1a0dab] hover:underline cursor-pointer leading-snug">
-                {siteName || "The Valid Market"} | Premium Digital Products, Tools &amp; Software
+                {siteName || "The Valid Market"} - Hacking Course + Tools + CC
               </h4>
               <p className="text-xs text-[#4d5156] leading-relaxed line-clamp-2">
                 {siteDescription || "Explore The Valid Market: The premier digital marketplace for premium tools, verified software licenses, expert courses, proxies, and digital assets with instant delivery."}

@@ -38,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(baseUrl),
     title: {
-      default: `${siteName} | Premium Digital Products, Tools & Software Marketplace`,
+      default: `${siteName} - Hacking Course + Tools + CC`,
       template: `%s | ${siteName}`,
     },
     description: siteDescription,
@@ -68,20 +68,20 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "en_US",
       url: baseUrl,
       siteName: siteName,
-      title: `${siteName} | Premium Digital Products, Tools & Software Marketplace`,
+      title: `${siteName} - Hacking Course + Tools + CC`,
       description: siteDescription,
       images: [
         {
           url: defaultOgImage,
           width: 1200,
           height: 630,
-          alt: `${siteName} - Digital Marketplace`,
+          alt: `${siteName} - Hacking Course + Tools + CC`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${siteName} | Premium Digital Products, Tools & Software Marketplace`,
+      title: `${siteName} - Hacking Course + Tools + CC`,
       description: siteDescription,
       images: [defaultOgImage],
       creator: twitterHandle,
