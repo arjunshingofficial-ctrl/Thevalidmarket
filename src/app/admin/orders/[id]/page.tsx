@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Edit3, ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ReconcileButton } from "./ReconcileButton";
+import { RefundButton } from "./RefundButton";
 import { OrderDownloadsManager } from "./OrderDownloadsManager";
 import ClientDateTime from "@/components/common/ClientDateTime";
 
@@ -106,6 +107,15 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <RefundButton
+            orderId={order.id}
+            orderNumber={order.id.slice(0, 8).toUpperCase()}
+            total={order.total}
+            customerName={order.user.name}
+            customerEmail={order.user.email}
+            paymentStatus={order.paymentStatus}
+            orderStatus={order.orderStatus}
+          />
           {order.paymentStatus === "PAID" && (
              <ReconcileButton orderId={order.id} />
           )}
@@ -235,6 +245,32 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
                 <span>Total</span>
                 <span>${order.total}</span>
               </div>
+              <div className="flex justify-between items-center text-xs pt-3 border-t">
+                <span className="text-slate-500 font-medium">Payment Status</span>
+                <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] tracking-wider ${
+                  order.paymentStatus === 'PAID' ? 'bg-emerald-100 text-emerald-800' :
+                  order.paymentStatus === 'REFUNDED' ? 'bg-rose-100 text-rose-800' :
+                  'bg-amber-100 text-amber-800'
+                }`}>
+                  {order.paymentStatus}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-medium">Order Status</span>
+                <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] tracking-wider ${
+                  order.orderStatus === 'FULFILLED' ? 'bg-blue-100 text-blue-800' :
+                  order.orderStatus === 'REFUNDED' ? 'bg-rose-100 text-rose-800' :
+                  'bg-slate-100 text-slate-700'
+                }`}>
+                  {order.orderStatus}
+                </span>
+              </div>
+              {order.paymentStatus === "REFUNDED" && (
+                <div className="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                  <span className="font-bold block">✓ Refund Processed</span>
+                  <span className="text-rose-600">This order has been refunded (${order.total.toFixed(2)}).</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

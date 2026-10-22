@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { MoreHorizontal, Eye, CheckCircle, XCircle } from "lucide-react";
+import { MoreHorizontal, Eye, CheckCircle, XCircle, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function OrderActionsDropdown({ orderId, orderStatus, paymentStatus }: { orderId: string, orderStatus: string, paymentStatus: string }) {
@@ -84,6 +84,16 @@ export default function OrderActionsDropdown({ orderId, orderStatus, paymentStat
               >
                 <XCircle className="h-4 w-4 text-red-500" /> Cancel Order
               </button>
+            )}
+
+            {paymentStatus !== 'REFUNDED' && (
+              <Link
+                href={`/admin/orders/${orderId}`}
+                className="flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 font-medium"
+                role="menuitem"
+              >
+                <RotateCcw className="h-4 w-4 text-rose-500" /> Refund Order
+              </Link>
             )}
           </div>
         </div>
