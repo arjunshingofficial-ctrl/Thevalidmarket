@@ -1,20 +1,26 @@
 /**
- * Real-Time SEO Analyzer Engine for The Valid Market
- * Implements Google & Seobility on-page audit criteria:
- * - Proportional pixel-width calculations for Title and Description
- * - 5 Focus Keyphrases analysis with matrix placement tracking
- * - Strict Single-H1 rendered check & heading hierarchy verification
- * - Image Alt text, Link anchors, keyword density & stuffing guards
- * - Deterministic suggestions for instant 1-click fixes
+ * Complete Blog SEO Optimization Engine for The Valid Market / Asia D Market
+ * Based on official Google Search Central Guidelines & W3C Web Standards:
+ * - Natural 5 Focus Keyphrases analysis with variations & synonyms
+ * - Proportional serif/sans SERP pixel-width calculations (Title max 580px, Snippet max 960px)
+ * - Strict Single-H1 rendered layout check & logical heading hierarchy (H2, H3, empty/skipped level guards)
+ * - Canonical URL format & protocol validation
+ * - People-First Content Quality: Intro clarity, paragraph readability, actionable next steps
+ * - Comprehensive Image & Media Alt Text audits
+ * - Link structure: Internal discovery, vague anchor detection, dynamic URL query safeguards
+ * - Transparent status distinctions: [Verified], [Estimated], [Requires Scan], [External Data]
+ * - Explainable editorial scoring (OK: 0-59, Good: 60-84, Best: 85-100)
  */
 
 import { getBaseUrl } from "@/lib/siteUrl";
+
+export type CheckStatusType = "verified" | "estimated" | "requires_scan" | "requires_external" | "not_checked";
 
 export interface KeyphraseMatch {
   keyphrase: string;
   isPrimary: boolean;
   count: number;
-  density: number; // percentage (e.g. 1.2)
+  density?: number;
   inTitle: boolean;
   inMetaDesc: boolean;
   inSlug: boolean;
@@ -22,17 +28,22 @@ export interface KeyphraseMatch {
   inHeadings: boolean;
   inContent: boolean;
   inImageAlt: boolean;
-  status: "missing" | "low" | "good" | "stuffed";
+  variationsFound: string[];
+  status: "missing" | "good" | "repetitive" | "stuffed";
 }
 
 export interface SeoCheckItem {
   id: string;
-  category: "title" | "description" | "slug" | "headings" | "keywords" | "images" | "links" | "technical";
+  category: "title" | "description" | "slug" | "canonical" | "headings" | "keywords" | "images" | "links" | "technical" | "quality";
   severity: "critical" | "important" | "recommended" | "optional" | "passed";
+  statusType: CheckStatusType;
   passed: boolean;
   title: string;
   issue?: string;
   impact?: string;
+  evidence?: string;
+  whyItMatters?: string;
+  suggestedAction?: string;
   fixAction?: {
     label: string;
     field: string;
@@ -47,7 +58,8 @@ export interface SeoAnalysisResult {
   passedCount: number;
   warningCount: number;
   errorCount: number;
-  
+  criticalIssues: SeoCheckItem[]; // Prominently displayed regardless of score
+
   // Title & Desc metrics
   titleLength: number;
   titlePixelWidth: number;
@@ -55,7 +67,7 @@ export interface SeoAnalysisResult {
   descLength: number;
   descPixelWidth: number;
   descStatus: "empty" | "too_short" | "good" | "too_long";
-  
+
   // Content stats
   wordCount: number;
   readingTimeMinutes: number;
@@ -66,7 +78,11 @@ export interface SeoAnalysisResult {
   wordsPerHeading: number;
   headingsList: { level: number; text: string }[];
   duplicateHeadings: string[];
-  
+  emptyHeadingsCount: number;
+  hasSkippedHeadingLevels: boolean;
+  hasLongArticleWithoutToc: boolean;
+  hasLongParagraphs: boolean;
+
   // Images & Links
   totalImages: number;
   imagesMissingAlt: number;
@@ -79,46 +95,54 @@ export interface SeoAnalysisResult {
 
   // Keyphrases
   keyphrasesData: KeyphraseMatch[];
-  
+
   // Checks & Recommendations
   checks: SeoCheckItem[];
-  recommendations: SeoCheckItem[]; // only failed checks, sorted by severity
+  recommendations: SeoCheckItem[];
 
-  // Suggested values for instant 1-click apply
+  // Suggested values for instant review & safe 1-click apply
   suggestedTitle?: string;
   suggestedMetaDescription?: string;
   suggestedImageAlt?: string;
+
+  // Transparent scoring explanation
+  scoreBreakdown: {
+    category: string;
+    earned: number;
+    max: number;
+    explanation: string;
+  }[];
 }
 
 export interface SeoInputData {
   contentType: "blog" | "product";
-  name?: string; // post title or product name
-  title?: string; // alias for name
+  name?: string;
+  title?: string;
   slug: string;
-  content: string; // HTML content from rich text editor
+  content: string;
   excerpt?: string;
   seoTitle?: string;
   metaDescription?: string;
   canonicalUrl?: string;
   featuredImage?: string;
   featuredImageAlt?: string;
-  imageAlt?: string; // alias for featuredImageAlt
+  imageAlt?: string;
   robots?: string;
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
   primaryKeyphrase?: string;
-  focusKeyword?: string; // alias for primaryKeyphrase
+  focusKeyword?: string;
   secondaryKeyphrases?: string[];
-  secondaryKeywords?: string[]; // alias for secondaryKeyphrases
+  secondaryKeywords?: string[];
   siteUrl?: string;
+  // External or live scan data if passed
+  isSlugConflict?: boolean;
+  isTitleConflict?: boolean;
+  isDescConflict?: boolean;
 }
 
-// ─── Proportional Typography Pixel Width Estimators ─────────────────────────
-// Calculates realistic rendered pixel widths for Google Desktop SERP:
-// Title font: Roboto / Arial ~20px (~580px max before truncation)
-// Snippet font: Roboto / Arial ~14px (~960px max)
-
+// ─── Typography Pixel Width Estimators (Google SERP Desktop Simulation) ──────
 export function estimateTitlePixelWidth(text: string): number {
   if (!text) return 0;
   let px = 0;
@@ -130,7 +154,7 @@ export function estimateTitlePixelWidth(text: string): number {
     else if (/[ijl\s',.!:;|]/.test(ch)) px += 5.5;
     else if (/[tfkr]/.test(ch)) px += 8;
     else if (/[0-9]/.test(ch)) px += 10.5;
-    else px += 9.5; // standard lowercase
+    else px += 9.5;
   }
   return Math.round(px);
 }
@@ -151,13 +175,19 @@ export function estimateDescPixelWidth(text: string): number {
   return Math.round(px);
 }
 
-// Strip HTML tags safely in browser
+// Strip HTML tags safely
 export function stripHtml(html: string): string {
   if (!html) return "";
   return html
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
     .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -165,7 +195,7 @@ export function stripHtml(html: string): string {
 // Extract headings from HTML
 export function extractHeadings(html: string): { level: number; text: string }[] {
   if (!html) return [];
-  const matches = html.matchAll(/<h([1-6])\b[^>]*>(.*?)<\/h\1>/gi);
+  const matches = html.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi);
   const headings: { level: number; text: string }[] = [];
   for (const match of matches) {
     const level = parseInt(match[1]);
@@ -204,7 +234,7 @@ export interface ExtractedLink {
 // Extract links from HTML with dynamic parameter and nofollow detection
 export function extractLinks(html: string, siteHost: string = "thevalidmarket.com"): ExtractedLink[] {
   if (!html) return [];
-  const matches = html.matchAll(/<a\b([^>]*?)>(.*?)<\/a>/gi);
+  const matches = html.matchAll(/<a\b([^>]*?)>([\s\S]*?)<\/a>/gi);
   const links: ExtractedLink[] = [];
   for (const match of matches) {
     const attrs = match[1] || "";
@@ -212,15 +242,10 @@ export function extractLinks(html: string, siteHost: string = "thevalidmarket.co
     const href = hrefMatch ? hrefMatch[1].trim() : "";
     const text = stripHtml(match[2]).trim();
 
-    // Check internal vs external
     const isExplicitExternal = /^https?:\/\//i.test(href) && !href.includes(siteHost) && !href.includes("localhost");
     const isSpecialScheme = /^(mailto:|tel:|javascript:|#)/i.test(href);
     const isInternal = !isExplicitExternal && !isSpecialScheme && (href.startsWith("/") || href.includes(siteHost) || !/^[a-z]+:/i.test(href));
-
-    // Dynamic query parameters: check for ? with key-value pairs
     const hasDynamicParams = href.includes("?") && /[?&][^=&#]+=[^&#]*/i.test(href);
-
-    // Check rel="nofollow"
     const isNoFollow = /\brel\s*=\s*["'][^"']*\bnofollow\b[^"']*["']/i.test(attrs);
 
     links.push({
@@ -235,8 +260,7 @@ export function extractLinks(html: string, siteHost: string = "thevalidmarket.co
   return links;
 }
 
-// ─── Automated Content Fix Helpers ──────────────────────────────────────────
-
+// ─── Automated Content Fix Helpers (Preserved & Enhanced) ────────────────────
 export function cleanDynamicInternalLinks(contentHtml: string, siteHost: string = "thevalidmarket.com"): string {
   if (!contentHtml) return "";
   return contentHtml.replace(/<a\b([^>]*?)>(.*?)<\/a>/gi, (fullMatch, attrs, linkBody) => {
@@ -251,15 +275,13 @@ export function cleanDynamicInternalLinks(contentHtml: string, siteHost: string 
     const isNoFollow = /\brel\s*=\s*["'][^"']*\bnofollow\b[^"']*["']/i.test(attrs);
 
     if (isInternal && hasDynamicParams && !isNoFollow) {
-      // 1. If it's a category query on store e.g. /store?category=slug -> /category/slug
       const catMatch = href.match(/[\/?&]category=([a-z0-9_-]+)/i);
       if (catMatch && href.includes("/store")) {
         const cleanHref = `/category/${catMatch[1]}`;
         const newAttrs = attrs.replace(hrefMatch[0], `href="${cleanHref}"`);
         return `<a${newAttrs}>${linkBody}</a>`;
       }
-      
-      // 2. Strip standard tracking query params (?ref=, ?utm_..., ?source=)
+
       const trackingParams = /[?&](ref|utm_[a-z]+|source|tracker|aff|campaign|fbclid|gclid)=[^&#]*/gi;
       let strippedHref = href.replace(trackingParams, "").replace(/\?&/, "?").replace(/[?&]$/, "");
       if (strippedHref !== href && !strippedHref.includes("?")) {
@@ -267,10 +289,9 @@ export function cleanDynamicInternalLinks(contentHtml: string, siteHost: string 
         return `<a${newAttrs}>${linkBody}</a>`;
       }
 
-      // 3. For essential query strings (e.g. dynamic search, filters), append rel="nofollow"
       let newAttrs = attrs;
       if (/\brel\s*=\s*["']([^"']*)["']/i.test(newAttrs)) {
-        newAttrs = newAttrs.replace(/\brel\s*=\s*["']([^"']*)["']/i, (m: string, val: string) => `rel="${val} nofollow"`);
+        newAttrs = newAttrs.replace(/\brel\s*=\s*["']([^"']*)["']/i, (_m: string, val: string) => `rel="${val} nofollow"`);
       } else {
         newAttrs = `${newAttrs} rel="nofollow"`;
       }
@@ -290,7 +311,7 @@ export function deduplicateHeadingTexts(contentHtml: string, duplicates: string[
     result = result.replace(regex, (match, prefix, text, suffix) => {
       count++;
       if (count > 1) {
-        return `${prefix}${text} (Section ${count})${suffix}`;
+        return `${prefix}${text} (Part ${count})${suffix}`;
       }
       return match;
     });
@@ -302,7 +323,7 @@ export function rebalanceExcessiveHeadings(contentHtml: string): string {
   if (!contentHtml) return "";
   let result = contentHtml;
 
-  // 1. Demote all H4-H6 tags to strong paragraphs (multiline and whitespace safe)
+  // Demote H4-H6 tags to strong paragraphs
   result = result.replace(/<h([4-6])\b[^>]*>([\s\S]*?)<\/h\1>/gi, (_match, _tag, inner) => {
     const trimmed = inner.trim();
     return /^<strong\b[^>]*>[\s\S]*<\/strong>$/i.test(trimmed)
@@ -310,70 +331,129 @@ export function rebalanceExcessiveHeadings(contentHtml: string): string {
       : `<p><strong>${trimmed}</strong></p>`;
   });
 
-  // Recalculate headings
-  let headings = extractHeadings(result);
-  const words = stripHtml(result).split(/\s+/).filter(Boolean);
-  const wordCount = words.length;
-
-  const isDisproportionate = (hCount: number) => {
-    const wPerH = hCount > 0 ? Math.round(wordCount / hCount) : wordCount;
-    return (hCount >= 12 && wPerH < 50) || (hCount >= 25 && wordCount < 2500);
-  };
-
-  if (!isDisproportionate(headings.length)) {
-    return result;
-  }
-
-  // 2. If no H2 tags exist but H3 tags exist, promote the first few H3s to H2s so the page retains top-level hierarchy
-  const h2Count = headings.filter(h => h.level === 2).length;
-  if (h2Count === 0) {
-    let promoted = 0;
-    const maxPromotions = Math.max(3, Math.min(8, Math.floor(wordCount / 120)));
-    result = result.replace(/<h3\b([^>]*)>([\s\S]*?)<\/h3>/gi, (match, attrs, inner) => {
-      if (promoted < maxPromotions) {
-        promoted++;
-        return `<h2${attrs}>${inner}</h2>`;
-      }
-      return match;
-    });
-    headings = extractHeadings(result);
-  }
-
-  // 3. Demote H3 tags to strong paragraphs until heading proportion is healthy
-  if (isDisproportionate(headings.length)) {
-    result = result.replace(/<h3\b[^>]*>([\s\S]*?)<\/h3>/gi, (_match, inner) => {
-      const trimmed = inner.trim();
-      return /^<strong\b[^>]*>[\s\S]*<\/strong>$/i.test(trimmed)
-        ? `<p>${trimmed}</p>`
-        : `<p><strong>${trimmed}</strong></p>`;
-    });
-    headings = extractHeadings(result);
-  }
-
-  // 4. If STILL disproportionate (e.g. dozens of H2 headings for a short article):
-  if (isDisproportionate(headings.length)) {
-    const targetH2 = Math.max(5, Math.floor(wordCount / 100));
-    let h2Index = 0;
-    result = result.replace(/<h2\b[^>]*>([\s\S]*?)<\/h2>/gi, (match, inner) => {
-      h2Index++;
-      if (h2Index > targetH2) {
-        const trimmed = inner.trim();
-        return /^<strong\b[^>]*>[\s\S]*<\/strong>$/i.test(trimmed)
-          ? `<p>${trimmed}</p>`
-          : `<p><strong>${trimmed}</strong></p>`;
-      }
-      return match;
-    });
-  }
-
   return result;
 }
 
-// ─── Main SEO Analyzer Engine ───────────────────────────────────────────────
+// ─── Natural Variations & Stemming Generator ─────────────────────────────────
+export function getKeyphraseVariations(phrase: string): string[] {
+  const clean = (phrase || "").trim().toLowerCase();
+  if (!clean) return [];
+  const variations = new Set<string>([clean]);
+
+  // Handle common English plural/singular forms
+  const words = clean.split(/\s+/);
+  const lastWord = words[words.length - 1];
+
+  let altLastWord = "";
+  if (lastWord.endsWith("ies") && lastWord.length > 4) {
+    altLastWord = lastWord.slice(0, -3) + "y"; // proxies -> proxy
+  } else if (lastWord.endsWith("es") && lastWord.length > 4) {
+    altLastWord = lastWord.slice(0, -2); // processes -> process
+  } else if (lastWord.endsWith("s") && !lastWord.endsWith("ss") && lastWord.length > 3) {
+    altLastWord = lastWord.slice(0, -1); // courses -> course
+  } else if (lastWord.endsWith("y") && !/[aeiou]y$/.test(lastWord)) {
+    altLastWord = lastWord.slice(0, -1) + "ies"; // proxy -> proxies
+  } else if (!lastWord.endsWith("s")) {
+    altLastWord = lastWord + "s"; // course -> courses
+  }
+
+  if (altLastWord && altLastWord !== lastWord) {
+    const variationWords = [...words.slice(0, -1), altLastWord];
+    variations.add(variationWords.join(" "));
+  }
+
+  // Handle hyphen vs space
+  if (clean.includes("-")) {
+    variations.add(clean.replace(/-/g, " "));
+  } else if (clean.includes(" ")) {
+    variations.add(clean.replace(/\s+/g, "-"));
+  }
+
+  return Array.from(variations);
+}
+
+// ─── Robust Title & Description Generation Helpers (No Double Pipes!) ────────
+export function buildCleanSeoTitle(rawTitle: string, keyphrase?: string, siteBrand: string = "The Valid Market"): string {
+  const brandName = siteBrand || "The Valid Market";
+  if (!rawTitle) {
+    if (keyphrase) {
+      const capKey = keyphrase.charAt(0).toUpperCase() + keyphrase.slice(1);
+      return `${capKey} Guide & Setup | ${brandName}`.slice(0, 60);
+    }
+    return `Practical Guide & Resources | ${brandName}`;
+  }
+
+  // Split title by common pipe / dash separators to prevent redundant chains
+  const segments = rawTitle
+    .split(/\s*\|\s*|\s*—\s*/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  // Remove existing brand name mentions from segments
+  const brandRegex = new RegExp(`(^|\\s)(${brandName}|The Valid Market|Asia D Market)(\\s|$)`, "i");
+  const filtered = segments.filter(s => !brandRegex.test(s));
+
+  let primaryPart = filtered[0] || rawTitle.trim();
+
+  // If primary keyphrase is missing, thoughtfully integrate it
+  if (keyphrase) {
+    const cleanKey = keyphrase.trim().toLowerCase();
+    const hasKey = filtered.some(f => f.toLowerCase().includes(cleanKey));
+    if (!hasKey) {
+      const capKey = cleanKey.charAt(0).toUpperCase() + cleanKey.slice(1);
+      if (!primaryPart.toLowerCase().includes(cleanKey)) {
+        primaryPart = `${capKey}: ${primaryPart}`;
+      }
+    }
+  }
+
+  const combined = `${primaryPart} | ${brandName}`;
+  if (combined.length <= 60 && estimateTitlePixelWidth(combined) <= 580) {
+    return combined;
+  }
+  if (primaryPart.length <= 60 && estimateTitlePixelWidth(primaryPart) <= 580) {
+    return primaryPart;
+  }
+  return primaryPart.slice(0, 56).trim() + "...";
+}
+
+export function buildCleanMetaDescription(plainBodyText: string, keyphrase?: string, title?: string, siteBrand: string = "The Valid Market"): string {
+  const sentences = (plainBodyText || "")
+    .split(/(?<=[.?!])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 25 && !s.toLowerCase().startsWith("http") && !s.includes("<"));
+
+  let baseSnippet = "";
+  if (sentences.length > 0) {
+    baseSnippet = sentences[0];
+    if (baseSnippet.length < 80 && sentences.length > 1) {
+      baseSnippet = `${baseSnippet} ${sentences[1]}`;
+    }
+  }
+
+  if (!baseSnippet) {
+    baseSnippet = title
+      ? `Explore complete setup instructions, key features, and verified guidance for ${title}.`
+      : `Explore verified software, proxy solutions, and technical guides.`;
+  }
+
+  baseSnippet = baseSnippet.replace(/[.;,:\s]+$/, "");
+
+  if (keyphrase && !baseSnippet.toLowerCase().includes(keyphrase.toLowerCase())) {
+    const capKey = keyphrase.charAt(0).toUpperCase() + keyphrase.slice(1);
+    const candidate = `${capKey}: ${baseSnippet}. Read our complete guide on ${siteBrand}.`;
+    return candidate.length <= 158 ? candidate : candidate.slice(0, 155).trim() + "...";
+  }
+
+  const result = `${baseSnippet}. Complete guide on ${siteBrand}.`;
+  return result.length <= 158 ? result : result.slice(0, 155).trim() + "...";
+}
+
+// ─── Main SEO Analyzer Engine ────────────────────────────────────────────────
 export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   const safeInput = input || ({} as SeoInputData);
   const {
-    contentType = "product",
+    contentType = "blog",
     name = (safeInput as any).title || "",
     slug = "",
     content = "",
@@ -393,18 +473,26 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   } = safeInput;
 
   const checks: SeoCheckItem[] = [];
-  let score = 0;
+  const scoreBreakdown: { category: string; earned: number; max: number; explanation: string }[] = [];
 
-  // 1. Plain text extraction & word count
+  // 1. Text extraction & parsing
   const plainText = stripHtml(content || "");
   const words = plainText.split(/\s+/).filter(w => w.length > 0);
   const wordCount = words.length;
   const readingTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
-  // First 120 words for Introduction check
+  // Paragraph readability analysis
+  const rawParagraphs = (content || "").match(/<p\b[^>]*>([\s\S]*?)<\/p>/gi) || [];
+  let hasLongParagraphs = false;
+  rawParagraphs.forEach(p => {
+    const pWordCount = stripHtml(p).split(/\s+/).filter(Boolean).length;
+    if (pWordCount > 220) hasLongParagraphs = true;
+  });
+
+  // First 120 words for Introduction intent analysis
   const introText = words.slice(0, 120).join(" ").toLowerCase();
 
-  // 2. Headings extraction
+  // 2. Headings analysis
   const headings = extractHeadings(content);
   const h1sInContent = headings.filter(h => h.level === 1);
   const h2Count = headings.filter(h => h.level === 2).length;
@@ -412,10 +500,26 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   const totalHeadings = headings.length;
   const wordsPerHeading = totalHeadings > 0 ? Math.round(wordCount / totalHeadings) : wordCount;
 
+  // Empty headings detection
+  const emptyHeadingsCount = headings.filter(h => !h.text || h.text.trim().length === 0).length;
+
+  // Skipped heading levels (e.g. H1 -> H3 without H2, or H2 -> H4 without H3)
+  let hasSkippedHeadingLevels = false;
+  for (let i = 0; i < headings.length - 1; i++) {
+    if (headings[i + 1].level - headings[i].level > 1) {
+      hasSkippedHeadingLevels = true;
+      break;
+    }
+  }
+
+  // Duplicate headings
   const headingTexts = headings.map(h => h.text.toLowerCase().trim()).filter(Boolean);
   const headingOccurrences: Record<string, number> = {};
   headingTexts.forEach(t => { headingOccurrences[t] = (headingOccurrences[t] || 0) + 1; });
   const duplicateHeadings = Object.keys(headingOccurrences).filter(t => headingOccurrences[t] > 1);
+
+  // Table of Contents recommendation for long articles
+  const hasLongArticleWithoutToc = contentType === "blog" && wordCount >= 1000 && h2Count >= 3 && !content.includes("table-of-contents") && !content.includes("toc-list") && !content.toLowerCase().includes("table of contents");
 
   // 3. Images extraction
   const inlineImages = extractImages(content);
@@ -424,14 +528,13 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
 
   const missingAltSrcList: string[] = [];
   inlineImages.forEach(img => {
-    if (!img.alt) missingAltSrcList.push(img.src);
+    if (!img.alt || img.alt.trim().length === 0) missingAltSrcList.push(img.src);
   });
-  if (featuredImage && !featuredImageAlt) {
+  if (featuredImage && (!featuredImageAlt || featuredImageAlt.trim().length === 0)) {
     missingAltSrcList.push(featuredImage);
   }
   const imagesMissingAlt = missingAltSrcList.length;
 
-  // All alt texts combined for keyword search
   const allAltsCombined = [
     featuredImageAlt,
     ...inlineImages.map(i => i.alt),
@@ -444,8 +547,8 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   const dynamicInternalLinks = parsedLinks.filter(l => l.isInternal && l.hasDynamicParams && !l.isNoFollow);
   const dynamicInternalLinksCount = dynamicInternalLinks.length;
   const dynamicInternalLinksList = Array.from(new Set(dynamicInternalLinks.map(l => l.href)));
-  
-  const vagueAnchorPatterns = /^(click here|here|read more|learn more|link|this|more|check here|website)$/i;
+
+  const vagueAnchorPatterns = /^(click here|here|read more|learn more|link|this|more|check here|website|page)$/i;
   const vagueAnchorLinksCount = parsedLinks.filter(l => vagueAnchorPatterns.test(l.text.trim())).length;
 
   // 5. Title Analysis
@@ -459,7 +562,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   else if (titleLength > 60 || titlePixelWidth > 580) titleStatus = "too_long";
 
   // Check word repetitions in title
-  const titleWords = effectiveTitle.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+  const titleWords = effectiveTitle.toLowerCase().split(/\W+/).filter(w => w.length > 3 && !["with", "from", "that", "this", "your"].includes(w));
   const wordFrequencies: Record<string, number> = {};
   titleWords.forEach(w => { wordFrequencies[w] = (wordFrequencies[w] || 0) + 1; });
   const titleRepeats = Object.entries(wordFrequencies).filter(([_, count]) => count > 1).map(([w]) => w);
@@ -474,7 +577,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   else if (descLength < 80) descStatus = "too_short";
   else if (descLength > 160 || descPixelWidth > 960) descStatus = "too_long";
 
-  // 7. Focus Keyphrases Matrix
+  // 7. Focus Keyphrases Matrix with Variations & Stemming
   const cleanPrimaryKey = (primaryKeyphrase || "").trim().toLowerCase();
   const cleanSecondaryKeys = (secondaryKeyphrases || [])
     .map((k: string) => (k || "").trim().toLowerCase())
@@ -487,30 +590,43 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
   ];
 
   const keyphrasesData: KeyphraseMatch[] = allKeyphrases.map(({ keyphrase, isPrimary }) => {
-    // Regex escape
-    const escaped = keyphrase.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-    const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+    const variations = getKeyphraseVariations(keyphrase);
+    const variationsFound: string[] = [];
 
-    const matchesInBody = (plainText.match(regex) || []).length;
-    const density = wordCount > 0 ? parseFloat(((matchesInBody / wordCount) * 100).toFixed(2)) : 0;
+    let totalMatches = 0;
+    variations.forEach(variation => {
+      const escaped = variation.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      const regex = new RegExp(`\\b${escaped}\\b`, "gi");
+      const m = (plainText.match(regex) || []).length;
+      if (m > 0) {
+        totalMatches += m;
+        variationsFound.push(variation);
+      }
+    });
 
-    const inTitle = effectiveTitle.toLowerCase().includes(keyphrase);
-    const inMetaDesc = effectiveDesc.toLowerCase().includes(keyphrase);
-    const inSlug = (slug || "").toLowerCase().replace(/-/g, " ").includes(keyphrase.replace(/-/g, " "));
-    const inIntro = introText.includes(keyphrase);
-    const inHeadings = headings.some(h => h.text.toLowerCase().includes(keyphrase));
-    const inContent = matchesInBody > 0;
-    const inImageAlt = allAltsCombined.includes(keyphrase);
+    // Check presence in key elements (matches exact phrase or any natural variation)
+    const matchesAny = (targetText: string) => {
+      const lower = (targetText || "").toLowerCase();
+      return variations.some(v => lower.includes(v.toLowerCase()));
+    };
 
-    let status: "missing" | "low" | "good" | "stuffed" = "good";
-    if (matchesInBody === 0) status = "missing";
-    else if (density < 0.3) status = "low";
-    else if (density > 2.8) status = "stuffed";
+    const inTitle = matchesAny(effectiveTitle);
+    const inMetaDesc = matchesAny(effectiveDesc);
+    const inSlug = variations.some(v => (slug || "").toLowerCase().replace(/-/g, " ").includes(v.replace(/-/g, " ")));
+    const inIntro = matchesAny(introText);
+    const inHeadings = headings.some(h => matchesAny(h.text));
+    const inContent = totalMatches > 0;
+    const inImageAlt = matchesAny(allAltsCombined);
+
+    const density = wordCount > 0 ? parseFloat(((totalMatches / wordCount) * 100).toFixed(2)) : 0;
+    let status: "missing" | "good" | "repetitive" | "stuffed" = "good";
+    if (totalMatches === 0) status = "missing";
+    else if (wordCount > 50 && totalMatches > Math.max(10, Math.ceil(wordCount * 0.03))) status = "repetitive";
 
     return {
       keyphrase,
       isPrimary,
-      count: matchesInBody,
+      count: totalMatches,
       density,
       inTitle,
       inMetaDesc,
@@ -519,322 +635,350 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       inHeadings,
       inContent,
       inImageAlt,
+      variationsFound: Array.from(new Set(variationsFound)),
       status,
     };
   });
 
   const primaryMatch = keyphrasesData.find(k => k.isPrimary);
 
-  // ─── CHECKS DEFINITIONS & SCORING ─────────────────────────────────────────
+  // 8. Canonical URL Formatting Checks
+  const trimmedCanonical = (canonicalUrl || "").trim();
+  const hasCanonical = trimmedCanonical.length > 0;
+  let isCanonicalValid = true;
+  let canonicalIssueMsg = "";
 
-  // Title Check 1: Exists
+  if (hasCanonical) {
+    if (trimmedCanonical.includes("?") || trimmedCanonical.includes("#")) {
+      isCanonicalValid = false;
+      canonicalIssueMsg = "Canonical URL contains tracking query parameters or hash fragments.";
+    } else if (trimmedCanonical.startsWith("http://")) {
+      isCanonicalValid = false;
+      canonicalIssueMsg = "Canonical URL must use secure HTTPS rather than insecure HTTP.";
+    } else if (!trimmedCanonical.startsWith("https://") && !trimmedCanonical.startsWith("/")) {
+      isCanonicalValid = false;
+      canonicalIssueMsg = "Canonical URL must be a valid absolute HTTPS URL.";
+    }
+  }
+
+  // ─── CHECKS DEFINITIONS ───────────────────────────────────────────────────
+
+  // [Title: Exists]
   if (!effectiveTitle) {
     checks.push({
       id: "title_exists",
       category: "title",
       severity: "critical",
+      statusType: "verified",
       passed: false,
-      title: "SEO Title is Missing",
-      issue: "Page has no title tag defined.",
-      impact: "Search engines will not index or display this page without a title.",
+      title: "Title Tag is Missing",
+      issue: "The article or page does not have a title defined.",
+      impact: "Search engines require an informative title to understand and index the page.",
+      whyItMatters: "According to Google Search Central, title tags are one of the most critical on-page ranking signals.",
+      suggestedAction: "Provide a descriptive title accurately summarizing the article topic.",
       fixAction: {
         label: "Set Title from Name",
         field: "seoTitle",
-        value: name || "New Product",
+        value: name || "New Article",
         tabId: "seo",
       },
     });
   } else {
-    score += 5;
     checks.push({
       id: "title_exists",
       category: "title",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: "SEO Title is Defined",
+      title: "Title Tag is Defined",
+      evidence: `Current title: "${effectiveTitle}"`,
     });
   }
 
-  // Title Check 2: Length & Pixel Width
+  // [Title: Length & SERP Pixel Width]
   if (effectiveTitle) {
     if (titlePixelWidth > 580 || titleLength > 60) {
       checks.push({
         id: "title_length",
         category: "title",
         severity: "important",
+        statusType: "estimated",
         passed: false,
-        title: `The page title should be shorter than 580 pixels. It is ${titlePixelWidth} pixels long (${titleLength} chars).`,
-        issue: `Title exceeds Google's 580px desktop pixel limit and will be cut off on search results. Current length: ${titlePixelWidth}px (${titleLength} characters). Max recommended: 580px / 60 characters.`,
-        impact: "Users will not see your full title or brand in search results, reducing click-through rate.",
+        title: `Title Exceeds Rendered Pixel Limit (${titlePixelWidth}px / ${titleLength} chars)`,
+        issue: `Title exceeds Google's ~580px desktop display limit and will likely be truncated on search result pages.`,
+        impact: "Important context and brand identification at the end of the title will be cut off with an ellipsis (...).",
+        whyItMatters: "Concise, compelling titles with key information front-loaded improve organic click-through rates.",
+        suggestedAction: "Trim title under 580 pixels (recommended: 45–58 characters).",
         fixAction: {
           label: "Trim Title Under 580px",
           field: "seoTitle",
-          value: effectiveTitle.slice(0, 48).trim(),
+          value: buildCleanSeoTitle(effectiveTitle.slice(0, 48), cleanPrimaryKey),
           tabId: "seo",
         },
       });
-      score += 2;
-    } else if (titleLength < 35) {
+    } else if (titleLength < 30) {
       checks.push({
         id: "title_length",
         category: "title",
         severity: "recommended",
+        statusType: "estimated",
         passed: false,
-        title: `SEO Title is Too Short (${titleLength} chars)`,
-        issue: "Title is under 35 characters and misses ranking opportunity.",
-        impact: "A descriptive 45–58 character title attracts significantly more clicks.",
+        title: `Title is Short (${titleLength} chars)`,
+        issue: "Title is very short and may lack descriptive specificity.",
+        impact: "Vague titles fail to answer user intent and give fewer reasons for searchers to click.",
+        whyItMatters: "A descriptive title communicating unique value attracts more qualified search visitors.",
+        suggestedAction: "Expand title with clear topic details (40–58 characters recommended).",
         fixAction: {
-          label: "Expand Title",
+          label: "Expand Title with Context",
           field: "seoTitle",
-          value: cleanPrimaryKey ? `${effectiveTitle} | Complete Guide & Tools` : `${effectiveTitle} | The Valid Market`,
+          value: buildCleanSeoTitle(effectiveTitle, cleanPrimaryKey),
           tabId: "seo",
         },
       });
-      score += 3;
     } else {
-      score += 6;
       checks.push({
         id: "title_length",
         category: "title",
         severity: "passed",
+        statusType: "estimated",
         passed: true,
-        title: `SEO Title Length is Optimal (${titleLength} chars / ${titlePixelWidth}px)`,
+        title: `Title Length & Pixel Width are Optimal (${titleLength} chars / ${titlePixelWidth}px)`,
+        evidence: `Rendered width is within Google's 580px desktop boundary.`,
       });
     }
   }
 
-  // Title Check 3: Word Repetitions
+  // [Title: Repetitive Words]
   if (titleRepeats.length > 0) {
-    const titleParts = effectiveTitle.split(/\s*\|\s*/);
-    const seenParts = new Set<string>();
-    const deduplicatedParts = titleParts.filter(p => {
-      const lower = p.trim().toLowerCase();
-      if (!lower || seenParts.has(lower)) return false;
-      seenParts.add(lower);
-      return true;
-    });
-    let cleanedTitle = deduplicatedParts.join(" | ");
-    if (cleanedTitle === effectiveTitle || cleanedTitle.length < 10) {
-      const seenWords = new Set<string>();
-      cleanedTitle = effectiveTitle
-        .split(" ")
-        .filter(w => {
-          const l = w.toLowerCase().replace(/[^a-z0-9]/g, "");
-          if (l.length > 3 && seenWords.has(l)) return false;
-          if (l.length > 3) seenWords.add(l);
-          return true;
-        })
-        .join(" ");
-    }
     checks.push({
       id: "title_repetition",
       category: "title",
       severity: "important",
+      statusType: "verified",
       passed: false,
       title: `Word Repetitions in Title (${titleRepeats.join(", ")})`,
-      issue: `Words like "${titleRepeats[0]}" are repeated multiple times in the title.`,
-      impact: "Search engines penalize repetitive title text as low quality or keyword stuffing.",
+      issue: `Words like "${titleRepeats[0]}" appear multiple times in the title.`,
+      impact: "Repetitive title text looks unnatural and may trigger algorithmic keyword-stuffing filters.",
+      whyItMatters: "Google explicitly advises avoiding repetitive, boilerplate, or keyword-stuffed title elements.",
+      suggestedAction: "Rephrase title to describe the topic once clearly without repeating words.",
       fixAction: {
         label: "Deduplicate Title Words",
         field: "seoTitle",
-        value: cleanedTitle,
+        value: buildCleanSeoTitle(effectiveTitle, cleanPrimaryKey),
         tabId: "seo",
       },
     });
   } else if (effectiveTitle) {
-    score += 2;
     checks.push({
       id: "title_repetition",
       category: "title",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: "No Word Repetitions in Title",
+      title: "No Repetitive Words in Title",
     });
   }
 
-  // Meta Description Check 1: Exists
+  // [Meta Description: Exists]
   if (!effectiveDesc) {
     checks.push({
       id: "desc_exists",
       category: "description",
-      severity: "critical",
+      severity: "important",
+      statusType: "verified",
       passed: false,
       title: "Meta Description is Missing",
-      issue: "No snippet description provided for search results.",
-      impact: "Google will generate random text snippets from the page, reducing click-through rates.",
+      issue: "No custom meta description has been defined.",
+      impact: "Google will synthesize an automatic snippet from page content, which may not highlight your key takeaways.",
+      whyItMatters: "A well-written snippet gives searchers an accurate summary of what they will learn.",
+      suggestedAction: "Add an informative 120–155 character description summarizing the article.",
       fixAction: {
-        label: "Generate from Content",
+        label: "Generate from Article Content",
         field: "metaDescription",
-        value: plainText.slice(0, 150).trim() + "...",
+        value: buildCleanMetaDescription(plainText, cleanPrimaryKey, effectiveTitle),
         tabId: "seo",
       },
     });
   } else {
-    score += 4;
     checks.push({
       id: "desc_exists",
       category: "description",
       severity: "passed",
+      statusType: "verified",
       passed: true,
       title: "Meta Description is Defined",
+      evidence: `Length: ${descLength} chars (~${descPixelWidth}px)`,
     });
   }
 
-  // Meta Description Check 2: Length & Width
+  // [Meta Description: Length & Pixel Width]
   if (effectiveDesc) {
     if (descLength > 160 || descPixelWidth > 960) {
       checks.push({
         id: "desc_length",
         category: "description",
         severity: "important",
+        statusType: "estimated",
         passed: false,
-        title: `Meta Description is Too Long (${descLength} chars / ${descPixelWidth}px)`,
-        issue: "Description exceeds 160 characters and will be truncated on Google SERPs.",
-        impact: "Call-to-action text at the end of the snippet may get truncated.",
+        title: `Meta Description May Truncate (${descLength} chars / ${descPixelWidth}px)`,
+        issue: "Description exceeds ~160 characters and will likely be clipped on search result pages.",
+        impact: "Important call-to-action text or end context may be hidden behind an ellipsis.",
+        whyItMatters: "Keeping descriptions within ~155 characters ensures the full snippet is visible across desktop and mobile.",
+        suggestedAction: "Trim description to ~140-155 characters.",
         fixAction: {
           label: "Trim Description",
           field: "metaDescription",
-          value: effectiveDesc.slice(0, 135).trim() + "...",
+          value: effectiveDesc.slice(0, 150).trim() + "...",
           tabId: "seo",
         },
       });
-      score += 2;
-    } else if (descLength < 80) {
-      const enrichedDesc = cleanPrimaryKey
-        ? `${effectiveDesc} Discover complete guides, features, and verified tools for ${cleanPrimaryKey} at The Valid Market.`.slice(0, 155).trim()
-        : `${effectiveDesc} Instant access, verified downloads, and 24/7 dedicated assistance at The Valid Market.`.slice(0, 155).trim();
+    } else if (descLength < 70) {
       checks.push({
         id: "desc_length",
         category: "description",
         severity: "recommended",
+        statusType: "estimated",
         passed: false,
-        title: `Meta Description is Too Short (${descLength} chars)`,
-        issue: "Description is under 80 characters.",
-        impact: "A full 130–155 character description gives users more reasons to click.",
+        title: `Meta Description is Very Brief (${descLength} chars)`,
+        issue: "Description is under 70 characters and misses an opportunity to summarize page value.",
+        impact: "Brief snippets may be replaced entirely by Google's automated snippet extractor.",
+        whyItMatters: "Comprehensive summaries (120–155 characters) provide clear search intent alignment.",
+        suggestedAction: "Enrich description with specific benefits or key steps covered in the article.",
         fixAction: {
           label: "Enrich Description",
           field: "metaDescription",
-          value: enrichedDesc,
+          value: buildCleanMetaDescription(plainText, cleanPrimaryKey, effectiveTitle),
           tabId: "seo",
         },
       });
-      score += 2;
     } else {
-      score += 5;
       checks.push({
         id: "desc_length",
         category: "description",
         severity: "passed",
+        statusType: "estimated",
         passed: true,
-        title: `Meta Description Length is Optimal (${descLength} chars / ${descPixelWidth}px)`,
+        title: `Meta Description Length is Balanced (${descLength} chars / ${descPixelWidth}px)`,
       });
     }
   }
 
-  // Primary Keyphrase Checks
+  // [Primary Focus Keyphrase Presence Checks]
   if (!cleanPrimaryKey) {
     checks.push({
       id: "keyphrase_primary_defined",
       category: "keywords",
-      severity: "critical",
+      severity: "important",
+      statusType: "verified",
       passed: false,
-      title: "Primary Focus Keyphrase is Not Set",
-      issue: "No target focus search phrase has been designated for this page.",
-      impact: "Without a focus phrase, the content cannot be systematically optimized for search rankings.",
+      title: "Primary Focus Keyphrase Not Designated",
+      issue: "No primary focus phrase designated to evaluate topical coverage.",
+      impact: "The assistant cannot benchmark element alignment without a target phrase.",
+      whyItMatters: "Focus keyphrases serve as editorial reference points for topical focus.",
+      suggestedAction: "Set one primary topic search phrase (e.g., 'socks5 proxy for android').",
       fixAction: {
-        label: "Set Focus Keyphrase",
+        label: "Set Primary Focus Keyphrase",
         field: "focusKeyword",
-        value: (name || "product").toLowerCase().split(" ").slice(0, 3).join(" "),
+        value: (name || "guide").toLowerCase().split(" ").slice(0, 3).join(" "),
         tabId: "seo",
       },
     });
   } else {
-    score += 4;
     checks.push({
       id: "keyphrase_primary_defined",
       category: "keywords",
       severity: "passed",
+      statusType: "verified",
       passed: true,
       title: `Primary Focus Keyphrase Set: "${cleanPrimaryKey}"`,
     });
 
-    // Primary in Title
+    // In Title
     if (primaryMatch?.inTitle) {
-      score += 7;
       checks.push({
         id: "keyphrase_in_title",
         category: "title",
         severity: "passed",
+        statusType: "verified",
         passed: true,
-        title: "Primary Keyphrase Appears in Title",
+        title: "Primary Keyphrase Present in Title",
       });
     } else {
       checks.push({
         id: "keyphrase_in_title",
         category: "title",
-        severity: "critical",
+        severity: "important",
+        statusType: "verified",
         passed: false,
-        title: `Primary Keyphrase Missing from Title`,
-        issue: `"${cleanPrimaryKey}" does not appear anywhere in the SEO title.`,
-        impact: "The title tag is the single most important on-page SEO ranking signal.",
+        title: "Primary Keyphrase Missing from Title",
+        issue: `"${cleanPrimaryKey}" does not appear naturally in the title tag.`,
+        impact: "Search engines rely heavily on title words to determine topic relevance.",
+        whyItMatters: "Including the core subject in the title immediately clarifies page value to searchers.",
+        suggestedAction: "Incorporate the primary keyphrase naturally into the title.",
         fixAction: {
           label: "Include Keyphrase in Title",
           field: "seoTitle",
-          value: `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} | ${effectiveTitle}`.slice(0, 58),
+          value: buildCleanSeoTitle(effectiveTitle, cleanPrimaryKey),
           tabId: "seo",
         },
       });
     }
 
-    // Primary in Meta Description
+    // In Meta Description
     if (primaryMatch?.inMetaDesc) {
-      score += 6;
       checks.push({
         id: "keyphrase_in_desc",
         category: "description",
         severity: "passed",
+        statusType: "verified",
         passed: true,
-        title: "Primary Keyphrase Appears in Meta Description",
+        title: "Primary Keyphrase Present in Meta Description",
       });
     } else {
       checks.push({
         id: "keyphrase_in_desc",
         category: "description",
-        severity: "important",
+        severity: "recommended",
+        statusType: "verified",
         passed: false,
         title: "Primary Keyphrase Missing from Meta Description",
-        issue: `"${cleanPrimaryKey}" is not found in the meta description.`,
-        impact: "Google bolds matching keywords in snippets, significantly boosting CTR.",
+        issue: `"${cleanPrimaryKey}" does not appear in the meta description snippet.`,
+        impact: "Search engines often bold matching words in the snippet when they match user queries.",
+        whyItMatters: "Bolded keywords draw attention and help searchers confirm relevance.",
+        suggestedAction: "Mention the primary topic in the first sentence of the description.",
         fixAction: {
-          label: "Include in Description",
+          label: "Incorporate Keyphrase into Description",
           field: "metaDescription",
-          value: `Discover our verified ${cleanPrimaryKey} guide and tools. ${effectiveDesc}`.slice(0, 155),
+          value: buildCleanMetaDescription(plainText, cleanPrimaryKey, effectiveTitle),
           tabId: "seo",
         },
       });
     }
 
-    // Primary in Slug
+    // In Slug
     if (primaryMatch?.inSlug) {
-      score += 3;
       checks.push({
         id: "keyphrase_in_slug",
         category: "slug",
         severity: "passed",
+        statusType: "verified",
         passed: true,
-        title: "Primary Keyphrase Appears in URL Slug",
+        title: "Primary Keyphrase Reflected in URL Slug",
       });
     } else {
       checks.push({
         id: "keyphrase_in_slug",
         category: "slug",
-        severity: "recommended",
+        severity: "optional",
+        statusType: "verified",
         passed: false,
-        title: "Primary Keyphrase Missing from URL Slug",
-        issue: `"${cleanPrimaryKey}" words are not reflected in the URL path.`,
-        impact: "Keywords in URLs reassure visitors and search crawlers of page relevance.",
+        title: "Primary Keyphrase Not in URL Slug",
+        issue: `Slug "${slug || "untitled"}" does not contain the primary phrase.`,
+        impact: "Descriptive URLs reassure visitors and crawlers of topic relevance before clicking.",
+        whyItMatters: "Clean, human-readable URLs improve user trust and sharing.",
+        suggestedAction: "If this is a new draft, set a readable slug containing key terms. If already published, preserve existing URL.",
         fixAction: {
-          label: "Update Slug",
+          label: "Set Descriptive Slug (Drafts Only)",
           field: "slug",
           value: cleanPrimaryKey.replace(/[^a-z0-9]+/g, "-"),
           tabId: "general",
@@ -842,134 +986,111 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       });
     }
 
-    // Primary in Introduction
+    // In Introduction (first 120 words)
     if (primaryMatch?.inIntro) {
-      score += 4;
       checks.push({
         id: "keyphrase_in_intro",
-        category: "keywords",
+        category: "quality",
         severity: "passed",
+        statusType: "estimated",
         passed: true,
-        title: "Primary Keyphrase Appears in First 100 Words",
+        title: "Primary Topic Introduced in Opening Paragraphs",
       });
     } else {
-      const introLead = `<p>Welcome to our comprehensive guide on <strong>${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)}</strong>. Below you will find key features, step-by-step instructions, and verified tools.</p>\n`;
-      const fixedIntroContent = content && content.trim().startsWith("<p>") 
-        ? content.replace(/<p(\b[^>]*)>/i, `<p$1>Looking for <strong>${cleanPrimaryKey}</strong>? `)
-        : (content ? `${introLead}${content}` : introLead);
       checks.push({
         id: "keyphrase_in_intro",
+        category: "quality",
+        severity: "recommended",
+        statusType: "estimated",
+        passed: false,
+        title: "Topic Clarification Recommended in Introduction",
+        issue: `"${cleanPrimaryKey}" is not mentioned in the opening 120 words.`,
+        impact: "Readers must read deep into the article to verify they found what they were looking for.",
+        whyItMatters: "Google's helpful content guidelines recommend immediate clarity on page purpose.",
+        suggestedAction: "Directly state what the article covers in the first 1-2 sentences.",
+      });
+    }
+
+    // In Headings
+    if (primaryMatch?.inHeadings) {
+      checks.push({
+        id: "keyphrase_in_headings",
+        category: "headings",
+        severity: "passed",
+        statusType: "verified",
+        passed: true,
+        title: "Keyphrase Appears in Subheadings",
+      });
+    } else {
+      checks.push({
+        id: "keyphrase_in_headings",
+        category: "headings",
+        severity: "optional",
+        statusType: "verified",
+        passed: false,
+        title: "Keyphrase Not Found in Subheadings",
+        issue: `None of the ${h2Count} H2 headings reference "${cleanPrimaryKey}".`,
+        impact: "Descriptive subheadings help readers skim and locate specific sections.",
+        whyItMatters: "Headings that reflect subtopics improve reader comprehension and scannability.",
+        suggestedAction: "Add an H2 heading addressing a key facet of the topic.",
+      });
+    }
+
+    // Natural presence vs repetition guard (No arbitrary density formula!)
+    if (primaryMatch && (primaryMatch.status === "repetitive" || primaryMatch.status === "stuffed")) {
+      checks.push({
+        id: "keyword_repetition_guard",
         category: "keywords",
         severity: "important",
+        statusType: "estimated",
         passed: false,
-        title: "Primary Keyphrase Missing from Introduction",
-        issue: `"${cleanPrimaryKey}" does not appear early in the introductory paragraphs.`,
-        impact: "Early keyword prominence signals immediate relevance to search engine parsers.",
-        fixAction: {
-          label: "Insert Keyphrase in Intro",
-          field: "content",
-          value: fixedIntroContent,
-          tabId: "general",
-        },
+        title: `Excessive Keyphrase Repetition (${primaryMatch.count} mentions)`,
+        issue: `"${cleanPrimaryKey}" appears ${primaryMatch.count} times in ${wordCount} words.`,
+        impact: "Overuse of exact keyphrases sounds robotic, degrades readability, and triggers spam signals.",
+        whyItMatters: "Google Search Central emphasizes writing naturally for human readers, not keyword repeating.",
+        suggestedAction: "Replace repetitive mentions with natural synonyms, pronouns, or diverse phrasings.",
       });
-    }
-
-    // Primary in Headings
-    if (primaryMatch?.inHeadings) {
-      score += 4;
+    } else if (primaryMatch && primaryMatch.count > 0) {
       checks.push({
-        id: "keyphrase_in_headings",
-        category: "headings",
+        id: "keyword_repetition_guard",
+        category: "keywords",
         severity: "passed",
+        statusType: "verified",
         passed: true,
-        title: "Primary Keyphrase Appears in H2/H3 Headings",
+        title: `Natural Keyphrase Integration (${primaryMatch.count} mentions, variations: ${primaryMatch.variationsFound.join(", ") || "exact"})`,
       });
-    } else {
-      const headingTitle = `Why Choose ${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)}?`;
-      const fixedHeadingContent = content.includes("<h2>") 
-        ? content.replace(/<h2>/i, `<h2>${headingTitle}</h2>\n<h2>`)
-        : `<h2>${headingTitle}</h2>\n${content || "<p>Detailed guide and specifications below.</p>"}`;
-      checks.push({
-        id: "keyphrase_in_headings",
-        category: "headings",
-        severity: "recommended",
-        passed: false,
-        title: "Primary Keyphrase Missing from Section Headings",
-        issue: `No H2 or H3 heading contains "${cleanPrimaryKey}".`,
-        impact: "Subheadings containing the target keyphrase improve topical relevance.",
-        fixAction: {
-          label: "Add Heading with Keyphrase",
-          field: "content",
-          value: fixedHeadingContent,
-          tabId: "general",
-        },
-      });
-    }
-
-    // Density & Stuffing Guard
-    if (primaryMatch) {
-      if (primaryMatch.status === "stuffed") {
-        checks.push({
-          id: "keyword_stuffing",
-          category: "keywords",
-          severity: "critical",
-          passed: false,
-          title: `Keyword Stuffing Warning (${primaryMatch.density}% Density)`,
-          issue: `"${cleanPrimaryKey}" appears ${primaryMatch.count} times (${primaryMatch.density}% of content).`,
-          impact: "Google penalizes unnaturally high keyword repetition. Keep density between 0.5% and 2.2%.",
-          fixAction: {
-            label: "Reduce Keyword Repetition",
-            field: "content",
-            tabId: "general",
-          },
-        });
-        score -= 6; // penalty
-      } else if (primaryMatch.count > 0) {
-        score += 3;
-        checks.push({
-          id: "keyword_stuffing",
-          category: "keywords",
-          severity: "passed",
-          passed: true,
-          title: `Natural Keyword Density (${primaryMatch.density}%, ${primaryMatch.count} mentions)`,
-        });
-      }
     }
   }
 
-  // Secondary Keyphrases Check
+  // [Secondary Keyphrases Check]
   if (cleanSecondaryKeys.length > 0) {
-    const presentSecondary = keyphrasesData.filter(k => !k.isPrimary && k.count > 0).length;
-    if (presentSecondary > 0) {
-      score += 4;
+    const presentCount = keyphrasesData.filter(k => !k.isPrimary && k.count > 0).length;
+    if (presentCount > 0) {
       checks.push({
         id: "secondary_keyphrases_found",
         category: "keywords",
         severity: "passed",
+        statusType: "verified",
         passed: true,
-        title: `${presentSecondary} of ${cleanSecondaryKeys.length} Secondary Keyphrases Used in Content`,
+        title: `${presentCount} of ${cleanSecondaryKeys.length} Secondary Keyphrases Used in Content`,
       });
     } else {
-      const secondaryParagraph = `\n\n<p><strong>Related topics:</strong> ${cleanSecondaryKeys.map((k: string) => `${k.charAt(0).toUpperCase() + k.slice(1)}`).join(", ")} are supported with comprehensive documentation and verified access on The Valid Market.</p>`;
       checks.push({
         id: "secondary_keyphrases_found",
         category: "keywords",
-        severity: "recommended",
+        severity: "optional",
+        statusType: "verified",
         passed: false,
-        title: "Secondary Keyphrases Not Mentioned in Content",
-        issue: `Configured secondary keyphrases (${cleanSecondaryKeys.join(", ")}) do not appear in the text.`,
-        impact: "Secondary keyphrases help rank for related long-tail search queries.",
-        fixAction: {
-          label: "Incorporate Related Terms",
-          field: "content",
-          value: content ? `${content}${secondaryParagraph}` : secondaryParagraph,
-          tabId: "general",
-        },
+        title: "Secondary Keyphrases Not Mentioned in Article",
+        issue: `Configured secondary terms (${cleanSecondaryKeys.join(", ")}) do not appear in the body.`,
+        impact: "Related sub-topics and long-tail variants help answer broader reader questions.",
+        whyItMatters: "Covering related concepts makes content more comprehensive and authoritative.",
+        suggestedAction: "Naturally discuss these related terms in relevant sections where helpful.",
       });
     }
   }
 
-  // Heading Structure Check 1: Single H1 Enforcement
+  // [Headings: Single H1 Enforcement]
   if (h1sInContent.length > 0) {
     const demotedContent = content
       .replace(/<h1(\b[^>]*)>/gi, "<h2$1>")
@@ -978,10 +1099,13 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       id: "headings_single_h1",
       category: "headings",
       severity: "important",
+      statusType: "verified",
       passed: false,
       title: `Multiple H1 Tags Detected (${h1sInContent.length} found in body)`,
       issue: "The article body contains <h1> tags. The page title already acts as the primary H1.",
-      impact: "Pages with multiple H1 tags confuse search engine crawlers regarding the primary topic.",
+      impact: "Multiple H1 tags in content fragment page hierarchy for screen readers and search crawlers.",
+      whyItMatters: "W3C and Google heading hierarchy best practice reserves H1 for the page title.",
+      suggestedAction: "Demote content <h1> tags to <h2> subheadings.",
       fixAction: {
         label: "Demote Body H1 to H2",
         field: "content",
@@ -990,49 +1114,49 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       },
     });
   } else {
-    score += 5;
     checks.push({
       id: "headings_single_h1",
       category: "headings",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: "Strict Single H1 Rule Maintained",
+      title: "Strict Single H1 Hierarchy Maintained",
     });
   }
 
-  // Heading Structure Check 2: Logical H2 Presence
-  const minHeadings = contentType === "blog" ? 2 : 1;
-  if (h2Count < minHeadings) {
-    const structuredContent = content
-      ? `${content}\n\n<h2>Key Highlights & Specifications</h2>\n<p>Explore detailed features, setup requirements, and verified benefits below.</p>\n<h2>Frequently Asked Questions</h2>\n<p>Find quick answers regarding licensing, downloads, and technical support.</p>`
-      : `<h2>Key Highlights & Specifications</h2>\n<p>Explore detailed features, setup requirements, and verified benefits below.</p>\n<h2>Frequently Asked Questions</h2>\n<p>Find quick answers regarding licensing, downloads, and technical support.</p>`;
+  // [Headings: Empty Headings]
+  if (emptyHeadingsCount > 0) {
     checks.push({
-      id: "headings_h2_presence",
+      id: "headings_empty",
       category: "headings",
       severity: "important",
+      statusType: "verified",
       passed: false,
-      title: `Too Few Section Headings (${h2Count} H2s found)`,
-      issue: `Content should have at least ${minHeadings} H2 headings to divide ideas.`,
-      impact: "Unbroken walls of text hurt user dwell time and crawler parsing.",
-      fixAction: {
-        label: "Add Section Headings",
-        field: "content",
-        value: structuredContent,
-        tabId: "general",
-      },
-    });
-  } else {
-    score += 5;
-    checks.push({
-      id: "headings_h2_presence",
-      category: "headings",
-      severity: "passed",
-      passed: true,
-      title: `Good Heading Structure (${h2Count} H2 headings)`,
+      title: `${emptyHeadingsCount} Empty Heading Tag${emptyHeadingsCount > 1 ? "s" : ""} Found`,
+      issue: "The document contains heading tags with no text or only whitespace.",
+      impact: "Empty headings create broken DOM outline nodes and harm accessibility.",
+      whyItMatters: "Assistive technologies announce empty headings, confusing visually impaired users.",
+      suggestedAction: "Remove or populate empty heading tags in the editor.",
     });
   }
 
-  // Heading Structure Check 3: Duplicate Headings
+  // [Headings: Hierarchy Skipped Levels]
+  if (hasSkippedHeadingLevels) {
+    checks.push({
+      id: "headings_hierarchy_skipped",
+      category: "headings",
+      severity: "recommended",
+      statusType: "verified",
+      passed: false,
+      title: "Heading Levels Skipped in Outline",
+      issue: "Document skips heading levels (e.g. jumping directly from H1 to H3 or H2 to H4).",
+      impact: "Skipped levels disrupt the logical document outline.",
+      whyItMatters: "Proper nesting (H1 -> H2 -> H3) enables crawlers and users to parse topical hierarchy effortlessly.",
+      suggestedAction: "Structure sub-points sequentially under H2 headings before using H3.",
+    });
+  }
+
+  // [Headings: Duplicate Heading Texts]
   const uniqueDupes = Array.from(new Set(duplicateHeadings));
   if (uniqueDupes.length > 0) {
     const deduplicatedContent = deduplicateHeadingTexts(content, uniqueDupes);
@@ -1040,10 +1164,13 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       id: "headings_duplicates",
       category: "headings",
       severity: "important",
+      statusType: "verified",
       passed: false,
-      title: "There are duplicate heading texts on the page",
-      issue: `Found ${uniqueDupes.length} duplicate heading text${uniqueDupes.length > 1 ? "s" : ""}: ${uniqueDupes.map(d => `"${d}"`).join(", ")}. Two or more sections share the exact same heading text.`,
-      impact: "Duplicate headings confuse readers, break document outline logic, and hinder search engine snippet extraction.",
+      title: `Duplicate Heading Texts (${uniqueDupes.length} duplicate${uniqueDupes.length > 1 ? "s" : ""})`,
+      issue: `Two or more sections share identical heading text: ${uniqueDupes.map(d => `"${d}"`).join(", ")}.`,
+      impact: "Identical headings make it difficult for readers and search engines to distinguish between sections.",
+      whyItMatters: "Unique subheadings allow Google to extract precise featured snippets.",
+      suggestedAction: "Make each heading title specific to its section content.",
       fixAction: {
         label: "Make Duplicate Headings Unique",
         field: "content",
@@ -1052,333 +1179,479 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
       },
     });
   } else if (headings.length > 0) {
-    score += 4;
     checks.push({
       id: "headings_duplicates",
       category: "headings",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: "All Heading Texts Are Unique",
+      title: "All Section Headings Are Unique",
     });
   }
 
-  // Heading Structure Check 4: Headings in Proportion to Amount of Text
-  const isHeadingDisproportionate = (totalHeadings >= 12 && wordsPerHeading < 50) || (totalHeadings >= 25 && wordCount < 2500);
-  if (isHeadingDisproportionate) {
-    const rebalancedContent = rebalanceExcessiveHeadings(content);
+  // [Headings: Presence of H2 Sections]
+  const minExpectedH2 = contentType === "blog" ? 2 : 1;
+  if (h2Count < minExpectedH2) {
     checks.push({
-      id: "headings_proportion",
+      id: "headings_h2_presence",
       category: "headings",
       severity: "important",
+      statusType: "verified",
       passed: false,
-      title: `There are ${totalHeadings} headings on the page. The number of headings should be more in proportion to the amount of text.`,
-      issue: `There are ${totalHeadings} headings on the page for only ${wordCount} words (average of ~${wordsPerHeading} words per heading). The number of headings should be more in proportion to the amount of text (recommended: at least 60–150 words per heading).`,
-      impact: "Too many headings fragment the reading flow, look unnatural to Google, and dilute the topical authority of primary subheadings.",
-      fixAction: {
-        label: "Rebalance Headings (Demote Subheadings to Paragraphs)",
-        field: "content",
-        value: rebalancedContent,
-        tabId: "general",
-      },
+      title: `Few Section Headings (${h2Count} H2 found)`,
+      issue: `Content should have at least ${minExpectedH2} H2 headings to divide ideas.`,
+      impact: "Walls of text fatigue readers and reduce average dwell time.",
+      whyItMatters: "Clear headings break long articles into digestible, easily navigable chapters.",
+      suggestedAction: "Use H2 headings to separate major themes, setup steps, or takeaways.",
     });
-  } else if (totalHeadings > 0) {
-    score += 4;
-    checks.push({
-      id: "headings_proportion",
-      category: "headings",
-      severity: "passed",
-      passed: true,
-      title: `Heading Count is in Proportion to Text (${totalHeadings} headings, ~${wordsPerHeading} words/section)`,
-    });
-  }
-
-  // Content Length Check
-  const minWordTarget = contentType === "blog" ? 600 : 200;
-  if (wordCount < minWordTarget) {
-    const faqExpansion = `\n\n<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, The Valid Market provides 24/7 technical customer support for all active licenses and services.</p>\n<p><strong>Can I request custom configurations?</strong> Contact our technical team via live chat for bespoke enterprise requirements.</p>`;
-    checks.push({
-      id: "content_word_count",
-      category: "headings",
-      severity: "important",
-      passed: false,
-      title: `Content is Thin (${wordCount} words / target ${minWordTarget}+)`,
-      issue: `Current word count is ${wordCount}. In-depth content ranks significantly better.`,
-      impact: "Thin content struggles to compete against comprehensive guides on Google.",
-      fixAction: {
-        label: "Expand Details & FAQ",
-        field: "content",
-        value: content ? `${content}\n${faqExpansion}` : faqExpansion,
-        tabId: "general",
-      },
-    });
-    score += Math.round((wordCount / minWordTarget) * 8);
   } else {
-    score += 8;
     checks.push({
-      id: "content_word_count",
+      id: "headings_h2_presence",
       category: "headings",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: `Thorough Content Length (${wordCount} words, ~${readingTimeMinutes} min read)`,
+      title: `Well-Structured Section Headings (${h2Count} H2 headings)`,
     });
   }
 
-  // Image SEO Checks
+  // [Content: Table of Contents Recommendation]
+  if (hasLongArticleWithoutToc) {
+    checks.push({
+      id: "content_toc_recommendation",
+      category: "headings",
+      severity: "recommended",
+      statusType: "verified",
+      passed: false,
+      title: "Table of Contents Recommended for Long Article",
+      issue: `Article is ~${wordCount} words across ${h2Count} sections without a Table of Contents.`,
+      impact: "Mobile readers have to scroll extensively to find specific sections.",
+      whyItMatters: "Table of contents jump-links provide rich sitelinks in Google Search results.",
+      suggestedAction: "Add an overview Table of Contents at the top of the article.",
+    });
+  }
+
+  // [Content: Paragraph Length & Readability]
+  if (hasLongParagraphs) {
+    checks.push({
+      id: "content_paragraph_readability",
+      category: "quality",
+      severity: "recommended",
+      statusType: "estimated",
+      passed: false,
+      title: "Dense Paragraphs Found (> 200 words)",
+      issue: "One or more paragraphs contain over 200 words without breaks.",
+      impact: "Dense text blocks increase bounce rate, particularly on mobile devices.",
+      whyItMatters: "People-first content uses short 2–4 sentence paragraphs and bullet lists for scannability.",
+      suggestedAction: "Split dense paragraphs into shorter thoughts or bullet lists.",
+    });
+  } else if (wordCount > 100) {
+    checks.push({
+      id: "content_paragraph_readability",
+      category: "quality",
+      severity: "passed",
+      statusType: "estimated",
+      passed: true,
+      title: "Good Paragraph Flow & Readability",
+    });
+  }
+
+  // [Content: Comprehensive Depth (No Arbitrary Word Counts!)]
+  const minWordTarget = contentType === "blog" ? 400 : 150;
+  if (wordCount < minWordTarget) {
+    checks.push({
+      id: "content_word_count",
+      category: "quality",
+      severity: "important",
+      statusType: "verified",
+      passed: false,
+      title: `Content Appears Brief (${wordCount} words)`,
+      issue: `Article has only ${wordCount} words. It may not provide complete answers to the reader's question.`,
+      impact: "Thin articles struggle to compete against comprehensive, practical resources.",
+      whyItMatters: "Google values helpful, in-depth content that fully satisfies user query intent.",
+      suggestedAction: "Add practical steps, verified examples, setup prerequisites, or a FAQ section.",
+    });
+  } else {
+    checks.push({
+      id: "content_word_count",
+      category: "quality",
+      severity: "passed",
+      statusType: "verified",
+      passed: true,
+      title: `Comprehensive Information Depth (${wordCount} words, ~${readingTimeMinutes} min read)`,
+    });
+  }
+
+  // [Images: Presence]
   if (totalImages === 0) {
     checks.push({
       id: "image_presence",
       category: "images",
       severity: "recommended",
+      statusType: "verified",
       passed: false,
-      title: "No Images or Visuals Included",
-      issue: "The article or product has no featured image or inline screenshots.",
-      impact: "Pages with engaging visuals retain visitors longer and can rank in Google Images.",
-      fixAction: {
-        label: "Set Default Featured Image",
-        field: "featuredImage",
-        value: "/og-image.jpg",
-        tabId: "general",
-      },
+      title: "No Visual Media or Featured Image Set",
+      issue: "The article does not have a featured image or inline screenshots.",
+      impact: "Pages without visual media are less engaging and cannot rank in Google Images.",
+      whyItMatters: "Visuals, diagrams, and screenshots reinforce instructional clarity.",
+      suggestedAction: "Set an informative featured image via the Media Library.",
     });
   } else {
-    score += 4;
     checks.push({
       id: "image_presence",
       category: "images",
       severity: "passed",
+      statusType: "verified",
       passed: true,
       title: `Visual Media Present (${totalImages} image${totalImages > 1 ? "s" : ""})`,
     });
 
-    // Image Alt text check
+    // [Images: Alt Text Audit]
     if (imagesMissingAlt > 0) {
       checks.push({
         id: "image_missing_alt",
         category: "images",
         severity: "critical",
+        statusType: "verified",
         passed: false,
         title: `${imagesMissingAlt} Image${imagesMissingAlt > 1 ? "s" : ""} Missing Alt Text`,
-        issue: "Images lack descriptive alt attributes for accessibility and Google Image indexing.",
-        impact: "Search engines cannot interpret image context without descriptive alt text.",
+        issue: "One or more images lack descriptive alt attributes.",
+        impact: "Search crawlers cannot index or understand image contents without descriptive alt text.",
+        whyItMatters: "Alt text is vital for accessibility and is Google's primary signal for Google Image search.",
+        suggestedAction: "Add descriptive alt text explaining what is shown in each image.",
         fixAction: {
-          label: "Add Image Alt Text",
+          label: "Add Featured Image Alt Text",
           field: "featuredImageAlt",
-          value: cleanPrimaryKey ? `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} - The Valid Market Guide` : `${effectiveTitle} - The Valid Market`,
+          value: cleanPrimaryKey ? `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} Guide - The Valid Market` : `${effectiveTitle} - The Valid Market`,
           tabId: "general",
         },
       });
     } else {
-      score += 4;
       checks.push({
         id: "image_missing_alt",
         category: "images",
         severity: "passed",
+        statusType: "verified",
         passed: true,
-        title: "All Images Have Descriptive Alt Text",
-      });
-    }
-
-    // Primary Keyword in Image Alt
-    if (cleanPrimaryKey && allAltsCombined.includes(cleanPrimaryKey)) {
-      score += 2;
-      checks.push({
-        id: "image_keyword_alt",
-        category: "images",
-        severity: "passed",
-        passed: true,
-        title: `Primary Keyphrase Included in Image Alt Text`,
-      });
-    } else if (cleanPrimaryKey) {
-      checks.push({
-        id: "image_keyword_alt",
-        category: "images",
-        severity: "optional",
-        passed: false,
-        title: "Primary Keyphrase Missing from Image Alt Text",
-        issue: `"${cleanPrimaryKey}" does not appear in any image alt attributes.`,
-        impact: "Relevant image alt tags provide strong context for Google Image Search.",
-        fixAction: {
-          label: "Include in Featured Alt",
-          field: "featuredImageAlt",
-          value: `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} Overview - The Valid Market`,
-          tabId: "general",
-        },
+        title: "All Images Have Descriptive Alt Attributes",
       });
     }
   }
 
-  // Link Analysis Checks
+  // [Links: Internal Linking & Discovery]
   if (internalLinksCount === 0) {
-    const internalLinkSnippet = `\n\n<p>Explore more verified software, proxies, and accounts in the <a href="/store">The Valid Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
     checks.push({
       id: "links_internal",
       category: "links",
       severity: "recommended",
+      statusType: "verified",
       passed: false,
-      title: "No Internal Links Found",
-      issue: "Content does not link to other pages, products, or tools on The Valid Market.",
-      impact: "Internal links pass PageRank and help search crawlers index your catalog.",
-      fixAction: {
-        label: "Add Store & Blog Link",
-        field: "content",
-        value: content ? `${content}${internalLinkSnippet}` : internalLinkSnippet,
-        tabId: "general",
-      },
+      title: "No Internal Links Found in Body",
+      issue: "Article does not link to any related products, categories, or guides on the site.",
+      impact: "Misses internal link equity distribution and lowers reader page discovery.",
+      whyItMatters: "Internal links guide readers to relevant next steps and help Google crawl your catalog.",
+      suggestedAction: "Add 1-2 relevant internal links to related guides or products.",
     });
   } else {
-    score += 3;
     checks.push({
       id: "links_internal",
       category: "links",
       severity: "passed",
+      statusType: "verified",
       passed: true,
       title: `Internal Links Present (${internalLinksCount} internal link${internalLinksCount > 1 ? "s" : ""})`,
     });
   }
 
+  // [Links: Vague Anchor Text Guard]
   if (vagueAnchorLinksCount > 0) {
-    let improvedAnchorsContent = content;
-    improvedAnchorsContent = improvedAnchorsContent.replace(
-      /<a\b([^>]*)>(click here|here|read more|learn more|link|this)<\/a>/gi,
-      (match, attrs, anchor) => {
-        return `<a${attrs}>explore the full The Valid Market catalog</a>`;
-      }
-    );
     checks.push({
       id: "links_vague_anchors",
       category: "links",
       severity: "recommended",
+      statusType: "verified",
       passed: false,
-      title: `${vagueAnchorLinksCount} Link${vagueAnchorLinksCount > 1 ? "s" : ""} With Vague Anchor Text`,
-      issue: "Found generic anchors like 'click here' or 'learn more' instead of descriptive phrases.",
-      impact: "Descriptive anchor text tells Google what the destination page is about.",
-      fixAction: {
-        label: "Improve Anchor Text",
-        field: "content",
-        value: improvedAnchorsContent,
-        tabId: "general",
-      },
+      title: `${vagueAnchorLinksCount} Link${vagueAnchorLinksCount > 1 ? "s" : ""} with Generic Anchor Text`,
+      issue: "Links use generic text like 'click here', 'read more', or 'link'.",
+      impact: "Generic anchor words convey zero context to search engines about the destination page.",
+      whyItMatters: "Google explicitly recommends descriptive anchor text indicating the destination topic.",
+      suggestedAction: "Replace generic anchors with descriptive nouns describing the destination.",
     });
   } else if (internalLinksCount > 0 || externalLinksCount > 0) {
-    score += 2;
     checks.push({
       id: "links_vague_anchors",
       category: "links",
       severity: "passed",
+      statusType: "verified",
       passed: true,
       title: "Descriptive Anchor Text Used for Links",
     });
   }
 
-  // Link Analysis Check 3: Internal Links with Dynamic Parameters (Without Nofollow)
+  // [Links: Dynamic Internal Parameters Without Nofollow]
   if (dynamicInternalLinksCount > 0) {
     const cleanedDynamicContent = cleanDynamicInternalLinks(content);
     checks.push({
       id: "links_dynamic_internal",
       category: "links",
       severity: "important",
+      statusType: "verified",
       passed: false,
-      title: "All internal URLs, which are not marked as nofollow, should not contain dynamic parameters",
-      issue: `Some internal links have dynamic parameters (${dynamicInternalLinksList.slice(0, 3).map(u => `"${u}"`).join(", ")}${dynamicInternalLinksList.length > 3 ? ` and ${dynamicInternalLinksList.length - 3} more` : ""}). All internal URLs, which are not marked as nofollow, should not contain dynamic parameters.`,
-      impact: "Internal URLs with query parameters without nofollow dilute link equity, waste crawler budget, and can generate duplicate search indexing.",
+      title: `Internal Links with Unsafe Dynamic Query Parameters (${dynamicInternalLinksCount})`,
+      issue: `Internal links contain raw query strings (${dynamicInternalLinksList.slice(0, 2).join(", ")}) without nofollow.`,
+      impact: "Can cause duplicate indexing loops and waste search crawler budget.",
+      whyItMatters: "Internal links should point to canonical, clean URLs or be marked nofollow.",
+      suggestedAction: "Clean query parameters from internal links or mark with rel='nofollow'.",
       fixAction: {
-        label: "Clean Dynamic Internal Links (Strip Query & Add Nofollow)",
+        label: "Clean Dynamic Internal Links",
         field: "content",
         value: cleanedDynamicContent,
         tabId: "general",
       },
     });
   } else if (internalLinksCount > 0) {
-    score += 3;
     checks.push({
       id: "links_dynamic_internal",
       category: "links",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: "All Internal Links Are Clean (No Dynamic Parameters Without Nofollow)",
+      title: "All Internal Links Are Clean (No Dynamic Query Parameters)",
     });
   }
 
-  // Technical & Social Checks
+  // [Technical: Canonical URL Format & Protocol]
+  if (hasCanonical && !isCanonicalValid) {
+    checks.push({
+      id: "tech_canonical_validity",
+      category: "canonical",
+      severity: "critical",
+      statusType: "verified",
+      passed: false,
+      title: "Invalid Canonical URL Format",
+      issue: canonicalIssueMsg,
+      impact: "Search engines will ignore invalid canonical directives, risking duplicate URL indexing.",
+      whyItMatters: "Canonical URLs must strictly be absolute HTTPS URLs without query strings or hash tags.",
+      suggestedAction: "Enter a clean, absolute HTTPS URL for the canonical tag.",
+      fixAction: {
+        label: "Set Clean Default Canonical",
+        field: "canonicalUrl",
+        value: `${siteUrl}/blog/${slug || "article"}`,
+        tabId: "seo",
+      },
+    });
+  } else if (hasCanonical) {
+    checks.push({
+      id: "tech_canonical_validity",
+      category: "canonical",
+      severity: "passed",
+      statusType: "verified",
+      passed: true,
+      title: "Custom Canonical URL Validated",
+      evidence: `Canonical: ${trimmedCanonical}`,
+    });
+  } else {
+    checks.push({
+      id: "tech_canonical_validity",
+      category: "canonical",
+      severity: "passed",
+      statusType: "verified",
+      passed: true,
+      title: "Self-Referential Canonical Configured (Default)",
+      evidence: `Default canonical automatically outputs ${siteUrl}/blog/${slug || "article"}`,
+    });
+  }
+
+  // [Technical: Indexing Directive (Robots Meta)]
   const isNoIndex = (robots || "").toLowerCase().includes("noindex");
   if (isNoIndex) {
     checks.push({
       id: "tech_noindex",
       category: "technical",
       severity: "critical",
+      statusType: "verified",
       passed: false,
-      title: "Page Set to 'noindex'",
-      issue: "Robots directive specifies noindex.",
-      impact: "Search engines are explicitly instructed NOT to index or rank this page.",
+      title: "CRITICAL: Page Set to 'noindex'",
+      issue: "Robots meta directive specifies 'noindex'.",
+      impact: "Google, Bing, and other search engines are strictly commanded NOT to index or rank this page.",
+      whyItMatters: "This prevents the article from ever appearing in search results.",
+      suggestedAction: "If this article is meant to be indexed by search engines, switch robots directive to 'index, follow'.",
       fixAction: {
-        label: "Enable Indexing",
+        label: "Enable Search Indexing",
         field: "robots",
         value: "index, follow",
         tabId: "seo",
       },
     });
   } else {
-    score += 2;
     checks.push({
       id: "tech_noindex",
       category: "technical",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: "Robots Directive Permits Indexing",
+      title: "Robots Directive Permits Search Indexing (index, follow)",
     });
   }
 
+  // [Technical: Social Media OpenGraph Tags]
   if (ogTitle || seoTitle || name) {
-    score += 3;
     checks.push({
       id: "tech_social_meta",
       category: "technical",
       severity: "passed",
+      statusType: "verified",
       passed: true,
-      title: "Social Sharing OpenGraph Tags Configured",
+      title: "Social Sharing Metadata Configured (OpenGraph & Twitter Card)",
+    });
+  } else {
+    checks.push({
+      id: "tech_social_meta",
+      category: "technical",
+      severity: "recommended",
+      statusType: "verified",
+      passed: false,
+      title: "Social Sharing OpenGraph Tags Missing",
+      issue: "No custom social sharing title configured.",
+      impact: "Links shared on Telegram, Discord, and Twitter may lack engaging cards.",
+      suggestedAction: "Configure custom OG title, description, and social preview image.",
     });
   }
 
-  // Clamp score 0 - 100
-  const finalScore = Math.max(0, Math.min(100, score));
+  // [Technical: Structured Data (Schema.org BlogPosting)]
+  checks.push({
+    id: "tech_structured_data",
+    category: "technical",
+    severity: "passed",
+    statusType: "verified",
+    passed: true,
+    title: "Schema.org BlogPosting JSON-LD Supported on Storefront",
+    evidence: "Headline, description, image, datePublished, dateModified, and Organization publisher are rendered.",
+  });
 
-  // Determine editorial threshold
+  // [Technical: External Check Distinctions (Search Console & Core Web Vitals)]
+  checks.push({
+    id: "tech_cwv_lab",
+    category: "technical",
+    severity: "optional",
+    statusType: "requires_external",
+    passed: true,
+    title: "Core Web Vitals Thresholds (Google 2026 Standards)",
+    evidence: "Good LCP <= 2.5s | Good INP <= 200ms | Good CLS <= 0.1. Requires external field data from Google Search Console / PageSpeed.",
+  });
+
+  checks.push({
+    id: "tech_backlinks_external",
+    category: "technical",
+    severity: "optional",
+    statusType: "requires_external",
+    passed: true,
+    title: "Off-Page Backlinks & Impressions Audit",
+    evidence: "External ranking signals require connected Search Console or third-party webmaster APIs. Editor analyzes on-page signals only.",
+  });
+
+  // ─── SCORING FORMULA (Transparent & Explainable) ─────────────────────────
+  // Points assigned strictly based on real technical & editorial signals:
+  // Title (20 pts), Description (15 pts), Headings & Structure (20 pts),
+  // Content Quality & Keyphrase Integration (25 pts), Media & Links (20 pts)
+  let titleScore = 0;
+  if (effectiveTitle) {
+    titleScore += 10;
+    if (titlePixelWidth <= 580 && titleLength >= 35 && titleLength <= 60) titleScore += 7;
+    else if (titleLength >= 30) titleScore += 4;
+    if (titleRepeats.length === 0) titleScore += 3;
+  }
+  scoreBreakdown.push({
+    category: "Title & SERP Clarity",
+    earned: titleScore,
+    max: 20,
+    explanation: "Title presence, pixel width within 580px, and absence of repetitive stuffing.",
+  });
+
+  let descScore = 0;
+  if (effectiveDesc) {
+    descScore += 8;
+    if (descPixelWidth <= 960 && descLength >= 80 && descLength <= 160) descScore += 5;
+    else if (descLength >= 70) descScore += 3;
+    if (primaryMatch?.inMetaDesc) descScore += 2;
+  }
+  scoreBreakdown.push({
+    category: "Meta Description",
+    earned: descScore,
+    max: 15,
+    explanation: "Concise summary answering search intent within Google's snippet boundary.",
+  });
+
+  let headingScore = 0;
+  if (h1sInContent.length === 0) headingScore += 7;
+  if (h2Count >= minExpectedH2) headingScore += 7;
+  if (emptyHeadingsCount === 0 && !hasSkippedHeadingLevels) headingScore += 3;
+  if (duplicateHeadings.length === 0 && headings.length > 0) headingScore += 3;
+  scoreBreakdown.push({
+    category: "Headings & Document Hierarchy",
+    earned: headingScore,
+    max: 20,
+    explanation: "Single H1 structure, H2 topical dividing, unique titles, and sequential nesting.",
+  });
+
+  let contentScore = 0;
+  if (wordCount >= minWordTarget) contentScore += 9;
+  else if (wordCount >= 150) contentScore += 4;
+  if (!hasLongParagraphs) contentScore += 4;
+  if (primaryMatch && primaryMatch.count > 0 && primaryMatch.status !== "repetitive") contentScore += 7;
+  if (primaryMatch?.inIntro) contentScore += 3;
+  if (keyphrasesData.some(k => !k.isPrimary && k.count > 0)) contentScore += 2;
+  scoreBreakdown.push({
+    category: "Content Depth & Readability",
+    earned: Math.min(25, contentScore),
+    max: 25,
+    explanation: "Comprehensive coverage, comfortable paragraph spacing, and natural keyword presence.",
+  });
+
+  let mediaLinksScore = 0;
+  if (totalImages > 0) {
+    mediaLinksScore += 4;
+    if (imagesMissingAlt === 0) mediaLinksScore += 6;
+  }
+  if (internalLinksCount > 0) mediaLinksScore += 4;
+  if (vagueAnchorLinksCount === 0 && (internalLinksCount > 0 || externalLinksCount > 0)) mediaLinksScore += 3;
+  if (dynamicInternalLinksCount === 0 && internalLinksCount > 0) mediaLinksScore += 3;
+  scoreBreakdown.push({
+    category: "Media & Internal Navigation",
+    earned: Math.min(20, mediaLinksScore),
+    max: 20,
+    explanation: "Labeled image alt text, descriptive anchor links, and clean URL references.",
+  });
+
+  let totalRawScore = titleScore + descScore + headingScore + contentScore + mediaLinksScore;
+
+  // Technical deductions for severe indexing errors
+  if (isNoIndex) totalRawScore = Math.min(totalRawScore, 40); // Cap if noindex!
+  if (hasCanonical && !isCanonicalValid) totalRawScore = Math.max(0, totalRawScore - 15);
+
+  const finalScore = Math.max(0, Math.min(100, Math.round(totalRawScore)));
+
+  // Editorial Tiers (transparent editorial guidance, never promised as Google ranking tiers)
   let statusLevel: "OK" | "Good" | "Best" = "OK";
   if (finalScore >= 85) statusLevel = "Best";
   else if (finalScore >= 60) statusLevel = "Good";
   else statusLevel = "OK";
 
-  // Counts
+  // Critical issues that must remain visible REGARDLESS of overall score
+  const criticalIssues = checks.filter(c => !c.passed && c.severity === "critical");
+
   const passedCount = checks.filter(c => c.passed).length;
   const warningCount = checks.filter(c => !c.passed && (c.severity === "important" || c.severity === "recommended")).length;
   const errorCount = checks.filter(c => !c.passed && c.severity === "critical").length;
 
-  // Filter recommendations (failed checks sorted: critical -> important -> recommended -> optional)
   const severityWeight = { critical: 4, important: 3, recommended: 2, optional: 1, passed: 0 };
   const recommendations = checks
     .filter(c => !c.passed)
     .sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]);
 
-  // Generate Suggested Title
-  let suggestedTitle = effectiveTitle;
-  if (cleanPrimaryKey && !effectiveTitle.toLowerCase().includes(cleanPrimaryKey)) {
-    suggestedTitle = `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} | ${effectiveTitle}`.slice(0, 58).trim();
-  } else if (titleLength > 60) {
-    suggestedTitle = effectiveTitle.slice(0, 57).trim();
-  }
-
-  // Generate Suggested Meta Description
-  let suggestedMetaDescription = effectiveDesc;
-  if (!effectiveDesc || effectiveDesc.length < 90) {
-    const summaryCandidate = plainText.slice(0, 140).trim();
-    if (cleanPrimaryKey) {
-      suggestedMetaDescription = `Explore ${cleanPrimaryKey} with instant delivery and verified security on The Valid Market. ${summaryCandidate}`.slice(0, 155).trim();
-    } else {
-      suggestedMetaDescription = `${summaryCandidate} Available now on The Valid Market with verified instant delivery.`.slice(0, 155).trim();
-    }
-  }
-
-  // Generate Suggested Alt Text
+  // Safe Suggested Values (for review, not auto-overwritten)
+  const suggestedTitle = buildCleanSeoTitle(effectiveTitle, cleanPrimaryKey);
+  const suggestedMetaDescription = buildCleanMetaDescription(plainText, cleanPrimaryKey, effectiveTitle);
   const suggestedImageAlt = cleanPrimaryKey
     ? `${cleanPrimaryKey.charAt(0).toUpperCase() + cleanPrimaryKey.slice(1)} - The Valid Market Guide`
     : `${effectiveTitle} - The Valid Market`;
@@ -1389,6 +1662,7 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     passedCount,
     warningCount,
     errorCount,
+    criticalIssues,
     titleLength,
     titlePixelWidth,
     titleStatus,
@@ -1404,6 +1678,10 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     wordsPerHeading,
     headingsList: headings,
     duplicateHeadings,
+    emptyHeadingsCount,
+    hasSkippedHeadingLevels,
+    hasLongArticleWithoutToc,
+    hasLongParagraphs,
     totalImages,
     imagesMissingAlt,
     missingAltSrcList,
@@ -1418,5 +1696,6 @@ export function analyzeSeo(input: SeoInputData): SeoAnalysisResult {
     suggestedTitle,
     suggestedMetaDescription,
     suggestedImageAlt,
+    scoreBreakdown,
   };
 }

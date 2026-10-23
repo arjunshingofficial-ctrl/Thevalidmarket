@@ -3,6 +3,15 @@ import { prisma } from "@/lib/prisma";
 import PaymentClient from "./PaymentClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Payment | The Valid Market",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function PaymentPage({ params }: { params: Promise<{ paymentId: string }> }) {
   const resolvedParams = await params;

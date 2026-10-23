@@ -1,6 +1,15 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { RegisterForm } from "./RegisterForm";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Create Account | The Valid Market",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export default async function RegisterPage() {
   const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });

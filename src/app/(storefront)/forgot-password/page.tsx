@@ -1,4 +1,13 @@
 import Link from "next/link";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Reset Password | The Valid Market",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export default function ForgotPasswordPage() {
   return (

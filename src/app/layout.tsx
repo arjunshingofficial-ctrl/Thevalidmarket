@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import ProgressBarProvider from "@/components/providers/ProgressBarProvider";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import { prisma } from "@/lib/prisma";
 
 const inter = Inter({ 
@@ -14,6 +15,13 @@ const inter = Inter({
 import { getBaseUrl } from "@/lib/siteUrl";
 
 const baseUrl = getBaseUrl();
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#0a0f1c",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   let settings = null;
@@ -189,14 +197,6 @@ export default async function RootLayout({
   return (
     <html lang="en" className="h-full">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
-        <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/site.webmanifest" />
-        <meta name="msvalidate.01" content={process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || "85554159FE50FA2E9F59653F52156EC9"} />
-        <meta name="google-site-verification" content={process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "uf1qeBxnVcDdD8V4huDTRAt_WdOa8kv82GHEHEAZE4k"} />
         <link rel="preconnect" href="https://dvtmzispblbufuzoimkk.supabase.co" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://dvtmzispblbufuzoimkk.supabase.co" />
         <script
@@ -205,6 +205,7 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${inter.className} flex min-h-screen flex-col antialiased`}>
+        <GoogleAnalytics />
         <AuthProvider>
           <ProgressBarProvider />
           {children}

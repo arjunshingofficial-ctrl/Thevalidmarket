@@ -57,6 +57,7 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      // Public indexable routes
       {
         source: '/',
         headers: [
@@ -94,6 +95,24 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: '/category/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'index, follow',
+          },
+        ],
+      },
+      {
+        source: '/blog/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'index, follow',
+          },
+        ],
+      },
+      {
         source: '/news/:path*',
         headers: [
           {
@@ -108,6 +127,61 @@ const nextConfig: NextConfig = {
           {
             key: 'X-Robots-Tag',
             value: 'index, follow',
+          },
+        ],
+      },
+      // Sensitive private routes - HTTP header level noindex protection
+      {
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/dashboard/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/checkout/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/cart',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/payment/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
+          },
+        ],
+      },
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'X-Robots-Tag',
+            value: 'noindex, nofollow',
           },
         ],
       },

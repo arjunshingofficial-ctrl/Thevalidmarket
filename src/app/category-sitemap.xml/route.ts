@@ -22,29 +22,13 @@ export async function GET() {
     const urls: SitemapUrlItem[] = [];
     const now = new Date();
 
-    // Store Category landing pages & store filtered hubs
+    // Store Category canonical landing pages
     for (const cat of categories) {
       urls.push({
         loc: `${baseUrl}/category/${cat.slug}`,
         lastmod: now,
         changefreq: "weekly",
         priority: 0.8,
-      });
-      urls.push({
-        loc: `${baseUrl}/store?category=${cat.slug}`,
-        lastmod: now,
-        changefreq: "weekly",
-        priority: 0.75,
-      });
-    }
-
-    // Blog / News topic hubs
-    for (const bCat of blogCategories) {
-      urls.push({
-        loc: `${baseUrl}/news?category=${bCat.slug}`,
-        lastmod: now,
-        changefreq: "weekly",
-        priority: 0.7,
       });
     }
 

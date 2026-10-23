@@ -534,6 +534,7 @@ export default function BlogEditor({ initialData, categories, mode, postId }: Bl
                 else if (field === "content") setContent(val);
               }}
               onJumpToTab={(tabId) => setActiveTab(tabId as any)}
+              postId={postId}
             />
           </div>
         </div>

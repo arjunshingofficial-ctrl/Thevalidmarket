@@ -24,6 +24,15 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Courses & Masterclasses | The Valid Market",
   description: "Learn practical, industry-proven digital skills from verified experts. Instant dashboard access, step-by-step video curriculums, and lifetime mentorship.",
+  alternates: {
+    canonical: "/courses",
+  },
+  openGraph: {
+    title: "Courses & Masterclasses | The Valid Market",
+    description: "Learn practical, industry-proven digital skills from verified experts. Instant dashboard access, step-by-step video curriculums, and lifetime mentorship.",
+    url: "/courses",
+    type: "website",
+  },
 };
 
 export default async function CoursesPage({

@@ -1,7 +1,16 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Metadata } from "next";
 import DashboardSidebar from "@/components/layout/DashboardSidebar";
+
+export const metadata: Metadata = {
+  title: "Dashboard | The Valid Market",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);

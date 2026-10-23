@@ -4,7 +4,17 @@ import { prisma } from "@/lib/prisma";
 import CheckoutFlow from "@/components/checkout/CheckoutFlow";
 import { redirect } from "next/navigation";
 
+import { Metadata } from "next";
+
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Checkout | The Valid Market",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function CheckoutPage() {
   const session = await getServerSession(authOptions) as any;

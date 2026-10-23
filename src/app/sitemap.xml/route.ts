@@ -64,7 +64,7 @@ export async function GET() {
     const allUrls: SitemapUrlItem[] = [];
     const now = new Date();
 
-    // Core Store Hubs & Landing Pages
+    // Core Store Hubs & Landing Pages (only active, indexable static routes)
     const staticHubs: SitemapUrlItem[] = [
       {
         loc: baseUrl,
@@ -85,12 +85,6 @@ export async function GET() {
         priority: 0.9,
       },
       {
-        loc: `${baseUrl}/tools`,
-        lastmod: now,
-        changefreq: "weekly",
-        priority: 0.8,
-      },
-      {
         loc: `${baseUrl}/news`,
         lastmod: now,
         changefreq: "daily",
@@ -103,31 +97,7 @@ export async function GET() {
         priority: 0.8,
       },
       {
-        loc: `${baseUrl}/about`,
-        lastmod: now,
-        changefreq: "monthly",
-        priority: 0.7,
-      },
-      {
         loc: `${baseUrl}/contact`,
-        lastmod: now,
-        changefreq: "monthly",
-        priority: 0.7,
-      },
-      {
-        loc: `${baseUrl}/terms`,
-        lastmod: now,
-        changefreq: "monthly",
-        priority: 0.6,
-      },
-      {
-        loc: `${baseUrl}/privacy`,
-        lastmod: now,
-        changefreq: "monthly",
-        priority: 0.6,
-      },
-      {
-        loc: `${baseUrl}/faq`,
         lastmod: now,
         changefreq: "monthly",
         priority: 0.7,
@@ -177,29 +147,13 @@ export async function GET() {
       });
     }
 
-    // Categories
+    // Store Categories (Canonical Category landing pages only - no query parameters)
     for (const cat of categories) {
       allUrls.push({
         loc: `${baseUrl}/category/${cat.slug}`,
         lastmod: now,
         changefreq: "weekly",
         priority: 0.8,
-      });
-      allUrls.push({
-        loc: `${baseUrl}/store?category=${cat.slug}`,
-        lastmod: now,
-        changefreq: "weekly",
-        priority: 0.75,
-      });
-    }
-
-    // Blog Categories
-    for (const bCat of blogCategories) {
-      allUrls.push({
-        loc: `${baseUrl}/news?category=${bCat.slug}`,
-        lastmod: now,
-        changefreq: "weekly",
-        priority: 0.7,
       });
     }
 

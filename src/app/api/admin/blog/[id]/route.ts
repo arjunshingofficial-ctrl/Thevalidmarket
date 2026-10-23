@@ -109,6 +109,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       }
     });
 
+    // If an established published article slug is renamed, automatically create a 301 redirect
+    if (existing.status === "PUBLISHED" && existing.slug !== post.slug) {
+      const oldUrl = `/blog/${existing.slug}`;
+      const newUrl = `/blog/${post.slug}`;
+      try {
+        await prisma.redirect.upsert({
+          where: { oldUrl },
+          create: { oldUrl, newUrl, statusCode: 301, isEnabled: true },
+          update: { newUrl, statusCode: 301, isEnabled: true },
+        });
+      } catch (redirectErr) {
+        console.error("Error creating 301 redirect for renamed blog slug:", redirectErr);
+      }
+    }
+
     try {
       revalidatePath("/");
       revalidatePath("/blog");

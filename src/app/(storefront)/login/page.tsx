@@ -1,6 +1,15 @@
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { LoginForm } from "./LoginForm";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sign In | The Valid Market",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export default async function LoginPage() {
   const t0 = performance.now();

@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Shopping Cart | The Valid Market",
   description: "Review your selected digital assets, software licenses, private proxies, and masterclasses before secure checkout.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function CartPage() {

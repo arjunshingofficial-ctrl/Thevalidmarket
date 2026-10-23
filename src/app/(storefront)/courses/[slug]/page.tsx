@@ -14,6 +14,8 @@ import { normalizeImageUrl } from "@/lib/storage/client";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
 import CourseCurriculumAccordion from "@/components/course/CourseCurriculumAccordion";
 
+import { getBaseUrl } from "@/lib/siteUrl";
+
 export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -27,6 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return { title: "Course Not Found - The Valid Market" };
   }
 
+  const baseUrl = getBaseUrl();
   const metadata = (() => {
     try {
       return product.metadata ? JSON.parse(product.metadata) : {};
@@ -36,13 +39,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   })();
 
   const image = metadata.image || null;
+  const canonicalUrl = `${baseUrl}/courses/${product.slug}`;
 
   return {
     title: `${product.name} | The Valid Market Academy`,
     description: product.shortDesc || "Master advanced skills with this technical masterclass from The Valid Market.",
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: `${product.name} | The Valid Market Academy`,
       description: product.shortDesc || undefined,
+      url: canonicalUrl,
       images: image ? [{ url: normalizeImageUrl(image) }] : undefined,
     },
   };
@@ -116,8 +124,52 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
     ? (product.reviews.reduce((acc, r) => acc + r.rating, 0) / reviewsCount).toFixed(1)
     : "5.0";
 
+  const siteUrl = getBaseUrl();
+  const courseJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    "name": product.name,
+    "description": product.shortDesc || "Master advanced skills with this technical masterclass from The Valid Market.",
+    "provider": {
+      "@type": "Organization",
+      "name": "The Valid Market",
+      "url": siteUrl,
+    },
+    "image": image ? (image.startsWith("http") ? image : `${siteUrl}${image}`) : undefined,
+    "offers": {
+      "@type": "Offer",
+      "price": price,
+      "priceCurrency": "USD",
+      "category": "Paid",
+      "url": `${siteUrl}/courses/${product.slug}`,
+      "availability": "https://schema.org/InStock",
+    },
+    "hasCourseInstance": {
+      "@type": "CourseInstance",
+      "courseMode": "Online",
+      "courseWorkload": totalMinutes > 0 ? `PT${totalMinutes}M` : "PT120M",
+      "instructor": {
+        "@type": "Person",
+        "name": instructor,
+      },
+    },
+    ...(reviewsCount > 0 && {
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": avgRating,
+        "reviewCount": reviewsCount,
+        "bestRating": "5",
+        "worstRating": "1",
+      },
+    }),
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/60 pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
+      />
       {/* ─ Top Hero Banner ─ */}
       <section className="bg-slate-950 text-white relative overflow-hidden border-b border-slate-800">
         {/* Ambient Gradient Glow */}

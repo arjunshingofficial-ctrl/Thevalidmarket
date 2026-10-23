@@ -17,22 +17,25 @@ import {
 } from "lucide-react";
 import ContactForm from "./ContactForm";
 
+import { getBaseUrl } from "@/lib/siteUrl";
+
 export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
   const siteName = settings?.siteName || "The Valid Market";
+  const baseUrl = getBaseUrl();
 
   return {
     title: `Contact Support & Technical Help Desk | ${siteName}`,
     description: `Connect with ${siteName} 24/7 support team. Get dedicated technical help, order verification, course assistance, and billing support via Telegram, WhatsApp, VIP Live Chat, and Email.`,
     alternates: {
-      canonical: "/contact",
+      canonical: `${baseUrl}/contact`,
     },
     openGraph: {
       title: `Contact 24/7 Support | ${siteName}`,
       description: `Need assistance with an order, course, or digital license? Reach out to ${siteName} support via Telegram, WhatsApp, or instant contact desk.`,
-      url: "/contact",
+      url: `${baseUrl}/contact`,
       type: "website",
     },
   };
@@ -100,8 +103,26 @@ export default async function ContactPage() {
     },
   ];
 
+  const baseUrl = getBaseUrl();
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map((faq) => ({
+      "@type": "Question",
+      "name": faq.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.a,
+      },
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-slate-50/70 pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       {/* ── Top Hero Banner ── */}
       <section className="bg-slate-950 text-white relative overflow-hidden border-b border-slate-800">
         {/* Glow ambient background effects */}

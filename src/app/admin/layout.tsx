@@ -4,6 +4,15 @@ import { redirect } from "next/navigation";
 import AdminSidebar from "@/components/layout/AdminSidebar";
 import AdminTopbar from "@/components/layout/AdminTopbar";
 import { AdminBadgeProvider } from "@/components/providers/AdminBadgeContext";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Admin Panel | The Valid Market",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);

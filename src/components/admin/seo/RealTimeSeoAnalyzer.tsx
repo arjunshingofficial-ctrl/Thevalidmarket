@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { 
   CheckCircle2, AlertTriangle, AlertCircle, Sparkles, Star, 
   Plus, X, Globe, Smartphone, Monitor, ChevronDown, ChevronRight, 
   Share2, Layers, Search, ArrowRight, ExternalLink, Image as ImageIcon, 
-  Link as LinkIcon, Hash, Copy, Check, Info, FileText, Edit3 
+  Link as LinkIcon, Hash, Copy, Check, Info, FileText, Edit3, 
+  ShieldCheck, ShieldAlert, Cpu, BookOpen, Clock, Activity, ArrowUpRight,
+  ListTree, AlertOctagon, HelpCircle, RefreshCw
 } from "lucide-react";
 import { 
   analyzeSeo, 
@@ -13,32 +15,146 @@ import {
   SeoAnalysisResult, 
   SeoCheckItem, 
   KeyphraseMatch,
+  CheckStatusType,
   cleanDynamicInternalLinks,
   deduplicateHeadingTexts,
-  rebalanceExcessiveHeadings
+  rebalanceExcessiveHeadings,
+  buildCleanSeoTitle,
+  buildCleanMetaDescription
 } from "@/lib/seo/analyzer";
+import { getBaseUrl } from "@/lib/siteUrl";
 
 interface RealTimeSeoAnalyzerProps {
   data: SeoInputData;
   onUpdateField: (field: string, value: any) => void;
   onJumpToTab?: (tabId: string) => void;
+  postId?: string;
 }
 
 export default function RealTimeSeoAnalyzer({
   data,
   onUpdateField,
   onJumpToTab,
+  postId,
 }: RealTimeSeoAnalyzerProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"overview" | "keyphrases" | "serp" | "social" | "headings">("overview");
+  const [activeSubTab, setActiveSubTab] = useState<
+    "overview" | "keyphrases" | "serp" | "slug_canonical" | "headings" | "links_media" | "technical_schema" | "social"
+  >("overview");
+
   const [devicePreview, setDevicePreview] = useState<"desktop" | "mobile">("desktop");
   const [filterSeverity, setFilterSeverity] = useState<"all" | "critical" | "warning" | "passed">("all");
   const [newSecondaryKey, setNewSecondaryKey] = useState("");
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [fixedNotice, setFixedNotice] = useState<string | null>(null);
+  const [showScoreModal, setShowScoreModal] = useState(false);
+
+  // Live duplicate and internal link data from DB
+  const [dbAudit, setDbAudit] = useState<{
+    slugConflict: { type: string; title: string; url: string } | null;
+    titleConflict: { id: string; title: string; slug: string } | null;
+    descConflict: { id: string; title: string; slug: string } | null;
+    establishedSlugNeedsRedirect: boolean;
+    oldSlug: string | null;
+    siteLinks: {
+      articles: { title: string; url: string }[];
+      products: { title: string; url: string; type: string }[];
+      categories: { title: string; url: string }[];
+    };
+  } | null>(null);
+  const [loadingDbAudit, setLoadingDbAudit] = useState(false);
+
+  // Debounced DB Conflict & Site Links Check
+  const checkTimerRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+
+    checkTimerRef.current = setTimeout(async () => {
+      try {
+        setLoadingDbAudit(true);
+        const params = new URLSearchParams();
+        if (data.slug) params.set("slug", data.slug);
+        if (data.seoTitle || data.name) params.set("seoTitle", data.seoTitle || data.name || "");
+        if (data.metaDescription) params.set("metaDescription", data.metaDescription);
+        if (postId) params.set("postId", postId);
+
+        const res = await fetch(`/api/admin/blog/seo-check?${params.toString()}`);
+        if (res.ok) {
+          const json = await res.json();
+          setDbAudit(json);
+        }
+      } catch (err) {
+        console.error("Failed to run DB SEO check:", err);
+      } finally {
+        setLoadingDbAudit(false);
+      }
+    }, 600);
+
+    return () => {
+      if (checkTimerRef.current) clearTimeout(checkTimerRef.current);
+    };
+  }, [data.slug, data.seoTitle, data.name, data.metaDescription, postId]);
 
   // Real-time calculation with memoization
   const analysis: SeoAnalysisResult = useMemo(() => {
     return analyzeSeo(data);
   }, [data]);
+
+  // Merge live DB conflict checks into analysis recommendations
+  const allChecksWithDb = useMemo(() => {
+    const list = [...analysis.checks];
+
+    if (dbAudit?.slugConflict) {
+      list.unshift({
+        id: "slug_db_conflict",
+        category: "slug",
+        severity: "critical",
+        statusType: "verified",
+        passed: false,
+        title: `Duplicate URL Slug Conflict: "/${data.slug}"`,
+        issue: `Slug is already used by published ${dbAudit.slugConflict.type}: "${dbAudit.slugConflict.title}".`,
+        impact: "Multiple pages cannot share the exact same URL slug on Google. Crawlers will encounter index collisions.",
+        whyItMatters: "According to Google Search Central, every canonical URL must identify a single unique resource.",
+        suggestedAction: "Choose a distinct URL slug to ensure page uniqueness.",
+      });
+    }
+
+    if (dbAudit?.titleConflict) {
+      list.unshift({
+        id: "title_db_conflict",
+        category: "title",
+        severity: "important",
+        statusType: "verified",
+        passed: false,
+        title: `Duplicate Title with Existing Article: "${dbAudit.titleConflict.title}"`,
+        issue: `Another published article already uses an identical SEO title (${dbAudit.titleConflict.slug}).`,
+        impact: "Causes keyword cannibalization where your own pages compete against each other in Google Search.",
+        whyItMatters: "Google recommends distinct, informative titles across every page on your domain.",
+        suggestedAction: "Differentiate this article's unique angle in the title.",
+      });
+    }
+
+    if (dbAudit?.descConflict) {
+      list.unshift({
+        id: "desc_db_conflict",
+        category: "description",
+        severity: "recommended",
+        statusType: "verified",
+        passed: false,
+        title: "Duplicate Meta Description with Published Post",
+        issue: `This exact description is shared with article "${dbAudit.descConflict.title}".`,
+        impact: "Identical snippets look like low-effort automated content to search crawlers.",
+        whyItMatters: "Google explicitly advises writing unique descriptions that summarize each page's unique value.",
+        suggestedAction: "Craft a distinct summary highlighting what makes this article unique.",
+      });
+    }
+
+    return list;
+  }, [analysis.checks, dbAudit, data.slug]);
+
+  // Critical issues list
+  const criticalIssues = useMemo(() => {
+    return allChecksWithDb.filter(c => !c.passed && c.severity === "critical");
+  }, [allChecksWithDb]);
 
   // Score styling
   const scoreColors = {
@@ -48,7 +164,8 @@ export default function RealTimeSeoAnalyzer({
       border: "border-emerald-200",
       ring: "stroke-emerald-500",
       badge: "bg-emerald-500 text-white",
-      label: "Best (Optimized)",
+      label: "Best (85–100)",
+      description: "Well-structured, comprehensive, and ready for search publication.",
     },
     Good: {
       text: "text-amber-700",
@@ -56,7 +173,8 @@ export default function RealTimeSeoAnalyzer({
       border: "border-amber-200",
       ring: "stroke-amber-500",
       badge: "bg-amber-500 text-white",
-      label: "Good (Minor Fixes)",
+      label: "Good (60–84)",
+      description: "Minor technical or on-page refinements recommended.",
     },
     OK: {
       text: "text-red-700",
@@ -64,7 +182,8 @@ export default function RealTimeSeoAnalyzer({
       border: "border-red-200",
       ring: "stroke-red-500",
       badge: "bg-red-500 text-white",
-      label: "Needs Work (0-59)",
+      label: "OK (0–59)",
+      description: "Needs attention on key technical elements before publishing.",
     },
   }[analysis.statusLevel];
 
@@ -79,7 +198,7 @@ export default function RealTimeSeoAnalyzer({
       return;
     }
     if (current.length >= 4) {
-      alert("You can configure up to 4 secondary keyphrases (plus 1 primary).");
+      alert("You can configure up to 4 secondary keyphrases (plus 1 primary focus keyphrase).");
       return;
     }
     const updated = [...current, clean];
@@ -95,7 +214,7 @@ export default function RealTimeSeoAnalyzer({
     onUpdateField("secondaryKeyphrases", updated);
   };
 
-  const handleCopySuggestion = (text: string, id: string) => {
+  const handleCopyText = (text: string, id: string) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedLink(id);
@@ -103,94 +222,39 @@ export default function RealTimeSeoAnalyzer({
     }
   };
 
-  const [fixedNotice, setFixedNotice] = useState<string | null>(null);
-
-  // Auto-fixable warnings
-  const autoFixableWarnings = useMemo(() => {
-    return analysis.recommendations.filter(
-      r => !r.passed && (r.severity === "important" || r.severity === "recommended" || r.severity === "optional") && r.fixAction?.value !== undefined
-    );
-  }, [analysis]);
-
-  const handleFixAllWarnings = () => {
-    const toFix = autoFixableWarnings;
-    if (toFix.length === 0) return;
-    
-    let nextContent = data.content || "";
-    const fieldUpdates: Record<string, any> = {};
-
-    toFix.forEach(item => {
-      if (!item.fixAction || item.fixAction.value === undefined) return;
-      if (item.fixAction.field === "content") {
-        if (item.id === "links_internal") {
-          const internalSnippet = `<p>Explore more verified software, proxies, and accounts in the <a href="/store">The Valid Market Store</a> or review our latest <a href="/blog">technical guides</a>.</p>`;
-          if (!nextContent.includes("/store")) {
-            nextContent = nextContent ? `${nextContent}\n\n${internalSnippet}` : internalSnippet;
-          }
-        } else if (item.id === "links_dynamic_internal") {
-          nextContent = cleanDynamicInternalLinks(nextContent);
-        } else if (item.id === "headings_duplicates") {
-          nextContent = deduplicateHeadingTexts(nextContent, analysis.duplicateHeadings);
-        } else if (item.id === "headings_proportion") {
-          nextContent = rebalanceExcessiveHeadings(nextContent);
-        } else if (item.id === "headings_single_h1") {
-          nextContent = nextContent.replace(/<h1(\b[^>]*)>/gi, "<h2$1>").replace(/<\/h1>/gi, "</h2>");
-        } else if (item.id === "headings_h2_presence") {
-          const h2Snippet = `<h2>Key Highlights & Specifications</h2>\n<p>Explore detailed features, setup requirements, and verified benefits below.</p>\n<h2>Frequently Asked Questions</h2>\n<p>Find quick answers regarding licensing, downloads, and technical support.</p>`;
-          if (!nextContent.includes("<h2>")) {
-            nextContent = nextContent ? `${nextContent}\n\n${h2Snippet}` : h2Snippet;
-          }
-        } else if (item.id === "content_word_count") {
-          const faqSnippet = `<h2>Detailed Guide & Specifications</h2>\n<p>This resource is meticulously researched to provide verified information, secure setup instructions, and practical use cases for our community.</p>\n<h2>Frequently Asked Questions</h2>\n<p><strong>How do I access this item?</strong> Instant access and download links are delivered directly to your customer dashboard upon confirmation.</p>\n<p><strong>Is technical support included?</strong> Yes, The Valid Market provides 24/7 technical customer support for all active licenses and services.</p>`;
-          if (!nextContent.includes("Frequently Asked Questions")) {
-            nextContent = nextContent ? `${nextContent}\n\n${faqSnippet}` : faqSnippet;
-          }
-        } else if (item.id === "links_vague_anchors") {
-          nextContent = nextContent.replace(
-            /<a\b([^>]*)>(click here|here|read more|learn more|link|this)<\/a>/gi,
-            `<a$1>explore the full The Valid Market catalog</a>`
-          );
-        } else {
-          nextContent = item.fixAction.value;
-        }
-        fieldUpdates["content"] = nextContent;
-      } else {
-        fieldUpdates[item.fixAction.field] = item.fixAction.value;
-      }
-    });
-
-    Object.entries(fieldUpdates).forEach(([field, val]) => {
-      onUpdateField(field, val);
-    });
-
-    setFixedNotice(`⚡ Fixed ${toFix.length} warning${toFix.length > 1 ? "s" : ""} in one click!`);
-    setTimeout(() => setFixedNotice(null), 4000);
-  };
-
-  const handleFixSingle = (rec: SeoCheckItem) => {
+  const handleApplySingle = (rec: SeoCheckItem) => {
     if (!rec.fixAction) return;
     if (rec.fixAction.value !== undefined) {
       onUpdateField(rec.fixAction.field, rec.fixAction.value);
-      setFixedNotice(`✓ Fixed: "${rec.fixAction.label}"`);
+      setFixedNotice(`✓ Applied: "${rec.fixAction.label}"`);
     } else if (rec.fixAction.tabId && onJumpToTab) {
       onJumpToTab(rec.fixAction.tabId);
     }
-    setTimeout(() => setFixedNotice(null), 3000);
+    setTimeout(() => setFixedNotice(null), 3500);
   };
 
   // Filter recommendations
   const filteredRecs = useMemo(() => {
-    if (filterSeverity === "passed") return analysis.checks.filter(c => c.passed);
-    if (filterSeverity === "critical") return analysis.recommendations.filter(c => c.severity === "critical");
-    if (filterSeverity === "warning") return analysis.recommendations.filter(c => c.severity === "important" || c.severity === "recommended");
-    return analysis.recommendations;
-  }, [analysis, filterSeverity]);
+    if (filterSeverity === "passed") return allChecksWithDb.filter(c => c.passed);
+    if (filterSeverity === "critical") return allChecksWithDb.filter(c => !c.passed && c.severity === "critical");
+    if (filterSeverity === "warning") return allChecksWithDb.filter(c => !c.passed && (c.severity === "important" || c.severity === "recommended"));
+    return allChecksWithDb.filter(c => !c.passed);
+  }, [allChecksWithDb, filterSeverity]);
+
+  // Insert real internal link into content
+  const handleInsertInternalLink = (url: string, title: string) => {
+    const linkHtml = ` <a href="${url}">${title}</a> `;
+    const updatedContent = data.content ? `${data.content}\n<p>Recommended related reading: ${linkHtml}</p>` : `<p>Recommended: ${linkHtml}</p>`;
+    onUpdateField("content", updatedContent);
+    setFixedNotice(`✓ Inserted link to "${title}"`);
+    setTimeout(() => setFixedNotice(null), 3000);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden text-slate-800">
       
-      {/* ── Top Header / Score Gauge ────────────────────────────────────────── */}
-      <div className="p-6 bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* ── Top Header / Score Gauge & Editorial Guidelines ─────────────────── */}
+      <div className="p-6 bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 text-white flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           {/* Radial score circle */}
           <div className="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
@@ -217,22 +281,27 @@ export default function RealTimeSeoAnalyzer({
           </div>
 
           <div>
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${scoreColors.badge}`}>
                 {scoreColors.label}
               </span>
-              <span className="text-xs text-slate-400">
-                {data.contentType === "blog" ? "Blog Article" : "Product Page"}
-              </span>
+              <button
+                type="button"
+                onClick={() => setShowScoreModal(prev => !prev)}
+                className="text-[11px] text-slate-300 hover:text-white underline font-medium flex items-center gap-1 cursor-pointer"
+              >
+                <HelpCircle className="w-3 h-3" />
+                <span>How Score is Calculated</span>
+              </button>
             </div>
-            <h3 className="text-lg font-bold text-white tracking-tight">Real-Time On-Page SEO</h3>
+            <h3 className="text-lg font-bold text-white tracking-tight">Editorial SEO &amp; Technical Assistant</h3>
             <p className="text-xs text-slate-300 mt-0.5">
-              Live algorithmic analysis against Google Search &amp; Seobility audit criteria.
+              Based on official Google Search Central guidelines. Editorial guidance only — not a Google ranking factor.
             </p>
           </div>
         </div>
 
-        {/* Quick Audit Counters & One-Click Fix */}
+        {/* Quick Audit Counters */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-white/5 border border-white/10 p-2.5 rounded-xl text-xs">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -242,33 +311,100 @@ export default function RealTimeSeoAnalyzer({
             <AlertTriangle className="w-4 h-4 text-amber-400" />
             <span>{analysis.warningCount} Warnings</span>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/20 text-red-300 font-bold">
-            <AlertCircle className="w-4 h-4 text-red-400" />
-            <span>{analysis.errorCount} Critical</span>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold ${criticalIssues.length > 0 ? "bg-red-500 text-white animate-pulse" : "bg-red-500/20 text-red-300"}`}>
+            <AlertCircle className="w-4 h-4" />
+            <span>{criticalIssues.length} Critical</span>
           </div>
-
-          {autoFixableWarnings.length > 0 && (
-            <button
-              type="button"
-              onClick={handleFixAllWarnings}
-              className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/30 transition-transform active:scale-95 cursor-pointer"
-              title="Resolve all warnings with one click"
-            >
-              <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-              <span>Fix All Warnings ({autoFixableWarnings.length})</span>
-            </button>
+          {loadingDbAudit && (
+            <div className="flex items-center gap-1 text-[11px] text-slate-300 font-medium px-2">
+              <RefreshCw className="w-3 h-3 animate-spin text-primary" />
+              <span>Checking site...</span>
+            </div>
           )}
         </div>
       </div>
 
+      {/* ── CRITICAL ISSUES BANNER (Always Prominent Regardless of Score) ──── */}
+      {criticalIssues.length > 0 && (
+        <div className="bg-red-600 text-white p-4 border-b border-red-700 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-black text-sm uppercase tracking-wider">
+              <AlertOctagon className="w-5 h-5 text-amber-300" />
+              <span>Critical Indexing / Technical Blockers ({criticalIssues.length})</span>
+            </div>
+            <span className="text-xs bg-red-800 text-white px-2 py-0.5 rounded font-bold">
+              Must Resolve Before Publishing
+            </span>
+          </div>
+          <p className="text-xs text-red-100">
+            A high editorial score does not hide these issues. Search engines will fail to properly index or rank this page until resolved.
+          </p>
+          <div className="space-y-1.5 pt-1">
+            {criticalIssues.map(issue => (
+              <div key={issue.id} className="bg-red-700/80 p-2.5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                <div>
+                  <span className="font-bold">{issue.title}:</span>{" "}
+                  <span className="text-red-100">{issue.issue}</span>
+                </div>
+                {issue.fixAction && (
+                  <button
+                    type="button"
+                    onClick={() => handleApplySingle(issue)}
+                    className="px-3 py-1 bg-white text-red-700 font-black rounded text-[11px] hover:bg-red-50 cursor-pointer shadow-xs whitespace-nowrap shrink-0"
+                  >
+                    {issue.fixAction.label}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Score Breakdown Modal / Drawer ─────────────────────────────────── */}
+      {showScoreModal && (
+        <div className="p-5 bg-slate-50 border-b border-slate-200 space-y-3 animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <h4 className="font-extrabold text-xs uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-primary" />
+              <span>Transparent Editorial Score Breakdown</span>
+            </h4>
+            <button
+              type="button"
+              onClick={() => setShowScoreModal(false)}
+              className="text-slate-400 hover:text-slate-700 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Scores are calculated strictly from verifiable on-page elements. Points are never awarded for keyword stuffing, arbitrary length, or unverified backlinks.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-1">
+            {analysis.scoreBreakdown.map(cat => (
+              <div key={cat.category} className="p-3 bg-white rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-slate-500 font-semibold block text-[11px]">{cat.category}</span>
+                <span className="text-base font-black text-slate-900 block my-0.5">
+                  {cat.earned} / {cat.max} pts
+                </span>
+                <p className="text-[10px] text-slate-400">{cat.explanation}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Navigation Tabs ─────────────────────────────────────────────────── */}
-      <div className="flex border-b border-slate-200 bg-slate-50/70 px-4 overflow-x-auto gap-2">
+      <div className="flex border-b border-slate-200 bg-slate-50/70 px-4 overflow-x-auto gap-1">
         {[
-          { id: "overview", label: "Overview & Recommendations", icon: Layers, count: analysis.recommendations.length },
+          { id: "overview", label: "Checklist & Quality", icon: Layers, count: allChecksWithDb.filter(c => !c.passed).length },
           { id: "keyphrases", label: "5 Focus Keyphrases", icon: Star, count: analysis.keyphrasesData.length },
-          { id: "serp", label: "Google SERP Snippet", icon: Globe },
-          { id: "social", label: "Social Card (OG & X)", icon: Share2 },
-          { id: "headings", label: "Headings & Structure", icon: Hash, count: analysis.totalHeadings },
+          { id: "serp", label: "SERP & Snippet", icon: Globe },
+          { id: "slug_canonical", label: "URL & Canonical", icon: LinkIcon, count: (dbAudit?.slugConflict || dbAudit?.establishedSlugNeedsRedirect) ? 1 : undefined },
+          { id: "headings", label: "Headings Outline", icon: Hash, count: analysis.totalHeadings },
+          { id: "links_media", label: "Links & Media", icon: ImageIcon, count: analysis.imagesMissingAlt > 0 ? analysis.imagesMissingAlt : undefined },
+          { id: "technical_schema", label: "Schema & Technical", icon: ShieldCheck },
+          { id: "social", label: "Social Card", icon: Share2 },
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -277,17 +413,17 @@ export default function RealTimeSeoAnalyzer({
               key={tab.id}
               type="button"
               onClick={() => setActiveSubTab(tab.id as any)}
-              className={`flex items-center gap-2 px-3.5 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-colors cursor-pointer ${
                 isActive 
                   ? "border-primary text-primary bg-white shadow-xs" 
                   : "border-transparent text-slate-500 hover:text-slate-900"
               }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-3.5 h-3.5" />
               <span>{tab.label}</span>
-              {typeof tab.count === "number" && (
+              {typeof tab.count === "number" && tab.count > 0 && (
                 <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-                  isActive ? "bg-primary text-white" : "bg-slate-200 text-slate-600"
+                  isActive ? "bg-primary text-white" : "bg-slate-200 text-slate-700"
                 }`}>
                   {tab.count}
                 </span>
@@ -297,7 +433,20 @@ export default function RealTimeSeoAnalyzer({
         })}
       </div>
 
-      {/* ── TAB 1: OVERVIEW & ACTIONABLE RECOMMENDATIONS ───────────────────── */}
+      {/* ── Toast Notice for Applied Changes ───────────────────────────────── */}
+      {fixedNotice && (
+        <div className="mx-6 mt-4 p-3 bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center justify-between shadow-sm animate-in fade-in">
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-white" />
+            {fixedNotice}
+          </span>
+          <button type="button" onClick={() => setFixedNotice(null)} className="text-white/80 hover:text-white cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* ── TAB 1: OVERVIEW & ACTIONABLE CHECKLIST ─────────────────────────── */}
       {activeSubTab === "overview" && (
         <div className="p-6 space-y-6">
           {/* Quick Metrics Bar */}
@@ -323,232 +472,203 @@ export default function RealTimeSeoAnalyzer({
               <span className="text-base font-extrabold text-slate-900 block truncate">
                 {analysis.wordCount} words
               </span>
-              <span className="text-[11px] text-slate-400 block truncate">~{analysis.readingTimeMinutes} min reading time</span>
+              <span className="text-[11px] text-slate-400 block truncate">~{analysis.readingTimeMinutes} min read</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
               <span className="text-slate-400 block font-semibold mb-1 truncate">Headings Ratio</span>
-              <span className={`text-base font-extrabold block truncate ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "text-amber-600" : "text-slate-900"}`}>
+              <span className={`text-base font-extrabold block truncate ${analysis.wordsPerHeading < 40 && analysis.totalHeadings >= 10 ? "text-amber-600" : "text-slate-900"}`}>
                 {analysis.totalHeadings} <span className="text-xs font-normal text-slate-500">headings</span>
               </span>
               <span className="text-[11px] text-slate-400 block truncate">~{analysis.wordsPerHeading} words/section</span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
-              <span className="text-slate-400 block font-semibold mb-1 truncate">Images Missing Alt</span>
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Images Alt Text</span>
               <span className={`text-base font-extrabold block truncate ${analysis.imagesMissingAlt > 0 ? "text-red-600" : "text-emerald-600"}`}>
-                {analysis.imagesMissingAlt} of {analysis.totalImages}
+                {analysis.imagesMissingAlt} missing
               </span>
               <span className="text-[11px] text-slate-400 block truncate">
-                {analysis.imagesMissingAlt === 0 ? "All images labeled" : "Alt tags required"}
+                {analysis.imagesMissingAlt === 0 ? "All labeled" : `${analysis.totalImages} total images`}
               </span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden">
-              <span className="text-slate-400 block font-semibold mb-1 truncate">Dynamic Internal</span>
-              <span className={`text-base font-extrabold block truncate ${analysis.dynamicInternalLinksCount > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                {analysis.dynamicInternalLinksCount === 0 ? "0 clean" : `${analysis.dynamicInternalLinksCount} issue${analysis.dynamicInternalLinksCount > 1 ? "s" : ""}`}
+              <span className="text-slate-400 block font-semibold mb-1 truncate">Canonical State</span>
+              <span className="text-base font-extrabold text-slate-900 block truncate">
+                {data.canonicalUrl ? "Custom" : "Self-Referential"}
               </span>
               <span className="text-[11px] text-slate-400 block truncate">
-                {analysis.dynamicInternalLinksCount === 0 ? "No dynamic params" : "Needs nofollow/clean"}
+                {data.robots?.includes("noindex") ? "noindex set" : "index, follow"}
               </span>
             </div>
           </div>
 
-          {/* Actionable Recommendations Header with Severity Filters */}
-          <div className="space-y-3">
-            {fixedNotice && (
-              <div className="p-3 bg-emerald-600 text-white text-xs font-bold rounded-xl flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-1">
-                <span className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                  {fixedNotice}
-                </span>
-                <button type="button" onClick={() => setFixedNotice(null)} className="text-white/80 hover:text-white cursor-pointer">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
-              <div>
-                <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span>Actionable Optimization Checklist ({filteredRecs.length})</span>
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Click &quot;Fix&quot; on any item to resolve warnings and critical issues in one click.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                {autoFixableWarnings.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleFixAllWarnings}
-                    className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-lg text-xs font-black flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
-                    title="Fix all auto-fixable warnings in one click"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 fill-white" />
-                    <span>⚡ Fix All Warnings ({autoFixableWarnings.length})</span>
-                  </button>
-                )}
-
-                <div className="flex items-center gap-1.5 text-xs">
-                  {[
-                    { id: "all", label: "All Fixes" },
-                    { id: "critical", label: `Critical (${analysis.errorCount})` },
-                    { id: "warning", label: `Warnings (${analysis.warningCount})` },
-                    { id: "passed", label: `Passed (${analysis.passedCount})` },
-                  ].map(filter => (
-                    <button
-                      key={filter.id}
-                      type="button"
-                      onClick={() => setFilterSeverity(filter.id as any)}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
-                        filterSeverity === filter.id 
-                          ? "bg-slate-900 text-white" 
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* List of items */}
-            {filteredRecs.length === 0 ? (
-              <div className="text-center py-8 bg-emerald-50/50 rounded-xl border border-emerald-200 text-emerald-800 space-y-1">
-                <CheckCircle2 className="w-8 h-8 mx-auto text-emerald-600" />
-                <p className="font-bold text-sm">All checks in this category passed!</p>
-                <p className="text-xs text-emerald-600">Your content meets top editorial on-page SEO standards.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredRecs.map(rec => {
-                  const severityBadge = {
-                    critical: "bg-red-100 text-red-800 border-red-200",
-                    important: "bg-amber-100 text-amber-800 border-amber-200",
-                    recommended: "bg-blue-100 text-blue-800 border-blue-200",
-                    optional: "bg-slate-100 text-slate-700 border-slate-200",
-                    passed: "bg-emerald-100 text-emerald-800 border-emerald-200",
-                  }[rec.severity];
-
-                  return (
-                    <div 
-                      key={rec.id} 
-                      className={`p-4 rounded-xl border transition-all ${
-                        rec.passed 
-                          ? "bg-emerald-50/30 border-emerald-100" 
-                          : rec.severity === "critical" 
-                            ? "bg-red-50/40 border-red-200 shadow-xs" 
-                            : "bg-white border-slate-200/90 shadow-xs"
-                      }`}
-                    >
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-                        <div className="space-y-1 flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${severityBadge}`}>
-                              {rec.severity}
-                            </span>
-                            <span className="text-xs font-extrabold text-slate-900">{rec.title}</span>
-                          </div>
-                          {rec.issue && (
-                            <p className="text-xs text-slate-600 leading-relaxed">
-                              {rec.issue}
-                            </p>
-                          )}
-                          {rec.impact && (
-                            <p className="text-[11px] text-slate-500 italic">
-                              <span className="font-semibold text-slate-600">Why it matters:</span> {rec.impact}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Action buttons */}
-                        {rec.fixAction && !rec.passed && (
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {rec.fixAction.value !== undefined ? (
-                              <button
-                                type="button"
-                                onClick={() => handleFixSingle(rec)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 shadow-sm cursor-pointer transition-all active:scale-95 ${
-                                  rec.severity === "critical"
-                                    ? "bg-red-600 hover:bg-red-700 text-white"
-                                    : rec.severity === "important"
-                                      ? "bg-amber-600 hover:bg-amber-700 text-white"
-                                      : "bg-primary hover:bg-primary/90 text-white"
-                                }`}
-                                title="Click to apply this fix in one click"
-                              >
-                                <Sparkles className="w-3.5 h-3.5 fill-white/40" />
-                                <span>Fix: {rec.fixAction.label}</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (rec.fixAction!.tabId && onJumpToTab) {
-                                    onJumpToTab(rec.fixAction!.tabId);
-                                  }
-                                }}
-                                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 flex items-center gap-1 cursor-pointer"
-                              >
-                                <span>{rec.fixAction.label}</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          {/* Verification Status Legend */}
+          <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-slate-600">
+            <span className="font-extrabold text-slate-800">Check Status Types:</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+              ✓ [Verified] Code / Database Verified
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold">
+              ~ [Estimated] Pixel &amp; Readability Heuristic
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold">
+              🔍 [Requires Page Scan] Verifiable on Rendered URL
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-bold">
+              📊 [External Data] Search Console / CWV Field Data
+            </span>
           </div>
 
-          {/* Internal Linking Helper */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
-                <LinkIcon className="w-3.5 h-3.5 text-primary" /> Verified Internal Link Recommendations
-              </span>
-              <span className="text-[11px] text-slate-400">Copy URL to link inside editor</span>
+          {/* Severity Filter Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                <span>Prioritized Editorial Checklist ({filteredRecs.length})</span>
+              </h4>
+              <p className="text-xs text-slate-500">
+                Actionable recommendations with evidence and explicit rationale based on Google Search Central.
+              </p>
             </div>
-            <p className="text-xs text-slate-500">
-              Boost your article authority by linking to relevant marketplace categories and tools:
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+
+            <div className="flex items-center gap-1.5 text-xs">
               {[
-                { name: "Digital Products Store", url: "/store" },
-                { name: "Verified Courses", url: "/courses" },
-                { name: "Live Support & VIP Chat", url: "/chat" },
-                { name: "The Valid Market Blog Index", url: "/blog" },
-                { name: "Software Licenses", url: "/category/software" },
-                { name: "Proxy & VPN Tools", url: "/category/proxy" },
-              ].map(link => (
-                <div 
-                  key={link.url}
-                  className="p-2 rounded-lg bg-white border border-slate-200 flex items-center justify-between text-xs hover:border-primary/40 transition-colors"
+                { id: "all", label: "All Outstanding" },
+                { id: "critical", label: `Critical (${criticalIssues.length})` },
+                { id: "warning", label: `Warnings (${analysis.warningCount})` },
+                { id: "passed", label: `Passed (${analysis.passedCount})` },
+              ].map(filter => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  onClick={() => setFilterSeverity(filter.id as any)}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                    filterSeverity === filter.id 
+                      ? "bg-slate-900 text-white" 
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
                 >
-                  <div className="truncate pr-2">
-                    <p className="font-bold text-slate-800 truncate">{link.name}</p>
-                    <span className="text-[10px] text-slate-400 font-mono truncate block">{link.url}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopySuggestion(link.url, link.url)}
-                    className="p-1 rounded text-slate-500 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
-                    title="Copy URL"
-                  >
-                    {copiedLink === link.url ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
+                  {filter.label}
+                </button>
               ))}
             </div>
           </div>
+
+          {/* List of items */}
+          {filteredRecs.length === 0 ? (
+            <div className="text-center py-10 bg-emerald-50/50 rounded-2xl border border-emerald-200 text-emerald-800 space-y-1">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-600 mb-2" />
+              <p className="font-extrabold text-sm">All checks in this category are satisfied!</p>
+              <p className="text-xs text-emerald-600">Your article aligns with Google's on-page search best practices.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredRecs.map(rec => {
+                const severityBadge = {
+                  critical: "bg-red-100 text-red-800 border-red-200",
+                  important: "bg-amber-100 text-amber-800 border-amber-200",
+                  recommended: "bg-blue-100 text-blue-800 border-blue-200",
+                  optional: "bg-slate-100 text-slate-700 border-slate-200",
+                  passed: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                }[rec.severity];
+
+                const statusBadge = {
+                  verified: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                  estimated: "bg-blue-50 text-blue-700 border-blue-200",
+                  requires_scan: "bg-purple-50 text-purple-700 border-purple-200",
+                  requires_external: "bg-slate-100 text-slate-700 border-slate-200",
+                  not_checked: "bg-slate-100 text-slate-600 border-slate-200",
+                }[rec.statusType];
+
+                const statusLabel = {
+                  verified: "Verified",
+                  estimated: "Estimated",
+                  requires_scan: "Requires Page Scan",
+                  requires_external: "External Data",
+                  not_checked: "Not Checked",
+                }[rec.statusType];
+
+                return (
+                  <div 
+                    key={rec.id} 
+                    className={`p-4 rounded-xl border transition-all ${
+                      rec.passed 
+                        ? "bg-emerald-50/30 border-emerald-100" 
+                        : rec.severity === "critical" 
+                          ? "bg-red-50/40 border-red-200 shadow-xs" 
+                          : "bg-white border-slate-200/90 shadow-xs"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border ${severityBadge}`}>
+                            {rec.severity}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${statusBadge}`}>
+                            [{statusLabel}]
+                          </span>
+                          <h5 className="text-xs font-bold text-slate-900">{rec.title}</h5>
+                        </div>
+
+                        {rec.issue && (
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                            <span className="font-bold text-slate-800">Issue:</span> {rec.issue}
+                          </p>
+                        )}
+
+                        {rec.whyItMatters && (
+                          <p className="text-[11px] text-slate-500 leading-relaxed">
+                            <span className="font-semibold text-slate-700">Why it matters:</span> {rec.whyItMatters}
+                          </p>
+                        )}
+
+                        {rec.suggestedAction && (
+                          <p className="text-[11px] text-indigo-700 font-medium">
+                            💡 <span className="font-semibold">Recommendation:</span> {rec.suggestedAction}
+                          </p>
+                        )}
+
+                        {rec.evidence && (
+                          <p className="text-[10px] text-slate-400 font-mono">
+                            Evidence: {rec.evidence}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Action buttons */}
+                      {rec.fixAction && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          {rec.fixAction.value !== undefined ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApplySingle(rec)}
+                              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-xs transition-colors"
+                              title="Review and apply this recommendation"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                              <span>{rec.fixAction.label}</span>
+                            </button>
+                          ) : rec.fixAction.tabId && onJumpToTab ? (
+                            <button
+                              type="button"
+                              onClick={() => onJumpToTab(rec.fixAction!.tabId!)}
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Go to Field</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -558,10 +678,12 @@ export default function RealTimeSeoAnalyzer({
           <div className="space-y-1">
             <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
               <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span>5 Focus Keyphrases Hub</span>
+              <span>5 Focus Keyphrases Hub (Google Guidance Standards)</span>
             </h4>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Designate 1 Primary Focus Keyphrase (highest ranking weight) and up to 4 Secondary Keyphrases. All 5 are saved persistently in the database and monitored across your content.
+              Designate 1 Primary Focus Keyphrase and up to 4 Secondary Keyphrases. All 5 are saved persistently in the database.
+              Natural variations and stemming (e.g. &quot;proxy&quot; / &quot;proxies&quot;, &quot;setup&quot; / &quot;setups&quot;) are credited.
+              Google ranking does not require rigid keyword density formulas.
             </p>
           </div>
 
@@ -570,9 +692,9 @@ export default function RealTimeSeoAnalyzer({
             <div className="flex items-center justify-between">
               <label className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                <span>1. Primary Focus Keyphrase (Required)</span>
+                <span>1. Primary Focus Keyphrase</span>
               </label>
-              <span className="text-[11px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
                 Primary Weight
               </span>
             </div>
@@ -590,7 +712,7 @@ export default function RealTimeSeoAnalyzer({
               <button
                 type="button"
                 onClick={() => {
-                  const baseName = data.name || (data as any).title || "product";
+                  const baseName = data.name || (data as any).title || "guide";
                   const candidate = baseName.toLowerCase().split(" ").slice(0, 3).join(" ");
                   onUpdateField("focusKeyword", candidate);
                   onUpdateField("primaryKeyphrase", candidate);
@@ -602,7 +724,7 @@ export default function RealTimeSeoAnalyzer({
               </button>
             </div>
             <p className="text-[11px] text-slate-500">
-              This is the main phrase searchers use on Google. It should appear in your Title, Meta Description, URL, and Introduction.
+              The central search topic answering reader intent. Recommended in Title, Meta Description, URL, and Introduction.
             </p>
           </div>
 
@@ -610,7 +732,7 @@ export default function RealTimeSeoAnalyzer({
           <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                2. Additional Keyphrases (Up to 4)
+                2. Secondary Keyphrases (Up to 4)
               </label>
               <span className="text-xs text-slate-400 font-bold">
                 {(data.secondaryKeyphrases || (data as any).secondaryKeywords || []).length} / 4 configured
@@ -627,20 +749,15 @@ export default function RealTimeSeoAnalyzer({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      e.stopPropagation();
                       handleAddSecondaryKey(e);
                     }
                   }}
-                  placeholder="Add long-tail variation (e.g. residential proxy android setup) and press Add"
+                  placeholder="Add long-tail variation (e.g. android socks5 proxy setup) and press Add"
                   className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleAddSecondaryKey(e);
-                  }}
+                  onClick={handleAddSecondaryKey}
                   disabled={!newSecondaryKey.trim()}
                   className="px-3.5 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 disabled:opacity-50 cursor-pointer flex items-center gap-1 transition-all"
                 >
@@ -670,15 +787,15 @@ export default function RealTimeSeoAnalyzer({
                 </span>
               ))}
               {(data.secondaryKeyphrases || (data as any).secondaryKeywords || []).length === 0 && (
-                <p className="text-xs text-slate-400 italic">No additional keyphrases added yet. Add long-tail queries to capture more search traffic.</p>
+                <p className="text-xs text-slate-400 italic">No secondary keyphrases added yet. Add long-tail queries to capture related search intent.</p>
               )}
             </div>
           </div>
 
-          {/* Keyphrase Matrix Table */}
+          {/* Keyphrase Placement Matrix Table */}
           <div className="space-y-3">
             <h5 className="text-xs font-black text-slate-700 uppercase tracking-wider">
-              Real-Time Placement &amp; Density Matrix
+              Natural Keyphrase Placement &amp; Variations Matrix
             </h5>
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-left text-xs border-collapse">
@@ -691,14 +808,14 @@ export default function RealTimeSeoAnalyzer({
                     <th className="py-2.5 px-2 text-center">Intro</th>
                     <th className="py-2.5 px-2 text-center">Headings</th>
                     <th className="py-2.5 px-2 text-center">Image Alt</th>
-                    <th className="py-2.5 px-3 text-right">Count (Density)</th>
+                    <th className="py-2.5 px-3 text-right">Mentions (Variations)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {analysis.keyphrasesData.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-6 text-center text-slate-400">
-                        Please define a primary keyphrase above to see the placement matrix.
+                        Please define a primary keyphrase above to populate the matrix.
                       </td>
                     </tr>
                   ) : (
@@ -728,13 +845,13 @@ export default function RealTimeSeoAnalyzer({
                         </td>
                         <td className="py-2.5 px-3 text-right font-mono font-bold">
                           <span className={
-                            km.status === "stuffed" 
-                              ? "text-red-600 font-black" 
-                              : km.status === "good" 
+                            km.status === "repetitive" || km.status === "stuffed"
+                              ? "text-amber-600 font-bold" 
+                              : km.count > 0 
                                 ? "text-emerald-600" 
                                 : "text-slate-400"
                           }>
-                            {km.count}x ({km.density}%)
+                            {km.count}x {km.variationsFound.length > 1 ? `(${km.variationsFound.join(", ")})` : ""}
                           </span>
                         </td>
                       </tr>
@@ -747,17 +864,17 @@ export default function RealTimeSeoAnalyzer({
         </div>
       )}
 
-      {/* ── TAB 3: GOOGLE SERP SNIPPET PREVIEW ─────────────────────────────── */}
+      {/* ── TAB 3: SERP & GOOGLE SNIPPET PREVIEW ────────────────────────────── */}
       {activeSubTab === "serp" && (
         <div className="p-6 space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
                 <Globe className="w-4 h-4 text-primary" />
-                <span>Google Search Result Appearance</span>
+                <span>Google Search Result Snippet Preview</span>
               </h4>
               <p className="text-xs text-slate-500">
-                Pixel-accurate preview of how your page appears on Google Search.
+                Pixel-width simulation for Google Desktop SERP (Title max 580px, Snippet max 960px).
               </p>
             </div>
 
@@ -791,37 +908,39 @@ export default function RealTimeSeoAnalyzer({
           }`}>
             <div className="flex items-center gap-2 text-xs text-slate-600 mb-1">
               <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center font-extrabold text-[10px]">
-                A
+                TVM
               </div>
               <div className="truncate">
                 <span className="font-semibold text-slate-800">The Valid Market</span>
                 <span className="text-slate-400 mx-1.5">›</span>
                 <span className="text-slate-500">
-                  {data.contentType === "blog" ? "blog" : "product"} › {data.slug || "url-slug"}
+                  {data.contentType === "blog" ? "blog" : "product"} › {data.slug || "article-slug"}
                 </span>
               </div>
             </div>
 
             <h3 className="text-lg font-medium text-blue-800 hover:underline leading-snug cursor-pointer line-clamp-2 pt-0.5">
-              {(data.seoTitle || data.name || "Untitled Page Title") + " | The Valid Market"}
+              {data.seoTitle || data.name || "Untitled Article Title"}
             </h3>
 
             <p className="text-xs text-slate-600 leading-relaxed pt-1 line-clamp-2">
-              {data.metaDescription || data.excerpt || "Discover verified software, proxy solutions, and online courses on The Valid Market with instant delivery and 24/7 technical support."}
+              {data.metaDescription || data.excerpt || "Explore comprehensive tutorials, proxy setup walkthroughs, and verified software insights on The Valid Market."}
+            </p>
+          </div>
+
+          <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
+            <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <p>
+              <strong>Google Search Central Note:</strong> Google may dynamically adjust snippet text or generate snippets from page body content based on what best matches each specific search query. Defining a compelling meta description guides Google to use your preferred summary.
             </p>
           </div>
 
           {/* Interactive SERP Fields Editor */}
           <div className="bg-slate-50 border border-slate-200/90 rounded-2xl p-5 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-              <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-primary" />
-                <span>Edit Google Snippet (Live Sync)</span>
-              </h5>
-              <span className="text-[11px] font-semibold text-slate-500">
-                Directly customize your Google search presence
-              </span>
-            </div>
+            <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-primary" />
+              <span>Live SERP Title &amp; Description Sync</span>
+            </h5>
 
             {/* SEO Title Input */}
             <div className="space-y-2">
@@ -848,12 +967,16 @@ export default function RealTimeSeoAnalyzer({
                 {analysis.suggestedTitle && (
                   <button
                     type="button"
-                    onClick={() => onUpdateField("seoTitle", analysis.suggestedTitle)}
+                    onClick={() => {
+                      onUpdateField("seoTitle", analysis.suggestedTitle);
+                      setFixedNotice(`✓ Applied suggested title: "${analysis.suggestedTitle}"`);
+                      setTimeout(() => setFixedNotice(null), 3000);
+                    }}
                     className="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 cursor-pointer flex items-center gap-1.5 flex-shrink-0 transition-colors shadow-xs"
-                    title="Apply algorithmic suggested title"
+                    title="Apply clean suggested title"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Use Suggestion</span>
+                    <span>Apply Suggestion</span>
                   </button>
                 )}
               </div>
@@ -895,12 +1018,16 @@ export default function RealTimeSeoAnalyzer({
                   <div className="flex justify-end">
                     <button
                       type="button"
-                      onClick={() => onUpdateField("metaDescription", analysis.suggestedMetaDescription)}
+                      onClick={() => {
+                        onUpdateField("metaDescription", analysis.suggestedMetaDescription);
+                        setFixedNotice("✓ Applied suggested meta description");
+                        setTimeout(() => setFixedNotice(null), 3000);
+                      }}
                       className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 cursor-pointer flex items-center gap-1.5 transition-colors shadow-xs"
-                      title="Apply algorithmic suggested description"
+                      title="Apply clean suggested description"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Use Suggested Description</span>
+                      <span>Apply Suggested Description</span>
                     </button>
                   </div>
                 )}
@@ -916,71 +1043,456 @@ export default function RealTimeSeoAnalyzer({
                 />
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* URL Slug Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 block">URL Slug</label>
-              <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs">
-                <span className="text-slate-400 font-mono select-none">
-                  https://www.thevalidmarket.com/{data.contentType === "blog" ? "blog" : "product"}/
-                </span>
-                <input
-                  type="text"
-                  value={data.slug || ""}
-                  onChange={(e) => onUpdateField("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))}
-                  placeholder="url-slug"
-                  className="flex-1 font-mono text-slate-900 font-semibold focus:outline-none bg-transparent"
-                />
-              </div>
-            </div>
+      {/* ── TAB 4: URL, SLUG, CANONICAL & INDEXING INSPECTOR ────────────────── */}
+      {activeSubTab === "slug_canonical" && (
+        <div className="p-6 space-y-6">
+          <div className="space-y-1 pb-3 border-b border-slate-100">
+            <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <LinkIcon className="w-4 h-4 text-primary" />
+              <span>URL Slug, Canonical URL &amp; Indexing Directives</span>
+            </h4>
+            <p className="text-xs text-slate-500">
+              Verify URL permanence, canonical consistency, and robots search indexing rules.
+            </p>
           </div>
 
-          {/* Quick 1-Click Fix Helpers */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-800">Suggested SEO Title</span>
-                <span className="font-mono text-slate-400">{analysis.suggestedTitle?.length || 0} chars</span>
+          {/* 301 Redirect Alert if published slug is being changed */}
+          {dbAudit?.establishedSlugNeedsRedirect && (
+            <div className="p-4 bg-amber-500/10 border-2 border-amber-500 rounded-2xl space-y-2">
+              <div className="flex items-center gap-2 font-black text-xs text-amber-900 uppercase tracking-wider">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+                <span>Established Published URL Slug Modification</span>
               </div>
-              <p className="text-xs text-slate-700 font-medium bg-white p-2.5 rounded-lg border border-slate-200">
-                {analysis.suggestedTitle || "No suggestion needed"}
+              <p className="text-xs text-slate-700 leading-relaxed">
+                This article is already published under <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300">/blog/{dbAudit.oldSlug}</code>.
+                When you save, the system will <strong>automatically create a 301 Permanent Redirect</strong> from the old URL to <code className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300">/blog/{data.slug}</code> to preserve existing Google rankings and backlinks.
               </p>
-              {analysis.suggestedTitle && analysis.suggestedTitle !== (data.seoTitle || data.name) && (
-                <button
-                  type="button"
-                  onClick={() => onUpdateField("seoTitle", analysis.suggestedTitle)}
-                  className="w-full py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 flex items-center justify-center gap-1 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Apply Suggested Title</span>
-                </button>
+            </div>
+          )}
+
+          {/* Slug Input with Live Validation */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Article URL Slug
+              </label>
+              {dbAudit?.slugConflict ? (
+                <span className="text-xs font-bold text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  <span>Slug Conflict Detected</span>
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Available</span>
+                </span>
               )}
             </div>
 
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-800">Suggested Meta Description</span>
-                <span className="font-mono text-slate-400">{analysis.suggestedMetaDescription?.length || 0} chars</span>
-              </div>
-              <p className="text-xs text-slate-700 font-medium bg-white p-2.5 rounded-lg border border-slate-200 line-clamp-3">
-                {analysis.suggestedMetaDescription || "No suggestion needed"}
-              </p>
-              {analysis.suggestedMetaDescription && analysis.suggestedMetaDescription !== (data.metaDescription || data.excerpt) && (
+            <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+              <span className="text-slate-400 font-mono select-none">
+                https://www.thevalidmarket.com/blog/
+              </span>
+              <input
+                type="text"
+                value={data.slug || ""}
+                onChange={(e) => onUpdateField("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-"))}
+                placeholder="article-slug"
+                className="flex-1 font-mono text-slate-900 font-semibold focus:outline-none bg-transparent"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Slugs must be lowercase, hyphenated, and never contain spaces or symbols.
+            </p>
+          </div>
+
+          {/* Canonical URL Input */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Canonical URL Directive (&lt;link rel=&quot;canonical&quot;&gt;)
+              </label>
+              <span className="text-[11px] text-slate-400">
+                {data.canonicalUrl ? "Custom Override" : "Self-Referential (Recommended)"}
+              </span>
+            </div>
+
+            <input
+              type="text"
+              value={data.canonicalUrl || ""}
+              onChange={(e) => onUpdateField("canonicalUrl", e.target.value)}
+              placeholder={`Default: https://www.thevalidmarket.com/blog/${data.slug || "article-slug"}`}
+              className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-primary/50 focus:outline-none"
+            />
+
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Leave blank to automatically use the standard self-referential published URL. If overriding, use a full absolute HTTPS URL without query strings.
+            </p>
+          </div>
+
+          {/* Robots Indexing Directive */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Robots Indexing Directive (&lt;meta name=&quot;robots&quot;&gt;)
+              </label>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${
+                data.robots?.includes("noindex") ? "bg-red-500 text-white" : "bg-emerald-500 text-white"
+              }`}>
+                {data.robots || "index, follow"}
+              </span>
+            </div>
+
+            <div className="flex gap-3">
+              {[
+                { label: "Index & Follow (Standard)", value: "index, follow", desc: "Allow search engines to index and rank this article." },
+                { label: "Noindex, Nofollow (Private)", value: "noindex, nofollow", desc: "Strictly exclude from Google Search and XML sitemaps." },
+              ].map(opt => (
                 <button
+                  key={opt.value}
                   type="button"
-                  onClick={() => onUpdateField("metaDescription", analysis.suggestedMetaDescription)}
-                  className="w-full py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 flex items-center justify-center gap-1 cursor-pointer"
+                  onClick={() => onUpdateField("robots", opt.value)}
+                  className={`flex-1 p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                    data.robots === opt.value || (!data.robots && opt.value === "index, follow")
+                      ? "border-primary bg-primary/5 shadow-xs"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  }`}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Apply Suggested Description</span>
+                  <span className="font-bold text-xs block text-slate-900">{opt.label}</span>
+                  <span className="text-[11px] text-slate-500 block mt-0.5">{opt.desc}</span>
                 </button>
-              )}
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── TAB 4: SOCIAL CARD SHARING PREVIEW ─────────────────────────────── */}
+      {/* ── TAB 5: HEADINGS & DOCUMENT OUTLINE ──────────────────────────────── */}
+      {activeSubTab === "headings" && (
+        <div className="p-6 space-y-6">
+          <div className="space-y-1 pb-3 border-b border-slate-100">
+            <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <Hash className="w-4 h-4 text-primary" />
+              <span>Headings Hierarchy &amp; Document Outline</span>
+            </h4>
+            <p className="text-xs text-slate-500">
+              Strict Single-H1 check (the page title acts as H1; article body headings should be H2/H3).
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div className={`p-4 rounded-xl border ${analysis.h1CountInContent > 0 ? "bg-red-50 border-red-200 text-red-800" : "bg-emerald-50 border-emerald-200 text-emerald-800"}`}>
+              <span className="font-extrabold block text-sm">H1 Tags in Body</span>
+              <span className="text-2xl font-black">{analysis.h1CountInContent}</span>
+              <p className="text-[11px] mt-1">
+                {analysis.h1CountInContent === 0 ? "Perfect single H1 layout." : "Demote <h1> to <h2> so only the page title is H1."}
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border bg-slate-50 border-slate-200 text-slate-800">
+              <span className="font-extrabold block text-sm">H2 Subsections</span>
+              <span className="text-2xl font-black text-slate-900">{analysis.h2Count}</span>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Major topical sections.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border bg-slate-50 border-slate-200 text-slate-800">
+              <span className="font-extrabold block text-sm">H3 Deep Dives</span>
+              <span className="text-2xl font-black text-slate-900">{analysis.h3Count}</span>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Sub-points nested under H2.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl border bg-slate-50 border-slate-200 text-slate-800">
+              <span className="font-extrabold block text-sm">Heading Density</span>
+              <span className="text-2xl font-black text-slate-900">{analysis.totalHeadings}</span>
+              <p className="text-[11px] text-slate-500 mt-1">
+                ~{analysis.wordsPerHeading} words per section.
+              </p>
+            </div>
+          </div>
+
+          {/* Heading Outline Tree */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+            <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
+              Document Outline Tree
+            </span>
+
+            {analysis.headingsList.length === 0 ? (
+              <p className="text-xs text-slate-400 italic py-4 text-center">
+                No headings found in article body. Use H2 headings in the editor to structure your points.
+              </p>
+            ) : (
+              <div className="space-y-1.5 font-mono text-xs">
+                {/* Visual root H1 */}
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold">
+                  <span className="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[10px]">H1</span>
+                  <span className="truncate">{data.name || "Main Page Title (Storefront Template Header)"}</span>
+                  <span className="text-[10px] text-indigo-600 font-normal ml-auto">Layout Title</span>
+                </div>
+
+                {analysis.headingsList.map((h, i) => {
+                  const isDuplicate = analysis.duplicateHeadings.includes(h.text.toLowerCase());
+                  const isH1Error = h.level === 1;
+
+                  return (
+                    <div 
+                      key={i} 
+                      className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
+                        isH1Error 
+                          ? "bg-red-50 border-red-200 text-red-900" 
+                          : isDuplicate 
+                            ? "bg-amber-50 border-amber-200 text-amber-900" 
+                            : "bg-slate-50 border-slate-200 text-slate-800"
+                      }`}
+                      style={{ marginLeft: `${Math.min(48, (h.level - 1) * 16)}px` }}
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        h.level === 1 ? "bg-red-600 text-white" : h.level === 2 ? "bg-slate-800 text-white" : "bg-slate-200 text-slate-700"
+                      }`}>
+                        H{h.level}
+                      </span>
+                      <span className="truncate flex-1">{h.text || <em className="text-slate-400">Empty heading</em>}</span>
+                      {isH1Error && <span className="text-[10px] font-bold text-red-600">Demote to H2</span>}
+                      {isDuplicate && <span className="text-[10px] font-bold text-amber-600">Duplicate</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 6: LINKS & MEDIA ASSISTANT ─────────────────────────────────── */}
+      {activeSubTab === "links_media" && (
+        <div className="p-6 space-y-6">
+          <div className="space-y-1 pb-3 border-b border-slate-100">
+            <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <LinkIcon className="w-4 h-4 text-primary" />
+              <span>Smart Internal Link Suggestions &amp; Image Alt Audit</span>
+            </h4>
+            <p className="text-xs text-slate-500">
+              Internal links suggest real published site URLs from your catalog. Never invent URLs or report unchecked links as broken.
+            </p>
+          </div>
+
+          {/* Real Internal Link Suggestions from DB */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <ExternalLink className="w-4 h-4 text-primary" />
+                <span>Real Site Internal Link Suggestions (Click to Insert)</span>
+              </label>
+              <span className="text-[11px] text-slate-400">Active Catalog URLs</span>
+            </div>
+
+            {dbAudit?.siteLinks ? (
+              <div className="space-y-3">
+                {/* Related Articles */}
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">Published Articles</span>
+                  <div className="flex flex-wrap gap-2">
+                    {dbAudit.siteLinks.articles.map(art => (
+                      <button
+                        key={art.url}
+                        type="button"
+                        onClick={() => handleInsertInternalLink(art.url, art.title)}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                      >
+                        <span className="truncate max-w-[220px]">{art.title}</span>
+                        <Plus className="w-3 h-3 text-slate-400" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Popular Products */}
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">Top Products &amp; Tools</span>
+                  <div className="flex flex-wrap gap-2">
+                    {dbAudit.siteLinks.products.map(prod => (
+                      <button
+                        key={prod.url}
+                        type="button"
+                        onClick={() => handleInsertInternalLink(prod.url, prod.title)}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                      >
+                        <span className="truncate max-w-[220px]">{prod.title}</span>
+                        <span className="text-[10px] text-indigo-600 font-bold uppercase">{prod.type}</span>
+                        <Plus className="w-3 h-3 text-slate-400" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Categories */}
+                <div>
+                  <span className="text-[11px] font-bold text-slate-500 uppercase block mb-1.5">Catalog Categories</span>
+                  <div className="flex flex-wrap gap-2">
+                    {dbAudit.siteLinks.categories.map(cat => (
+                      <button
+                        key={cat.url}
+                        type="button"
+                        onClick={() => handleInsertInternalLink(cat.url, cat.title)}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                      >
+                        <span className="truncate max-w-[220px]">{cat.title}</span>
+                        <Plus className="w-3 h-3 text-slate-400" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic">Loading real catalog suggestions from database...</p>
+            )}
+          </div>
+
+          {/* Image Alt Audit */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+            <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <ImageIcon className="w-4 h-4 text-primary" />
+              <span>Image Alt Text Audit ({analysis.totalImages} images total)</span>
+            </h5>
+
+            <div className="space-y-2">
+              {/* Featured Image Row */}
+              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 flex items-center justify-between text-xs">
+                <div className="space-y-0.5">
+                  <span className="font-bold text-slate-900 block">Featured Image</span>
+                  <span className="text-slate-500 font-mono text-[11px]">
+                    Alt: {data.featuredImageAlt ? `"${data.featuredImageAlt}"` : <span className="text-red-600 font-bold">Missing Alt Text</span>}
+                  </span>
+                </div>
+                {!data.featuredImageAlt && data.name && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdateField("featuredImageAlt", `${data.name} Guide - The Valid Market`)}
+                    className="px-2.5 py-1 bg-slate-900 text-white rounded text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                  >
+                    Generate Alt
+                  </button>
+                )}
+              </div>
+
+              {/* Inline images with missing alt */}
+              {analysis.missingAltSrcList.map((src, idx) => (
+                <div key={idx} className="p-3 rounded-lg border border-red-200 bg-red-50/50 flex items-center justify-between text-xs">
+                  <div className="truncate mr-2">
+                    <span className="font-bold text-red-700">Missing Alt:</span>{" "}
+                    <span className="text-slate-600 font-mono text-[11px] truncate">{src}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded">
+                    Label in Editor
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 7: STRUCTURED DATA & TECHNICAL STATUS ──────────────────────── */}
+      {activeSubTab === "technical_schema" && (
+        <div className="p-6 space-y-6">
+          <div className="space-y-1 pb-3 border-b border-slate-100">
+            <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+              <span>Schema.org Structured Data &amp; Core Web Vitals Status</span>
+            </h4>
+            <p className="text-xs text-slate-500">
+              Validates Schema.org BlogPosting JSON-LD and explains verified vs external performance standards.
+            </p>
+          </div>
+
+          {/* Schema.org BlogPosting Preview */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-900 text-slate-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-400">
+                Schema.org BlogPosting JSON-LD (Generated on Storefront)
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                [Verified Implementation]
+              </span>
+            </div>
+            <pre className="text-[11px] font-mono overflow-x-auto p-3 bg-black/40 rounded-lg text-slate-300 leading-relaxed max-h-56">
+{`{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "${getBaseUrl()}/blog/${data.slug || "slug"}"
+  },
+  "headline": "${data.seoTitle || data.name || "Article Headline"}",
+  "description": "${data.metaDescription || data.excerpt || ""}",
+  "image": ["${data.featuredImage || `${getBaseUrl()}/og-image.jpg`}"],
+  "datePublished": "ISO 8601 Timestamp",
+  "dateModified": "ISO 8601 Timestamp",
+  "author": {
+    "@type": "Organization",
+    "name": "The Valid Market Editorial Team",
+    "url": "${getBaseUrl()}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "The Valid Market",
+    "url": "${getBaseUrl()}",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "${getBaseUrl()}/logo.png"
+    }
+  }
+}`}
+            </pre>
+          </div>
+
+          {/* Core Web Vitals Standards (Google 2026 Reference) */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <div className="flex items-center justify-between">
+              <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <Activity className="w-4 h-4 text-primary" />
+                <span>Core Web Vitals Thresholds (Google Official Standards)</span>
+              </h5>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                [Requires External Data]
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              The editor evaluates on-page text and markup. Live Core Web Vitals are measured in the field by real Google Chrome users:
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <span className="text-slate-500 font-semibold block text-[11px]">Largest Contentful Paint (LCP)</span>
+                <span className="text-sm font-black text-emerald-600 block my-0.5">&le; 2.5 seconds</span>
+                <p className="text-[10px] text-slate-400">Next.js &lt;Image priority&gt; handles hero images.</p>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <span className="text-slate-500 font-semibold block text-[11px]">Interaction to Next Paint (INP)</span>
+                <span className="text-sm font-black text-emerald-600 block my-0.5">&le; 200 milliseconds</span>
+                <p className="text-[10px] text-slate-400">Replaced FID in Google Core Web Vitals.</p>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-slate-200">
+                <span className="text-slate-500 font-semibold block text-[11px]">Cumulative Layout Shift (CLS)</span>
+                <span className="text-sm font-black text-emerald-600 block my-0.5">&le; 0.1 score</span>
+                <p className="text-[10px] text-slate-400">Explicit image aspect-ratios prevent shifting.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 8: SOCIAL CARD (OG & TWITTER) ──────────────────────────────── */}
       {activeSubTab === "social" && (
         <div className="p-6 space-y-6">
           <div className="space-y-1 pb-3 border-b border-slate-100">
@@ -989,7 +1501,7 @@ export default function RealTimeSeoAnalyzer({
               <span>Social Media Sharing Card (OpenGraph &amp; Twitter / X)</span>
             </h4>
             <p className="text-xs text-slate-500">
-              Control the rich image and headline displayed when your link is posted to Telegram, Twitter/X, Discord, or Facebook.
+              Control how links appear when shared on Telegram, Discord, X, or WhatsApp.
             </p>
           </div>
 
@@ -997,7 +1509,7 @@ export default function RealTimeSeoAnalyzer({
             {/* Card Preview */}
             <div className="space-y-2">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                Social Link Preview
+                Social Link Card Preview
               </span>
               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-sm">
                 <div className="relative aspect-video bg-slate-100 overflow-hidden flex items-center justify-center">
@@ -1030,7 +1542,7 @@ export default function RealTimeSeoAnalyzer({
             {/* Editable Social Fields */}
             <div className="space-y-3">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
-                Social Metadata Fields
+                Social Card Fields
               </span>
 
               <div>
@@ -1077,109 +1589,6 @@ export default function RealTimeSeoAnalyzer({
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── TAB 5: HEADINGS & CONTENT STRUCTURE ────────────────────────────── */}
-      {activeSubTab === "headings" && (
-        <div className="p-6 space-y-6">
-          <div className="space-y-1 pb-3 border-b border-slate-100">
-            <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              <Hash className="w-4 h-4 text-primary" />
-              <span>Headings &amp; Document Outline</span>
-            </h4>
-            <p className="text-xs text-slate-500">
-              Inspect the heading hierarchy parsed directly from your content body.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className={`p-4 rounded-xl border ${analysis.h1CountInContent > 0 ? "bg-red-50 border-red-200 text-red-800" : "bg-emerald-50 border-emerald-200 text-emerald-800"}`}>
-              <span className="font-extrabold block text-sm">Rendered H1s</span>
-              <span className="text-2xl font-black">{analysis.h1CountInContent === 0 ? "1 (Page Title)" : `${analysis.h1CountInContent + 1} (Multiple H1 Error)`}</span>
-              <p className="text-[11px] mt-1">
-                {analysis.h1CountInContent === 0 ? "Perfect single H1 hierarchy." : "Remove <h1> from content body so only the page title is H1."}
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl border bg-slate-50 border-slate-200 text-slate-800">
-              <span className="font-extrabold block text-sm">H2 Subsections</span>
-              <span className="text-2xl font-black text-slate-900">{analysis.h2Count}</span>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Major topical sections. Recommended: at least 2.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl border bg-slate-50 border-slate-200 text-slate-800">
-              <span className="font-extrabold block text-sm">H3 Deep Dives</span>
-              <span className="text-2xl font-black text-slate-900">{analysis.h3Count}</span>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Sub-points nested under H2 headings.
-              </p>
-            </div>
-
-            <div className={`p-4 rounded-xl border ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "bg-amber-50 border-amber-200 text-amber-900" : "bg-slate-50 border-slate-200 text-slate-800"}`}>
-              <div className="flex items-center justify-between">
-                <span className="font-extrabold block text-sm">Heading Ratio</span>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "bg-amber-200 text-amber-900" : "bg-emerald-100 text-emerald-800"}`}>
-                  {analysis.wordsPerHeading < 50 && analysis.totalHeadings >= 12 ? "Disproportionate" : "Balanced"}
-                </span>
-              </div>
-              <span className="text-2xl font-black text-slate-900">{analysis.totalHeadings} <span className="text-xs font-normal text-slate-500">headings</span></span>
-              <p className="text-[11px] text-slate-500 mt-1">
-                ~{analysis.wordsPerHeading} words / heading section. (Target: 60–150 words).
-              </p>
-            </div>
-          </div>
-
-          {/* Heading Tree */}
-          <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
-            <span className="text-xs font-black text-slate-700 uppercase tracking-wider block">
-              Document Outline Tree
-            </span>
-            {analysis.headingsList.length === 0 ? (
-              <p className="text-xs text-slate-400 italic py-4 text-center">
-                No headings found in content body. Use H2 headings in the editor to structure your points.
-              </p>
-            ) : (
-              <div className="space-y-1.5 font-mono text-xs">
-                {/* Visual root H1 */}
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold">
-                  <span className="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[10px]">H1</span>
-                  <span className="truncate">{data.name || "Main Page Title"}</span>
-                  <span className="text-[10px] text-indigo-600 font-normal ml-auto">Page Header</span>
-                </div>
-
-                {analysis.headingsList.map((h, i) => {
-                  const isDuplicate = analysis.duplicateHeadings.includes(h.text.toLowerCase());
-                  const isH1Error = h.level === 1;
-
-                  return (
-                    <div 
-                      key={i} 
-                      className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
-                        isH1Error 
-                          ? "bg-red-50 border-red-200 text-red-900" 
-                          : isDuplicate 
-                            ? "bg-amber-50 border-amber-200 text-amber-900" 
-                            : "bg-slate-50 border-slate-200 text-slate-800"
-                      }`}
-                      style={{ marginLeft: `${(h.level - 1) * 16}px` }}
-                    >
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                        h.level === 1 ? "bg-red-600 text-white" : h.level === 2 ? "bg-slate-800 text-white" : "bg-slate-200 text-slate-700"
-                      }`}>
-                        H{h.level}
-                      </span>
-                      <span className="truncate flex-1">{h.text || <em className="text-slate-400">Empty heading</em>}</span>
-                      {isH1Error && <span className="text-[10px] font-bold text-red-600">Demote to H2</span>}
-                      {isDuplicate && <span className="text-[10px] font-bold text-amber-600">Duplicate</span>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       )}

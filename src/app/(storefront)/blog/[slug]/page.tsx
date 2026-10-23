@@ -13,6 +13,7 @@ import BlogShareButton from "@/components/blog/BlogShareButton";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
 import { getBaseUrl } from "@/lib/siteUrl";
+import { getAbsoluteImageUrl } from "@/lib/sitemap-utils";
 import ContentWithShortcodes from "@/components/shortcodes/ContentWithShortcodes";
 
 export const revalidate = 300; // Cache on Vercel CDN for 5 minutes, background revalidate
@@ -47,12 +48,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
   keywords = Array.from(new Set(keywords.map(k => k.trim()).filter(Boolean)));
 
+  const siteUrl = getBaseUrl();
+  let canonicalUrl = `${siteUrl}/blog/${post.slug}`;
+  if (post.canonicalUrl && post.canonicalUrl.trim()) {
+    let clean = post.canonicalUrl.trim().split("?")[0].split("#")[0];
+    if (clean.startsWith("/")) clean = `${siteUrl}${clean}`;
+    else if (!/^https?:\/\//i.test(clean)) clean = `https://${clean}`;
+    canonicalUrl = clean;
+  }
+
   return {
     title: post.seoTitle || post.title,
     description: post.metaDescription || post.excerpt || undefined,
     keywords: keywords.length > 0 ? keywords : undefined,
     alternates: {
-      canonical: post.canonicalUrl || `/blog/${post.slug}`,
+      canonical: canonicalUrl,
     },
     robots: post.robots || "index, follow",
     openGraph: {
@@ -217,20 +227,27 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const approvedComments = (post as any).comments || [];
 
   const siteUrl = getBaseUrl();
-  const postUrl = `${siteUrl}/blog/${post.slug}`;
-  const postImage = post.ogImage || post.featuredImage
-    ? normalizeImageUrl((post.ogImage || post.featuredImage)!)
-    : `${siteUrl}/og-image.jpg`;
+  const canonicalUrl = (() => {
+    if (post.canonicalUrl && post.canonicalUrl.trim()) {
+      let clean = post.canonicalUrl.trim().split("?")[0].split("#")[0];
+      if (clean.startsWith("/")) return `${siteUrl}${clean}`;
+      if (!/^https?:\/\//i.test(clean)) return `https://${clean}`;
+      return clean;
+    }
+    return `${siteUrl}/blog/${post.slug}`;
+  })();
+
+  const postImage = getAbsoluteImageUrl(post.ogImage || post.featuredImage, siteUrl) || `${siteUrl}/og-image.jpg`;
 
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id": postUrl,
+      "@id": canonicalUrl,
     },
-    "headline": post.seoTitle || post.title,
-    "description": post.metaDescription || post.excerpt || "",
+    "headline": (post.seoTitle || post.title).replace(/<[^>]+>/g, "").trim(),
+    "description": (post.metaDescription || post.excerpt || "").replace(/<[^>]+>/g, "").trim(),
     "image": [postImage],
     "datePublished": post.publishDate ? new Date(post.publishDate).toISOString() : new Date(post.createdAt).toISOString(),
     "dateModified": new Date(post.updatedAt).toISOString(),
@@ -242,6 +259,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     "publisher": {
       "@type": "Organization",
       "name": "The Valid Market",
+      "url": siteUrl,
       "logo": {
         "@type": "ImageObject",
         "url": `${siteUrl}/logo.png`,
