@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
-  Search, Filter, X, Package, AlertTriangle, Loader2, CheckCircle2 
+  Search, Filter, X, Package, AlertTriangle, Loader2, CheckCircle2, ShoppingCart 
 } from "lucide-react";
 import ProductRowActions from "./ProductRowActions";
 
@@ -17,6 +17,13 @@ interface AdminProductsManagerProps {
   initialQuery: string;
   currentCategory?: string;
   currentStatus?: string;
+  stats?: {
+    total: number;
+    published: number;
+    draft: number;
+    archived: number;
+    totalSales: number;
+  };
 }
 
 export default function AdminProductsManager({
@@ -28,6 +35,7 @@ export default function AdminProductsManager({
   initialQuery,
   currentCategory,
   currentStatus,
+  stats,
 }: AdminProductsManagerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -212,8 +220,41 @@ export default function AdminProductsManager({
         </div>
       )}
 
+      {/* Status Filter Tabs */}
+      <div className="border-b bg-slate-50/70 px-4 pt-3 flex items-center gap-2 overflow-x-auto">
+        {[
+          { id: "", label: "All Products", count: stats?.total ?? totalProducts },
+          { id: "PUBLISHED", label: "Published", count: stats?.published ?? 0, badgeColor: "bg-emerald-100 text-emerald-700" },
+          { id: "DRAFT", label: "Drafts", count: stats?.draft ?? 0, badgeColor: "bg-amber-100 text-amber-700" },
+          ...((stats?.archived || 0) > 0 ? [{ id: "ARCHIVED", label: "Archived", count: stats?.archived, badgeColor: "bg-slate-200 text-slate-700" }] : []),
+        ].map((tab) => {
+          const isActive = (currentStatus || "") === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => updateSearch(searchTerm, currentCategory, tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-t-lg border-b-2 whitespace-nowrap transition-colors ${
+                isActive
+                  ? "border-primary text-primary bg-white shadow-xs"
+                  : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  tab.badgeColor || "bg-slate-200 text-slate-700"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Toolbar */}
-      <div className="p-4 border-b flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50">
+      <div className="p-4 border-b flex flex-col sm:flex-row gap-4 justify-between items-center bg-white">
         <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-96 flex items-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
@@ -398,6 +439,7 @@ export default function AdminProductsManager({
               <th className="px-4 py-3 font-semibold hidden sm:table-cell">Category</th>
               <th className="px-4 py-3 font-semibold hidden md:table-cell">Type</th>
               <th className="px-4 py-3 font-semibold">Price</th>
+              <th className="px-4 py-3 font-semibold text-center">Orders / Sales</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold text-right">Actions</th>
             </tr>
@@ -405,7 +447,7 @@ export default function AdminProductsManager({
           <tbody className="divide-y divide-slate-100">
             {products.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
                   <Package className="mx-auto h-12 w-12 text-slate-300 mb-3" />
                   <p className="text-lg font-medium text-slate-900">No products found</p>
                   <p>Try adjusting your search query or filters.</p>
@@ -454,6 +496,22 @@ export default function AdminProductsManager({
                     <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
                       ${product.salePrice || product.price}
                     </td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
+                      {product._count?.orderItems > 0 ? (
+                        <Link
+                          href={`/admin/orders?q=${encodeURIComponent(product.name)}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors shadow-xs"
+                          title={`View orders containing ${product.name}`}
+                        >
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                          <span>{product._count.orderItems} {product._count.orderItems === 1 ? 'sale' : 'sales'}</span>
+                        </Link>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs text-slate-400 bg-slate-50 border border-slate-100">
+                          0 sales
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
@@ -479,10 +537,15 @@ export default function AdminProductsManager({
       </div>
 
       {/* Pagination */}
-      <div className="p-4 border-t flex justify-between items-center bg-slate-50">
-        <span className="text-sm text-slate-500">
-          Showing {products.length} of {totalProducts} products
-        </span>
+      <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50">
+        <div className="text-sm text-slate-500">
+          Showing <strong>{products.length}</strong> of <strong>{totalProducts}</strong> products
+          {stats?.totalSales !== undefined && (
+            <span className="text-xs text-slate-400 ml-2">
+              • <strong>{stats.totalSales}</strong> total product sales
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {currentPage > 1 ? (
             <Link
