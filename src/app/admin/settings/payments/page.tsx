@@ -7,7 +7,21 @@ export const dynamic = "force-dynamic";
 // Seed default configs if they don't exist
 async function ensureDefaultPaymentMethods() {
   const defaults = [
-    { code: "UPI", displayName: "UPI Payment", sortOrder: 1 },
+    {
+      code: "UPI",
+      displayName: "UPI Payment (BladePay Instant)",
+      sortOrder: 1,
+      isEnabled: true,
+      mode: "AUTOMATIC",
+      instructions: "Pay instantly with any UPI app (Google Pay, PhonePe, Paytm, BHIM, etc.).",
+      settings: JSON.stringify({
+        gatewayMode: "BLADEPAY",
+        bladePayBaseUrl: "https://api.bladepay.pro",
+        bladePayMerchantCode: "MCH-20261026-5480",
+        bladePayToken: "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a",
+        upiPaymentMode: "DIRECT_SUPPORT",
+      }),
+    },
     { code: "BTC", displayName: "Bitcoin (BTC)", sortOrder: 2 },
     { code: "USDT", displayName: "USDT / TRC20", sortOrder: 3 },
   ];
@@ -30,16 +44,16 @@ export default async function PaymentSettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Payment Settings</h1>
-        <p className="text-slate-500 mt-1">Configure manual payment methods for your store.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Payment Gateway Settings</h1>
+        <p className="text-slate-500 mt-1">Configure automated UPI gateways (BladePay) and manual crypto methods.</p>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-        <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex gap-3">
+        <AlertCircle className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium text-amber-900 text-sm">Manual Mode Configuration</p>
-          <p className="text-amber-800 text-sm mt-1">
-            These payment methods operate in MANUAL mode. Orders remain ON_HOLD until you verify the payment and approve it from the Admin panel. Automatic gateway integration is disabled.
+          <p className="font-medium text-emerald-900 text-sm">Automated UPI Gateway Enabled</p>
+          <p className="text-emerald-800 text-sm mt-1">
+            UPI is configured with BladePay automated checkout. Customers can scan QR or pay with GPay, PhonePe, or Paytm. BladePay sends real-time MD5 signed webhooks to fulfill digital goods instantly.
           </p>
         </div>
       </div>

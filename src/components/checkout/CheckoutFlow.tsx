@@ -112,8 +112,11 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
       clearCart();
 
       if (data.redirectUrl) {
-        // Manual payment mode - redirect to payment instructions page or dashboard
-        router.push(data.redirectUrl);
+        if (data.redirectUrl.startsWith("http://") || data.redirectUrl.startsWith("https://")) {
+          window.location.href = data.redirectUrl;
+        } else {
+          router.push(data.redirectUrl);
+        }
         return;
       }
 
@@ -258,9 +261,16 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
                     />
                     <div>
                       <div className="font-medium text-slate-900">{method.displayName}</div>
-                      <div className="text-xs text-slate-500 mt-1">{method.code}</div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        {method.code === "UPI" ? "GPay, PhonePe, Paytm, BHIM & All UPI Apps" : method.code}
+                      </div>
                       {conversionDisplay && (
                         <div className="text-xs font-semibold text-emerald-600 mt-1">{conversionDisplay}</div>
+                      )}
+                      {method.code === "UPI" && (
+                        <span className="inline-block mt-2 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          ⚡ Automated Instant UPI
+                        </span>
                       )}
                       {method.isTestMode && <span className="inline-block mt-2 text-[10px] uppercase font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Test Mode</span>}
                     </div>

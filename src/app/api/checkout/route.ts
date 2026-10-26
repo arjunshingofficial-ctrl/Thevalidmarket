@@ -296,6 +296,73 @@ export async function POST(req: NextRequest) {
       }
     });
 
+    // BLADEPAY AUTOMATED UPI INTEGRATION
+    if (paymentMethod === "UPI") {
+      let upiSettings: any = {};
+      try {
+        if (methodConfig.settings) upiSettings = JSON.parse(methodConfig.settings);
+      } catch (e) {}
+
+      const isBladePay =
+        methodConfig.mode === "AUTOMATIC" ||
+        upiSettings.gatewayMode === "BLADEPAY" ||
+        (!upiSettings.gatewayMode && methodConfig.mode !== "MANUAL");
+
+      if (isBladePay) {
+        const { createBladePayPayinOrder } = await import("@/lib/payments/bladepay");
+        const baseUrl = getBaseUrl();
+        const notifyUrl = `${baseUrl}/api/webhooks/bladepay`;
+        const returnUrl = `${baseUrl}/payment-success?orderId=${order.id}`;
+
+        const payinResult = await createBladePayPayinOrder({
+          merchantOrderNo: order.id,
+          amountInr: paymentAmount,
+          customerName: session.user.name || "Customer",
+          customerEmail: session.user.email || undefined,
+          customerPhone: session.user.phone || undefined,
+          notifyUrl,
+          returnUrl,
+        });
+
+        if (payinResult.success && payinResult.cashierUrl) {
+          const paymentRecord = await prisma.payment.create({
+            data: {
+              orderId: order.id,
+              method: "UPI",
+              mode: "BLADEPAY",
+              transactionId: payinResult.gatewayOrderNo || order.id,
+              amount: paymentAmount,
+              currency: "INR",
+              baseAmount: total,
+              baseCurrency: "USD",
+              fxRate,
+              status: "PENDING",
+              metadata: JSON.stringify({
+                gatewayOrderNo: payinResult.gatewayOrderNo,
+                cashierUrl: payinResult.cashierUrl,
+                notifyUrl,
+                returnUrl,
+              }),
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            order,
+            paymentRecord,
+            redirectUrl: payinResult.cashierUrl,
+          });
+        } else {
+          console.warn("[BladePay] Order creation failed, checking if manual fallback exists:", payinResult.error);
+          if (!upiSettings.vpa && methodConfig.mode !== "MANUAL") {
+            return NextResponse.json({
+              error: payinResult.error || "Failed to initiate automated UPI payment.",
+            }, { status: 400 });
+          }
+        }
+      }
+    }
+
     if (methodConfig.mode === "MANUAL") {
       // Create Manual Payment Record
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
