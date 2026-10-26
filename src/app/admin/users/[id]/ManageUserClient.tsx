@@ -4,7 +4,8 @@ import { useState } from "react";
 import { formatUsd } from "@/lib/currency";
 import { updateUser, resetUserPassword, adjustUserWallet, deleteUser } from "@/lib/actions/users";
 import { useRouter } from "next/navigation";
-import { Wallet, Package, AlertTriangle, Key, Save, Plus, Minus, UserX } from "lucide-react";
+import Link from "next/link";
+import { Wallet, Package, AlertTriangle, Key, Save, Plus, Minus, UserX, ExternalLink, CheckCircle2, Clock } from "lucide-react";
 
 export default function ManageUserClient({ user, roles, walletBalance }: { user: any, roles: any[], walletBalance: any }) {
   const router = useRouter();
@@ -85,21 +86,29 @@ export default function ManageUserClient({ user, roles, walletBalance }: { user:
     }
   };
 
+  const tabs = [
+    { id: "general", label: "General" },
+    { id: "wallet", label: "Wallet" },
+    { id: "security", label: "Security" },
+    { id: "orders", label: `Orders (${user.orders?.length || 0})` },
+    { id: "danger", label: "Danger" },
+  ];
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       {/* Tabs */}
       <div className="flex border-b border-slate-200 overflow-x-auto">
-        {["general", "wallet", "security", "orders", "danger"].map((tab) => (
+        {tabs.map((tab) => (
           <button
-            key={tab}
-            onClick={() => { setActiveTab(tab); setError(""); setSuccess(""); }}
-            className={`px-6 py-4 text-sm font-medium capitalize border-b-2 whitespace-nowrap transition-colors ${
-              activeTab === tab 
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id); setError(""); setSuccess(""); }}
+            className={`px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
+              activeTab === tab.id 
                 ? "border-primary text-primary" 
                 : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
             }`}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </div>
@@ -245,6 +254,24 @@ export default function ManageUserClient({ user, roles, walletBalance }: { user:
 
         {activeTab === "orders" && (
           <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50 p-4 rounded-xl border">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">User Orders Overview</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Total of {user.orders?.length || 0} lifetime orders on record.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/admin/orders?userId=${user.id}`}
+                  className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-primary/90 inline-flex items-center gap-1.5 shadow-xs"
+                >
+                  <span>Open in Orders Manager</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
             {user.orders?.length === 0 ? (
               <div className="p-12 text-center border rounded-xl bg-slate-50">
                 <Package className="mx-auto h-12 w-12 text-slate-300 mb-3" />
@@ -256,21 +283,45 @@ export default function ManageUserClient({ user, roles, walletBalance }: { user:
                 <table className="w-full text-sm text-left">
                   <thead className="bg-slate-50 border-b">
                     <tr>
-                      <th className="px-6 py-3 font-medium text-slate-600">Order ID</th>
-                      <th className="px-6 py-3 font-medium text-slate-600">Date</th>
-                      <th className="px-6 py-3 font-medium text-slate-600">Status</th>
-                      <th className="px-6 py-3 font-medium text-slate-600">Total</th>
+                      <th className="px-6 py-3 font-semibold text-slate-600">Order ID</th>
+                      <th className="px-6 py-3 font-semibold text-slate-600">Date</th>
+                      <th className="px-6 py-3 font-semibold text-slate-600">Status</th>
+                      <th className="px-6 py-3 font-semibold text-slate-600">Payment</th>
+                      <th className="px-6 py-3 font-semibold text-right text-slate-600">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {user.orders?.map((order: any) => (
-                      <tr key={order.id} className="hover:bg-slate-50">
-                        <td className="px-6 py-3 font-mono text-xs">{order.id}</td>
-                        <td className="px-6 py-3 text-slate-600">{new Date(order.createdAt).toLocaleDateString()}</td>
-                        <td className="px-6 py-3">
-                          <span className="px-2 py-1 bg-slate-100 rounded text-xs font-medium">{order.orderStatus}</span>
+                      <tr key={order.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-3 font-mono text-xs font-bold text-slate-900">
+                          <Link href={`/admin/orders/${order.id}`} className="hover:text-primary hover:underline">
+                            #{order.id.slice(0, 8).toUpperCase()}
+                          </Link>
                         </td>
-                        <td className="px-6 py-3 font-medium">{formatUsd(order.total)}</td>
+                        <td className="px-6 py-3 text-slate-600 text-xs">{new Date(order.createdAt).toLocaleDateString()}</td>
+                        <td className="px-6 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            order.orderStatus === "FULFILLED" 
+                              ? "bg-blue-100 text-blue-700" 
+                              : order.orderStatus === "PENDING"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-slate-100 text-slate-600"
+                          }`}>
+                            {order.orderStatus}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            order.paymentStatus === "PAID" 
+                              ? "bg-emerald-100 text-emerald-700" 
+                              : order.paymentStatus === "PENDING"
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-rose-100 text-rose-700"
+                          }`}>
+                            {order.paymentStatus}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3 text-right font-bold text-slate-900">{formatUsd(order.total)}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -1,59 +1,372 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Search, Filter, Eye, Edit3, Package } from "lucide-react";
+import { 
+  Search, 
+  Filter, 
+  Eye, 
+  Edit3, 
+  Package, 
+  ShoppingCart, 
+  Clock, 
+  CheckCircle2, 
+  AlertTriangle, 
+  DollarSign, 
+  X,
+  User as UserIcon,
+  RotateCcw
+} from "lucide-react";
 import OrderActionsDropdown from "@/components/admin/OrderActionsDropdown";
 import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrders({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
-  const resolvedSearchParams = await searchParams;
+interface AdminOrdersProps {
+  searchParams: Promise<{
+    page?: string;
+    status?: string;
+    q?: string;
+    userId?: string;
+  }>;
+}
+
+export default async function AdminOrders({ searchParams }: AdminOrdersProps) {
+  const resolvedSearchParams = (await Promise.resolve(searchParams)) || {};
   const page = parseInt(resolvedSearchParams.page || "1", 10);
+  const status = (resolvedSearchParams.status || "all").toLowerCase();
+  const q = (resolvedSearchParams.q || "").trim();
+  const userId = (resolvedSearchParams.userId || "").trim();
   const limit = 10;
   const skip = (page - 1) * limit;
 
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { user: true, items: { include: { product: true } } },
-    skip,
-    take: limit,
-  });
-  const totalOrders = await prisma.order.count();
+  // Base scope if filtered by specific user
+  const userFilter = userId ? { userId } : {};
 
-  const totalPages = Math.ceil(totalOrders / limit);
+  // Build search filter
+  let searchFilter: any = {};
+  if (q) {
+    const cleanQ = q.replace(/^#/, "").trim();
+    searchFilter = {
+      OR: [
+        { id: { contains: cleanQ, mode: "insensitive" } },
+        { user: { name: { contains: q, mode: "insensitive" } } },
+        { user: { email: { contains: q, mode: "insensitive" } } },
+      ],
+    };
+  }
+
+  // Fetch count metrics in parallel
+  const [
+    totalOrdersCount,
+    pendingOrdersCount,
+    fulfilledOrdersCount,
+    failedOrdersCount,
+    paidOrdersCount,
+    targetUser,
+  ] = await Promise.all([
+    prisma.order.count({ where: userFilter }),
+    prisma.order.count({
+      where: {
+        ...userFilter,
+        OR: [{ orderStatus: "PENDING" }, { paymentStatus: "PENDING" }],
+      },
+    }),
+    prisma.order.count({
+      where: {
+        ...userFilter,
+        orderStatus: "FULFILLED",
+      },
+    }),
+    prisma.order.count({
+      where: {
+        ...userFilter,
+        OR: [
+          { paymentStatus: "FAILED" },
+          { paymentStatus: "REJECTED" },
+          { orderStatus: "CANCELLED" },
+        ],
+      },
+    }),
+    prisma.order.count({
+      where: {
+        ...userFilter,
+        paymentStatus: "PAID",
+      },
+    }),
+    userId
+      ? prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, name: true, email: true },
+        })
+      : null,
+  ]);
+
+  // Construct status filter for list query
+  let statusWhere: any = {};
+  if (status === "pending") {
+    statusWhere = {
+      OR: [{ orderStatus: "PENDING" }, { paymentStatus: "PENDING" }],
+    };
+  } else if (status === "fulfilled") {
+    statusWhere = {
+      orderStatus: "FULFILLED",
+    };
+  } else if (status === "failed") {
+    statusWhere = {
+      OR: [
+        { paymentStatus: "FAILED" },
+        { paymentStatus: "REJECTED" },
+        { orderStatus: "CANCELLED" },
+      ],
+    };
+  } else if (status === "paid") {
+    statusWhere = {
+      paymentStatus: "PAID",
+    };
+  }
+
+  const listWhere = {
+    ...userFilter,
+    ...searchFilter,
+    ...statusWhere,
+  };
+
+  const [orders, filteredOrdersCount] = await Promise.all([
+    prisma.order.findMany({
+      where: listWhere,
+      orderBy: { createdAt: "desc" },
+      include: { user: true, items: { include: { product: true } } },
+      skip,
+      take: limit,
+    }),
+    prisma.order.count({ where: listWhere }),
+  ]);
+
+  const totalPages = Math.ceil(filteredOrdersCount / limit);
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
 
+  // Helper to build status links
+  const buildFilterUrl = (newStatus: string) => {
+    const params = new URLSearchParams();
+    if (newStatus && newStatus !== "all") params.set("status", newStatus);
+    if (q) params.set("q", q);
+    if (userId) params.set("userId", userId);
+    params.set("page", "1");
+    const qs = params.toString();
+    return `/admin/orders${qs ? `?${qs}` : ""}`;
+  };
+
+  // Helper to build pagination links
+  const buildPageUrl = (targetPage: number) => {
+    const params = new URLSearchParams();
+    if (status && status !== "all") params.set("status", status);
+    if (q) params.set("q", q);
+    if (userId) params.set("userId", userId);
+    params.set("page", targetPage.toString());
+    return `/admin/orders?${params.toString()}`;
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Orders</h1>
-          <p className="text-slate-500 mt-1">Manage and fulfill customer orders.</p>
+          <p className="text-slate-500 mt-1">
+            Real-time order fulfillment, customer purchases, and payment statuses.
+          </p>
         </div>
       </div>
 
+      {/* KPI Counters: Total Orders, Pending, Fulfilled, Failed, Paid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        {/* Total Orders */}
+        <Link
+          href={buildFilterUrl("all")}
+          className={`rounded-xl border p-4 bg-white transition-all shadow-xs hover:shadow-sm flex flex-col justify-between ${
+            status === "all"
+              ? "ring-2 ring-primary border-primary bg-primary/[0.03]"
+              : "border-slate-200 hover:border-slate-300"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Orders</span>
+            <span className="p-2 rounded-lg bg-blue-50 text-blue-600">
+              <ShoppingCart className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-extrabold text-slate-900">{totalOrdersCount.toLocaleString()}</div>
+            <p className="text-[11px] text-slate-500 mt-0.5">All-time store orders</p>
+          </div>
+        </Link>
+
+        {/* Pending Orders */}
+        <Link
+          href={buildFilterUrl("pending")}
+          className={`rounded-xl border p-4 bg-white transition-all shadow-xs hover:shadow-sm flex flex-col justify-between ${
+            status === "pending"
+              ? "ring-2 ring-amber-500 border-amber-500 bg-amber-50/30"
+              : "border-slate-200 hover:border-amber-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">Pending</span>
+            <span className="p-2 rounded-lg bg-amber-100 text-amber-700">
+              <Clock className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-extrabold text-amber-600">{pendingOrdersCount.toLocaleString()}</div>
+            <p className="text-[11px] text-amber-600/80 mt-0.5 font-medium">Awaiting fulfill / payment</p>
+          </div>
+        </Link>
+
+        {/* Fulfilled Orders */}
+        <Link
+          href={buildFilterUrl("fulfilled")}
+          className={`rounded-xl border p-4 bg-white transition-all shadow-xs hover:shadow-sm flex flex-col justify-between ${
+            status === "fulfilled"
+              ? "ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/20"
+              : "border-slate-200 hover:border-emerald-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Fulfilled</span>
+            <span className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
+              <CheckCircle2 className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-extrabold text-emerald-600">{fulfilledOrdersCount.toLocaleString()}</div>
+            <p className="text-[11px] text-emerald-600/80 mt-0.5 font-medium">Delivered to customers</p>
+          </div>
+        </Link>
+
+        {/* Failed / Cancelled Orders */}
+        <Link
+          href={buildFilterUrl("failed")}
+          className={`rounded-xl border p-4 bg-white transition-all shadow-xs hover:shadow-sm flex flex-col justify-between ${
+            status === "failed"
+              ? "ring-2 ring-rose-500 border-rose-500 bg-rose-50/20"
+              : "border-slate-200 hover:border-rose-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-rose-700">Failed / Cancelled</span>
+            <span className="p-2 rounded-lg bg-rose-100 text-rose-700">
+              <AlertTriangle className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-extrabold text-rose-600">{failedOrdersCount.toLocaleString()}</div>
+            <p className="text-[11px] text-rose-600/80 mt-0.5 font-medium">Declined or cancelled</p>
+          </div>
+        </Link>
+
+        {/* Paid Orders */}
+        <Link
+          href={buildFilterUrl("paid")}
+          className={`rounded-xl border p-4 bg-white transition-all shadow-xs hover:shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1 ${
+            status === "paid"
+              ? "ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50/20"
+              : "border-slate-200 hover:border-indigo-200"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Paid Orders</span>
+            <span className="p-2 rounded-lg bg-indigo-100 text-indigo-700">
+              <DollarSign className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-extrabold text-indigo-600">{paidOrdersCount.toLocaleString()}</div>
+            <p className="text-[11px] text-indigo-600/80 mt-0.5 font-medium">Settled & confirmed</p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Active User Filter Notification Banner */}
+      {targetUser && (
+        <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-900">
+          <div className="flex items-center gap-2">
+            <UserIcon className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>
+              Showing orders for customer: <strong>{targetUser.name || "Customer"}</strong> ({targetUser.email}) — <strong>{totalOrdersCount}</strong> {totalOrdersCount === 1 ? 'order' : 'orders'} found
+            </span>
+          </div>
+          <Link
+            href="/admin/orders"
+            className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 bg-white hover:bg-blue-100 px-2.5 py-1 rounded-md border border-blue-200 shadow-xs transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+            Clear Filter
+          </Link>
+        </div>
+      )}
+
+      {/* Orders Container */}
       <div className="bg-white rounded-xl border shadow-sm flex flex-col overflow-hidden">
+        {/* Status Filter Tabs */}
+        <div className="border-b bg-slate-50/70 px-4 pt-3 flex items-center gap-2 overflow-x-auto">
+          {[
+            { id: "all", label: "All Orders", count: totalOrdersCount },
+            { id: "pending", label: "Pending", count: pendingOrdersCount, badgeColor: "bg-amber-100 text-amber-700" },
+            { id: "fulfilled", label: "Fulfilled", count: fulfilledOrdersCount, badgeColor: "bg-emerald-100 text-emerald-700" },
+            { id: "failed", label: "Failed / Cancelled", count: failedOrdersCount, badgeColor: "bg-rose-100 text-rose-700" },
+            { id: "paid", label: "Paid", count: paidOrdersCount, badgeColor: "bg-indigo-100 text-indigo-700" },
+          ].map((tab) => {
+            const isActive = status === tab.id;
+            return (
+              <Link
+                key={tab.id}
+                href={buildFilterUrl(tab.id)}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-t-lg border-b-2 whitespace-nowrap transition-colors ${
+                  isActive
+                    ? "border-primary text-primary bg-white shadow-xs"
+                    : "border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    tab.badgeColor || "bg-slate-200 text-slate-700"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* Toolbar */}
-        <div className="p-4 border-b flex flex-col sm:flex-row gap-4 justify-between items-center bg-slate-50/50">
-          <div className="relative w-full sm:w-96">
+        <div className="p-4 border-b flex flex-col sm:flex-row gap-4 justify-between items-center bg-white">
+          <form method="GET" action="/admin/orders" className="relative w-full sm:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input 
               type="search" 
-              placeholder="Search orders by ID or customer..." 
+              name="q"
+              defaultValue={q}
+              placeholder="Search by order ID, customer name, email..." 
               className="w-full pl-9 pr-4 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
-          </div>
+            {status !== "all" && <input type="hidden" name="status" value={status} />}
+            {userId && <input type="hidden" name="userId" value={userId} />}
+          </form>
+
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm bg-white hover:bg-slate-50 text-slate-600 font-medium">
-              <Filter className="h-4 w-4" /> Filter
-            </button>
-            <select className="h-[38px] rounded-md border bg-white px-3 py-2 text-sm text-slate-600 font-medium focus:outline-none">
-              <option>Bulk Actions</option>
-              <option>Mark as Paid</option>
-              <option>Fulfill</option>
-              <option>Cancel</option>
-            </select>
+            {q && (
+              <Link
+                href={buildFilterUrl(status)}
+                className="flex items-center gap-1 px-3 py-2 border border-slate-200 rounded-md text-sm bg-white hover:bg-slate-50 text-slate-600 font-medium"
+              >
+                <RotateCcw className="h-3.5 w-3.5" /> Reset Search
+              </Link>
+            )}
+            <div className="text-xs text-slate-500 font-medium hidden sm:block">
+              Found <strong>{filteredOrdersCount}</strong> {filteredOrdersCount === 1 ? 'order' : 'orders'}
+            </div>
           </div>
         </div>
 
@@ -79,7 +392,19 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
                   <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <Package className="h-10 w-10 mx-auto text-slate-300 mb-2" />
                     <p className="text-base font-semibold text-slate-900">No orders found</p>
-                    <p className="text-xs text-slate-500 mt-1">Orders placed by customers will appear here.</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {q || status !== "all" || userId
+                        ? "No orders match the selected filter. Try switching tabs or clearing filters."
+                        : "Orders placed by customers will appear here."}
+                    </p>
+                    {(q || status !== "all" || userId) && (
+                      <Link
+                        href="/admin/orders"
+                        className="inline-flex items-center gap-1 mt-3 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 rounded-md hover:bg-primary/20 transition-colors"
+                      >
+                        View All Orders ({totalOrdersCount})
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -104,10 +429,14 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
 
                     {/* Customer */}
                     <td className="py-3.5 px-4">
-                      <div className="max-w-[160px]">
-                        <div className="font-medium text-slate-900 truncate" title={order.user.name || "Customer"}>
+                      <div className="max-w-[170px]">
+                        <Link
+                          href={`/admin/orders?userId=${order.user.id}`}
+                          className="font-medium text-slate-900 truncate hover:text-primary hover:underline block"
+                          title={`View all orders for ${order.user.name || order.user.email}`}
+                        >
                           {order.user.name || "Customer"}
-                        </div>
+                        </Link>
                         <div className="text-xs text-slate-500 truncate" title={order.user.email}>
                           {order.user.email}
                         </div>
@@ -187,6 +516,7 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
                           order.orderStatus === 'FULFILLED' ? 'bg-blue-100 text-blue-700' : 
                           order.orderStatus === 'PENDING' ? 'bg-slate-100 text-slate-600' : 
+                          order.orderStatus === 'CANCELLED' ? 'bg-rose-100 text-rose-700' :
                           'bg-slate-100 text-slate-600'
                         }`}>
                           {order.orderStatus}
@@ -223,24 +553,27 @@ export default async function AdminOrders({ searchParams }: { searchParams: Prom
           </table>
         </div>
         
-        {/* Pagination */}
-        <div className="p-4 border-t flex justify-between items-center bg-slate-50">
-          <span className="text-sm text-slate-500">Showing {orders.length} orders (Page {page} of {totalPages || 1})</span>
+        {/* Pagination & Summary */}
+        <div className="p-4 border-t flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50">
+          <div className="text-sm text-slate-500">
+            Showing <strong className="text-slate-800">{orders.length}</strong> of <strong className="text-slate-800">{filteredOrdersCount}</strong> {filteredOrdersCount === 1 ? 'order' : 'orders'} 
+            {totalPages > 1 && ` (Page ${page} of ${totalPages})`}
+          </div>
           <div className="flex items-center gap-2">
             {hasPrev ? (
-              <Link href={`/admin/orders?page=${page - 1}`} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">
+              <Link href={buildPageUrl(page - 1)} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50 text-slate-700 font-medium">
                 Previous
               </Link>
             ) : (
-              <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm" disabled>Previous</button>
+              <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm text-slate-400" disabled>Previous</button>
             )}
             
             {hasNext ? (
-              <Link href={`/admin/orders?page=${page + 1}`} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50">
+              <Link href={buildPageUrl(page + 1)} className="px-3 py-1 border rounded-md text-sm bg-white shadow-sm hover:bg-slate-50 text-slate-700 font-medium">
                 Next
               </Link>
             ) : (
-              <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm" disabled>Next</button>
+              <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50 bg-white shadow-sm text-slate-400" disabled>Next</button>
             )}
           </div>
         </div>

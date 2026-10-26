@@ -1,4 +1,4 @@
-import { Eye, Download, Edit3 } from "lucide-react";
+import { Eye, Download, Edit3, ShoppingCart, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -6,12 +6,21 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import ClientDateTime from "@/components/common/ClientDateTime";
 
-export default async function OrdersPage() {
+export const dynamic = "force-dynamic";
+
+interface OrdersPageProps {
+  searchParams?: Promise<{ status?: string }>;
+}
+
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
     redirect("/login");
   }
+
+  const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : {};
+  const filterStatus = (resolvedSearchParams.status || "all").toLowerCase();
 
   const userRole = (session?.user as { role?: string })?.role;
   const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN";
@@ -29,6 +38,20 @@ export default async function OrdersPage() {
       }
     },
     orderBy: { createdAt: "desc" }
+  });
+
+  // Calculate order stats
+  const totalOrdersCount = orders.length;
+  const fulfilledCount = orders.filter(o => o.orderStatus === "FULFILLED").length;
+  const pendingCount = orders.filter(o => o.orderStatus === "PENDING" || o.paymentStatus === "PENDING").length;
+  const failedCount = orders.filter(o => o.orderStatus === "CANCELLED" || o.paymentStatus === "FAILED" || o.paymentStatus === "REJECTED").length;
+
+  // Filter orders according to active tab
+  const displayedOrders = orders.filter(order => {
+    if (filterStatus === "fulfilled") return order.orderStatus === "FULFILLED";
+    if (filterStatus === "pending") return order.orderStatus === "PENDING" || order.paymentStatus === "PENDING";
+    if (filterStatus === "failed") return order.orderStatus === "CANCELLED" || order.paymentStatus === "FAILED" || order.paymentStatus === "REJECTED";
+    return true;
   });
 
   const getPaymentStatusColor = (status: string) => {
@@ -62,10 +85,114 @@ export default async function OrdersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-        <p className="text-muted-foreground mt-1">View and manage your purchase history.</p>
+        <p className="text-muted-foreground mt-1">View and manage your purchase history and order statuses.</p>
       </div>
 
+      {/* KPI Counters: Total, Fulfilled, Pending, Failed */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {/* Total Orders */}
+        <Link
+          href="/dashboard/orders"
+          className={`rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm ${
+            filterStatus === "all" ? "ring-2 ring-primary border-primary" : ""
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-muted-foreground uppercase">Total Orders</span>
+            <span className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+              <ShoppingCart className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-bold">{totalOrdersCount}</div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">All purchases</p>
+        </Link>
+
+        {/* Fulfilled */}
+        <Link
+          href="/dashboard/orders?status=fulfilled"
+          className={`rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm ${
+            filterStatus === "fulfilled" ? "ring-2 ring-emerald-500 border-emerald-500" : ""
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-emerald-600 uppercase">Fulfilled</span>
+            <span className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+              <CheckCircle2 className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-emerald-600">{fulfilledCount}</div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Delivered to you</p>
+        </Link>
+
+        {/* Pending */}
+        <Link
+          href="/dashboard/orders?status=pending"
+          className={`rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm ${
+            filterStatus === "pending" ? "ring-2 ring-amber-500 border-amber-500" : ""
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-amber-600 uppercase">Pending</span>
+            <span className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+              <Clock className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-amber-600">{pendingCount}</div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Processing / payment</p>
+        </Link>
+
+        {/* Failed / Cancelled */}
+        <Link
+          href="/dashboard/orders?status=failed"
+          className={`rounded-xl border bg-card p-4 shadow-xs transition-all hover:shadow-sm ${
+            filterStatus === "failed" ? "ring-2 ring-rose-500 border-rose-500" : ""
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-rose-600 uppercase">Failed</span>
+            <span className="p-2 rounded-lg bg-rose-500/10 text-rose-500">
+              <AlertTriangle className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-2 text-2xl font-bold text-rose-600">{failedCount}</div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">Cancelled / failed</p>
+        </Link>
+      </div>
+
+      {/* Orders Container */}
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        {/* Status Filter Tabs */}
+        <div className="border-b bg-muted/40 px-4 pt-3 flex items-center gap-2 overflow-x-auto">
+          {[
+            { id: "all", label: "All Orders", count: totalOrdersCount },
+            { id: "fulfilled", label: "Fulfilled", count: fulfilledCount, badgeColor: "bg-emerald-100 text-emerald-700" },
+            { id: "pending", label: "Pending", count: pendingCount, badgeColor: "bg-amber-100 text-amber-700" },
+            { id: "failed", label: "Failed / Cancelled", count: failedCount, badgeColor: "bg-rose-100 text-rose-700" },
+          ].map((tab) => {
+            const isActive = filterStatus === tab.id;
+            return (
+              <Link
+                key={tab.id}
+                href={tab.id === "all" ? "/dashboard/orders" : `/dashboard/orders?status=${tab.id}`}
+                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-t-lg border-b-2 whitespace-nowrap transition-colors ${
+                  isActive
+                    ? "border-primary text-primary bg-card"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    tab.badgeColor || "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+
         {/* Desktop View (Table) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm text-left whitespace-nowrap">
@@ -82,14 +209,27 @@ export default async function OrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {orders.length === 0 ? (
+              {displayedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
-                    No orders found.
+                  <td colSpan={8} className="px-6 py-10 text-center text-muted-foreground">
+                    <p className="font-semibold text-foreground">No orders found</p>
+                    <p className="text-xs mt-1">
+                      {filterStatus !== "all" 
+                        ? "No orders match this status." 
+                        : "You haven't placed any orders yet."}
+                    </p>
+                    {filterStatus !== "all" && (
+                      <Link
+                        href="/dashboard/orders"
+                        className="inline-block mt-3 px-3 py-1 text-xs font-semibold text-primary bg-primary/10 rounded-md hover:bg-primary/20"
+                      >
+                        View All Orders ({totalOrdersCount})
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ) : (
-                orders.map((order) => {
+                displayedOrders.map((order) => {
                   const paymentMethod = order.payments?.[0]?.method || (order.paymentStatus === 'PAID' && order.payments.length === 0 ? 'WALLET' : 'N/A');
                   const actualPaymentStatus = order.payments?.[0]?.status || order.paymentStatus;
                   return (
@@ -141,10 +281,14 @@ export default async function OrdersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <Link href={`/dashboard/orders/${order.id}`} className="p-2 bg-secondary/10 text-secondary rounded hover:bg-secondary hover:text-secondary-foreground transition-colors" title="View Details">
+                          <Link
+                            href={`/payment/success?orderId=${order.id}`}
+                            className="p-2 bg-muted rounded hover:bg-muted/80 text-muted-foreground transition-colors"
+                            title="View Receipt"
+                          >
                             <Eye className="h-4 w-4" />
                           </Link>
-                          {order.paymentStatus === 'PAID' && order.entitlements && order.entitlements.filter(e => e.type === 'DOWNLOAD' && e.status === 'ACTIVE').map((ent) => {
+                          {order.entitlements.map((ent) => {
                             const meta = ent.metadata ? JSON.parse(ent.metadata) : {};
                             if (!meta.fileId) return null;
                             const product = order.items.find(i => i.productId === ent.productId)?.product;
@@ -172,12 +316,13 @@ export default async function OrdersPage() {
 
         {/* Mobile View (Cards) */}
         <div className="md:hidden divide-y divide-border">
-          {orders.length === 0 ? (
+          {displayedOrders.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              No orders found.
+              <p className="font-semibold text-foreground">No orders found</p>
+              <p className="text-xs mt-1">No orders matching this status.</p>
             </div>
           ) : (
-            orders.map((order) => {
+            displayedOrders.map((order) => {
               const paymentMethod = order.payments?.[0]?.method || (order.paymentStatus === 'PAID' && order.payments.length === 0 ? 'WALLET' : 'N/A');
               const actualPaymentStatus = order.payments?.[0]?.status || order.paymentStatus;
               
@@ -218,23 +363,27 @@ export default async function OrdersPage() {
                       ))
                     )}
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2 items-center text-xs">
-                    <span className={`px-2.5 py-1 rounded-full font-medium ${getPaymentStatusColor(actualPaymentStatus)}`}>
-                      {formatStatus(actualPaymentStatus)}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-full font-medium ${getOrderStatusColor(order.orderStatus)}`}>
-                      {formatStatus(order.orderStatus)}
-                    </span>
-                    <span className="text-muted-foreground font-semibold ml-auto bg-muted/50 px-2 py-1 rounded-md">{paymentMethod}</span>
+
+                  <div className="flex items-center justify-between text-xs text-muted-foreground border-t pt-3">
+                    <div>Method: <span className="font-semibold text-foreground">{paymentMethod}</span></div>
+                    <div className="flex gap-2">
+                      <span className={`px-2 py-0.5 rounded-full font-medium ${getPaymentStatusColor(actualPaymentStatus)}`}>
+                        {formatStatus(actualPaymentStatus)}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full font-medium ${getOrderStatusColor(order.orderStatus)}`}>
+                        {formatStatus(order.orderStatus)}
+                      </span>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2 mt-1">
-                    <Link href={`/dashboard/orders/${order.id}`} className="flex-1 flex justify-center items-center gap-2 py-2.5 bg-secondary/10 text-secondary rounded-lg hover:bg-secondary hover:text-secondary-foreground transition-colors font-semibold text-sm">
-                      <Eye className="h-4 w-4" /> View Details
+
+                  <div className="flex gap-2 justify-end pt-1">
+                    <Link
+                      href={`/payment/success?orderId=${order.id}`}
+                      className="px-3 py-1.5 border rounded-md text-xs font-semibold hover:bg-muted flex items-center gap-1.5"
+                    >
+                      <Eye className="h-3.5 w-3.5" /> View Receipt
                     </Link>
-                    
-                    {order.paymentStatus === 'PAID' && order.entitlements && order.entitlements.filter(e => e.type === 'DOWNLOAD' && e.status === 'ACTIVE').map((ent) => {
+                    {order.entitlements.map((ent) => {
                       const meta = ent.metadata ? JSON.parse(ent.metadata) : {};
                       if (!meta.fileId) return null;
                       return (
@@ -242,9 +391,9 @@ export default async function OrdersPage() {
                           key={ent.id}
                           href={`/api/download/${meta.fileId}`} 
                           download
-                          className="flex-1 flex justify-center items-center gap-2 py-2.5 bg-primary/10 text-primary rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors font-semibold text-sm" 
+                          className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-semibold flex items-center gap-1.5 shadow"
                         >
-                          <Download className="h-4 w-4" /> Download
+                          <Download className="h-3.5 w-3.5" /> Download
                         </a>
                       );
                     })}
@@ -253,14 +402,6 @@ export default async function OrdersPage() {
               );
             })
           )}
-        </div>
-        
-        <div className="p-4 border-t flex justify-between items-center bg-muted/20">
-          <span className="text-sm text-muted-foreground">Showing {orders.length} orders</span>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1 border rounded-md text-sm disabled:opacity-50" disabled>Prev</button>
-            <button className="px-3 py-1 border rounded-md text-sm bg-background hover:bg-muted" disabled>Next</button>
-          </div>
         </div>
       </div>
     </div>

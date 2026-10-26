@@ -28,12 +28,18 @@ export default async function DashboardHome() {
   // Combine all simple counts/aggregates into one raw query to avoid pool overhead
   const statsResult: any = await prisma.$queryRaw`
     SELECT 
+      (SELECT COUNT(*) FROM "Order" WHERE "userId" = ${session.user.id}) as "totalOrders",
+      (SELECT COUNT(*) FROM "Order" WHERE "userId" = ${session.user.id} AND "orderStatus" = 'FULFILLED') as "fulfilledOrders",
+      (SELECT COUNT(*) FROM "Order" WHERE "userId" = ${session.user.id} AND ("orderStatus" = 'PENDING' OR "paymentStatus" = 'PENDING')) as "pendingOrders",
       (SELECT COALESCE(SUM(total), 0) FROM "Order" WHERE "userId" = ${session.user.id} AND "paymentStatus" = 'PAID') as "totalSpent",
       (SELECT COUNT(*) FROM "License" WHERE "userId" = ${session.user.id} AND "status" = 'ACTIVE') as "activeLicenses",
       (SELECT COUNT(*) FROM "Subscription" WHERE "userId" = ${session.user.id} AND "status" = 'ACTIVE') as "activeSubscriptions",
       (SELECT COUNT(*) FROM "Entitlement" WHERE "userId" = ${session.user.id} AND "type" = 'DOWNLOAD' AND "status" = 'ACTIVE') as "totalDownloads"
   `;
 
+  const totalOrders = Number(statsResult[0]?.totalOrders || 0);
+  const fulfilledOrders = Number(statsResult[0]?.fulfilledOrders || 0);
+  const pendingOrders = Number(statsResult[0]?.pendingOrders || 0);
   const totalSpent = Number(statsResult[0]?.totalSpent || 0);
   const activeLicenses = Number(statsResult[0]?.activeLicenses || 0);
   const activeSubscriptions = Number(statsResult[0]?.activeSubscriptions || 0);
@@ -93,25 +99,47 @@ export default async function DashboardHome() {
         </a>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Total Spent", value: `$${totalSpent.toLocaleString()}`, icon: ShoppingBag, color: "text-blue-500", bg: "bg-blue-500/10" },
-          { label: "Downloads", value: totalDownloads.toString(), icon: DownloadCloud, color: "text-green-500", bg: "bg-green-500/10" },
-          { label: "Active Licenses", value: activeLicenses.toString(), icon: Key, color: "text-purple-500", bg: "bg-purple-500/10" },
-          { label: "Subscriptions", value: activeSubscriptions.toString(), icon: Repeat, color: "text-orange-500", bg: "bg-orange-500/10" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-full ${stat.bg} ${stat.color}`}>
-                <stat.icon className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                <h3 className="text-2xl font-bold">{stat.value}</h3>
+          { 
+            label: "My Orders", 
+            value: totalOrders.toString(), 
+            sub: `${fulfilledOrders} fulfilled • ${pendingOrders} pending`,
+            icon: ShoppingBag, 
+            color: "text-blue-500", 
+            bg: "bg-blue-500/10",
+            href: "/dashboard/orders"
+          },
+          { label: "Total Spent", value: `$${totalSpent.toLocaleString()}`, icon: ShoppingBag, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+          { label: "Downloads", value: totalDownloads.toString(), icon: DownloadCloud, color: "text-green-500", bg: "bg-green-500/10", href: "/dashboard/downloads" },
+          { label: "Active Licenses", value: activeLicenses.toString(), icon: Key, color: "text-purple-500", bg: "bg-purple-500/10", href: "/dashboard/licenses" },
+          { label: "Subscriptions", value: activeSubscriptions.toString(), icon: Repeat, color: "text-orange-500", bg: "bg-orange-500/10", href: "/dashboard/subscriptions" },
+        ].map((stat) => {
+          const content = (
+            <div className="rounded-xl border bg-card p-5 shadow-sm h-full hover:border-primary/40 transition-colors">
+              <div className="flex items-center gap-3.5">
+                <div className={`p-3 rounded-full shrink-0 ${stat.bg} ${stat.color}`}>
+                  <stat.icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                  <h3 className="text-xl font-bold truncate">{stat.value}</h3>
+                  {stat.sub && (
+                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{stat.sub}</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+
+          return stat.href ? (
+            <Link key={stat.label} href={stat.href} className="block">
+              {content}
+            </Link>
+          ) : (
+            <div key={stat.label}>{content}</div>
+          );
+        })}
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">

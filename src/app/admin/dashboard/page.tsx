@@ -26,13 +26,21 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   const statsResult: any = await prisma.$queryRaw`
     SELECT 
       (SELECT COUNT(*) FROM "Order") as "totalOrders",
+      (SELECT COUNT(*) FROM "Order" WHERE "orderStatus" = 'FULFILLED') as "fulfilledOrders",
+      (SELECT COUNT(*) FROM "Order" WHERE "orderStatus" = 'PENDING' OR "paymentStatus" = 'PENDING') as "pendingOrders",
+      (SELECT COUNT(*) FROM "Order" WHERE "orderStatus" = 'CANCELLED' OR "paymentStatus" = 'FAILED') as "failedOrders",
       (SELECT COUNT(*) FROM "User" u JOIN "Role" r ON u."roleId" = r.id WHERE r.name = 'CUSTOMER') as "totalCustomers",
+      (SELECT COUNT(*) FROM "User") as "totalUsers",
       (SELECT COUNT(*) FROM "Product") as "totalProducts",
       (SELECT COALESCE(SUM(total), 0) FROM "Order" WHERE "paymentStatus" = 'PAID') as "totalRevenue"
   `;
 
   const totalOrders = Number(statsResult[0]?.totalOrders || 0);
+  const fulfilledOrders = Number(statsResult[0]?.fulfilledOrders || 0);
+  const pendingOrders = Number(statsResult[0]?.pendingOrders || 0);
+  const failedOrders = Number(statsResult[0]?.failedOrders || 0);
   const totalCustomers = Number(statsResult[0]?.totalCustomers || 0);
+  const totalUsers = Number(statsResult[0]?.totalUsers || 0);
   const totalProducts = Number(statsResult[0]?.totalProducts || 0);
   const revenue = Number(statsResult[0]?.totalRevenue || 0);
 
@@ -95,26 +103,70 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
             color: "text-emerald-600", 
             bg: "bg-emerald-100" 
           },
-          { label: "Orders", value: totalOrders, icon: ShoppingCart, color: "text-blue-600", bg: "bg-blue-100" },
-          { label: "Customers", value: totalCustomers, icon: Users, color: "text-indigo-600", bg: "bg-indigo-100" },
-          { label: "Products", value: totalProducts, icon: Package, color: "text-orange-600", bg: "bg-orange-100" },
-        ].map((stat, i) => (
-          <div key={i} className="bg-white rounded-xl border shadow-sm p-6 flex flex-col gap-4">
-            <div className="flex justify-between items-start">
-              <div className={`p-3 rounded-lg ${stat.bg} ${stat.color}`}>
-                <stat.icon className="h-5 w-5" />
+          { 
+            label: "Orders", 
+            value: totalOrders, 
+            sub: (
+              <span className="text-xs text-slate-500 font-medium">
+                <span className="text-emerald-600 font-semibold">{fulfilledOrders} fulfilled</span> • <span className="text-amber-600 font-semibold">{pendingOrders} pending</span> • <span className="text-rose-600 font-semibold">{failedOrders} failed</span>
+              </span>
+            ),
+            href: "/admin/orders",
+            icon: ShoppingCart, 
+            color: "text-blue-600", 
+            bg: "bg-blue-100" 
+          },
+          { 
+            label: "Customers", 
+            value: totalCustomers, 
+            sub: (
+              <span className="text-xs text-slate-500 font-medium">
+                {totalUsers} total registered accounts
+              </span>
+            ),
+            href: "/admin/customers",
+            icon: Users, 
+            color: "text-indigo-600", 
+            bg: "bg-indigo-100" 
+          },
+          { 
+            label: "Products", 
+            value: totalProducts, 
+            href: "/admin/products",
+            icon: Package, 
+            color: "text-orange-600", 
+            bg: "bg-orange-100" 
+          },
+        ].map((stat, i) => {
+          const cardContent = (
+            <div className="bg-white rounded-xl border shadow-sm p-6 flex flex-col justify-between h-full hover:shadow-md hover:border-slate-300 transition-all">
+              <div className="flex justify-between items-start">
+                <div className={`p-3 rounded-lg ${stat.bg} ${stat.color}`}>
+                  <stat.icon className="h-5 w-5" />
+                </div>
+                <div className="flex items-center text-emerald-600 text-sm font-medium">
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  Live
+                </div>
               </div>
-              <div className="flex items-center text-emerald-600 text-sm font-medium">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                +12%
+              <div className="mt-4">
+                <div className="text-sm font-medium text-slate-500">{stat.label}</div>
+                <div className="text-3xl font-bold text-slate-900 mt-1">{stat.value}</div>
+                {stat.sub && (
+                  <div className="mt-2 pt-2 border-t border-slate-100">{stat.sub}</div>
+                )}
               </div>
             </div>
-            <div>
-              <div className="text-sm font-medium text-slate-500">{stat.label}</div>
-              <div className="text-3xl font-bold text-slate-900 mt-1">{stat.value}</div>
-            </div>
-          </div>
-        ))}
+          );
+
+          return stat.href ? (
+            <Link key={i} href={stat.href} className="block">
+              {cardContent}
+            </Link>
+          ) : (
+            <div key={i}>{cardContent}</div>
+          );
+        })}
       </div>
 
       {/* Complete Admin Sections & Modules Hub */}
