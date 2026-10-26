@@ -15,7 +15,7 @@ export default function PaymentClient({ payment, order, methodConfig, settings, 
 
   // Determine effective UPI mode: auto-fallback to SUPPORT if UPI ID is missing
   let effectiveUpiMode = settings?.upiPaymentMode || "DIRECT_SUPPORT";
-  if (payment.method === "UPI") {
+  if (payment.method === "UPI" || payment.method === "UPI_MANUAL") {
     const hasValidUpi = !!settings?.vpa && settings.vpa.trim() !== "";
     if (!hasValidUpi && (effectiveUpiMode === "DIRECT" || effectiveUpiMode === "DIRECT_SUPPORT")) {
       effectiveUpiMode = "SUPPORT";
@@ -178,7 +178,7 @@ export default function PaymentClient({ payment, order, methodConfig, settings, 
             </div>
           </div>
 
-          {payment.method === "UPI" && effectiveUpiMode === "SUPPORT" ? (
+          {(payment.method === "UPI" || payment.method === "UPI_MANUAL") && effectiveUpiMode === "SUPPORT" ? (
             <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl text-center">
               <h3 className="text-lg font-semibold text-blue-900 mb-2">Manual Payment Required</h3>
               <p className="text-blue-700 text-sm">Please contact our support team below to receive payment instructions.</p>
@@ -193,7 +193,7 @@ export default function PaymentClient({ payment, order, methodConfig, settings, 
             />
           )}
 
-          {payment.method === "UPI" && effectiveUpiMode !== "DIRECT" && (
+          {(payment.method === "UPI" || payment.method === "UPI_MANUAL") && effectiveUpiMode !== "DIRECT" && (
             <ManualPaymentSupport 
               order={order}
               payment={payment}

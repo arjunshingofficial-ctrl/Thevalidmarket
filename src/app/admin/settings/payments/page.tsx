@@ -9,7 +9,7 @@ async function ensureDefaultPaymentMethods() {
   const defaults = [
     {
       code: "UPI",
-      displayName: "UPI Payment (BladePay Instant)",
+      displayName: "BladePay UPI (Instant Automated)",
       sortOrder: 1,
       isEnabled: true,
       mode: "AUTOMATIC",
@@ -19,11 +19,23 @@ async function ensureDefaultPaymentMethods() {
         bladePayBaseUrl: "https://api.bladepay.pro",
         bladePayMerchantCode: "MCH-20261026-5480",
         bladePayToken: "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a",
+      }),
+    },
+    {
+      code: "UPI_MANUAL",
+      displayName: "Manual UPI (Static QR & Transfer)",
+      sortOrder: 2,
+      isEnabled: false,
+      mode: "MANUAL",
+      instructions: "Scan the static UPI QR code or transfer to UPI ID and submit your UTR.",
+      settings: JSON.stringify({
+        vpa: "example@upi",
+        receiverName: "Business Name",
         upiPaymentMode: "DIRECT_SUPPORT",
       }),
     },
-    { code: "BTC", displayName: "Bitcoin (BTC)", sortOrder: 2 },
-    { code: "USDT", displayName: "USDT / TRC20", sortOrder: 3 },
+    { code: "BTC", displayName: "Bitcoin (BTC)", sortOrder: 3 },
+    { code: "USDT", displayName: "USDT / TRC20", sortOrder: 4 },
   ];
   for (const d of defaults) {
     await prisma.paymentMethodConfig.upsert({

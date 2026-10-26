@@ -35,11 +35,11 @@ export default async function DepositPage() {
     orderBy: { sortOrder: "asc" }
   });
 
-  const { getUsdToInrRate, getUsdToBtcRate } = await import("@/lib/fx");
-  const inrRate = await getUsdToInrRate();
+  const { getUpiEffectiveInrRate, getUsdToBtcRate } = await import("@/lib/fx");
+  const inrRate = await getUpiEffectiveInrRate();
   const btcRate = await getUsdToBtcRate();
 
-  const fxRates = { INR: inrRate, BTC: btcRate, USDT: 1 };
+  const fxRates = { INR: inrRate, UPI: inrRate, BTC: btcRate, USDT: 1 };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

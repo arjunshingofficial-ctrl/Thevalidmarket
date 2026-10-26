@@ -236,11 +236,11 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
             ) : (
               paymentMethods.map(method => {
                 let conversionDisplay = null;
-                if (method.code === "UPI") {
+                if (method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) {
                   conversionDisplay = `~ ${formatInr(total * fxRates.INR)}`;
                 } else if (method.code === "BTC") {
                   conversionDisplay = `~ ${formatBtc(total * fxRates.BTC)}`;
-                } else if (method.code === "USDT_TRC20") {
+                } else if (method.code === "USDT_TRC20" || method.code === "USDT") {
                   conversionDisplay = `~ ${formatUsdt(total)}`;
                 }
 
@@ -262,7 +262,11 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
                     <div>
                       <div className="font-medium text-slate-900">{method.displayName}</div>
                       <div className="text-xs text-slate-500 mt-1">
-                        {method.code === "UPI" ? "GPay, PhonePe, Paytm, BHIM & All UPI Apps" : method.code}
+                        {method.code === "UPI"
+                          ? "GPay, PhonePe, Paytm, BHIM & Dynamic QR"
+                          : method.code === "UPI_MANUAL"
+                          ? "Static QR & Direct UPI Transfer"
+                          : method.code}
                       </div>
                       {conversionDisplay && (
                         <div className="text-xs font-semibold text-emerald-600 mt-1">{conversionDisplay}</div>
@@ -270,6 +274,11 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
                       {method.code === "UPI" && (
                         <span className="inline-block mt-2 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
                           ⚡ Automated Instant UPI
+                        </span>
+                      )}
+                      {method.code === "UPI_MANUAL" && (
+                        <span className="inline-block mt-2 text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">
+                          📋 Manual UPI & QR
                         </span>
                       )}
                       {method.isTestMode && <span className="inline-block mt-2 text-[10px] uppercase font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Test Mode</span>}

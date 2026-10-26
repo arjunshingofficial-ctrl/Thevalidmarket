@@ -49,9 +49,15 @@ export default function WalletDepositClient({ user, config, paymentMethods, fxRa
       
       if (!res.ok) throw new Error(data.error || "Failed to initiate deposit");
 
-      // Redirect to admin payment review or instructions
-      // For deposit, we might just redirect to the general payment instruction page used by orders, 
-      // but wallet deposits aren't orders. Let's redirect to a deposit status page or existing payment page if generalized.
+      if (data.redirectUrl) {
+        if (data.redirectUrl.startsWith("http://") || data.redirectUrl.startsWith("https://")) {
+          window.location.href = data.redirectUrl;
+        } else {
+          router.push(data.redirectUrl);
+        }
+        return;
+      }
+
       router.push(`/dashboard/wallet/deposit/${data.depositId}`);
     } catch (err: any) {
       setError(err.message);
@@ -115,7 +121,7 @@ export default function WalletDepositClient({ user, config, paymentMethods, fxRa
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {paymentMethods.map((method: any) => {
             let conversionDisplay = null;
-            if (method.code === "UPI") {
+            if (method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) {
               conversionDisplay = `~ ${formatInr(amountNum * fxRates.INR)}`;
             } else if (method.code === "BTC") {
               conversionDisplay = `~ ${formatBtc(amountNum * fxRates.BTC)}`;

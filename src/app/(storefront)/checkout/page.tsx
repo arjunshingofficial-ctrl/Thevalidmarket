@@ -28,13 +28,14 @@ export default async function CheckoutPage() {
     orderBy: { sortOrder: "asc" }
   });
 
-  // Get current FX rates
-  const { getUsdToInrRate, getUsdToBtcRate } = await import("@/lib/fx");
-  const inrRate = await getUsdToInrRate();
+  // Get current FX rates (with 20% UPI tax silently included)
+  const { getUpiEffectiveInrRate, getUsdToBtcRate } = await import("@/lib/fx");
+  const inrRate = await getUpiEffectiveInrRate();
   const btcRate = await getUsdToBtcRate();
 
   const fxRates = {
     INR: inrRate,
+    UPI: inrRate,
     BTC: btcRate,
     USDT: 1 // usually 1:1 with USD
   };

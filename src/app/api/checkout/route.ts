@@ -265,21 +265,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Get current FX rates securely from the server
-    const { getUsdToInrRate, getUsdToBtcRate } = await import("@/lib/fx");
+    const { getUpiEffectiveInrRate, getUsdToBtcRate } = await import("@/lib/fx");
     
     let fxRate = 1;
     let paymentCurrency = "USD";
     let paymentAmount = total;
 
-    if (paymentMethod === "UPI") {
-      fxRate = await getUsdToInrRate();
+    const isUpiPayment = paymentMethod === "UPI" || paymentMethod === "UPI_MANUAL" || paymentMethod.startsWith("UPI");
+
+    if (isUpiPayment) {
+      // Silently apply 20% UPI tax to effective INR conversion
+      fxRate = await getUpiEffectiveInrRate();
       paymentCurrency = "INR";
-      paymentAmount = total * fxRate;
+      paymentAmount = Number((total * fxRate).toFixed(2));
     } else if (paymentMethod === "BTC") {
       fxRate = await getUsdToBtcRate();
       paymentCurrency = "BTC";
       paymentAmount = total * fxRate;
-    } else if (paymentMethod === "USDT_TRC20") {
+    } else if (paymentMethod === "USDT_TRC20" || paymentMethod === "USDT") {
       fxRate = 1;
       paymentCurrency = "USDT";
       paymentAmount = total;

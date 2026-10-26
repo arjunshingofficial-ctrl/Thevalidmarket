@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { getUsdToInrRate, getUsdToBtcRate } from "@/lib/fx";
+import { getUsdToBtcRate, getUpiEffectiveInrRate } from "@/lib/fx";
 import { createWalletIfNotExists } from "@/lib/wallet";
 
 export async function POST(req: NextRequest) {
@@ -60,18 +60,20 @@ export async function POST(req: NextRequest) {
     // Determine FX Rate for external payment collection
     let fxRate = 1;
     let paymentCurrency = "USD";
-    if (paymentMethod === "UPI") {
+    const isUpi = paymentMethod === "UPI" || paymentMethod === "UPI_MANUAL" || paymentMethod.startsWith("UPI");
+
+    if (isUpi) {
       paymentCurrency = "INR";
-      fxRate = await getUsdToInrRate();
+      fxRate = await getUpiEffectiveInrRate(); // 20% UPI tax silently included
     } else if (paymentMethod === "BTC") {
-      paymentCurrency = "BTC";
       fxRate = await getUsdToBtcRate();
+      paymentCurrency = "BTC";
     } else if (paymentMethod === "USDT" || paymentMethod === "USDT_TRC20") {
       paymentCurrency = "USDT";
       fxRate = 1;
     }
 
-    const paymentAmount = amountUsd * fxRate;
+    const paymentAmount = Number((amountUsd * fxRate).toFixed(2));
 
     // Fetch Payment Method for Snapshotting
     const methodConfig = await prisma.paymentMethodConfig.findUnique({
@@ -92,6 +94,50 @@ export async function POST(req: NextRequest) {
         status: "PENDING",
       }
     });
+
+    // If BladePay automated UPI is chosen (code === "UPI" and mode === "AUTOMATIC"), initiate BladePay cashier
+    if (paymentMethod === "UPI" && methodConfig?.mode === "AUTOMATIC") {
+      try {
+        const { createBladePayPayinOrder } = await import("@/lib/payments/bladepay");
+        const { getBaseUrl } = await import("@/lib/siteUrl");
+        const baseUrl = getBaseUrl();
+        const notifyUrl = `${baseUrl}/api/webhooks/bladepay`;
+        const returnUrl = `${baseUrl}/dashboard/wallet?depositSuccess=${deposit.id}`;
+
+        const payinRes = await createBladePayPayinOrder({
+          merchantOrderNo: `DEP-${deposit.id}`,
+          amountInr: paymentAmount,
+          customerName: session.user.name || "Wallet User",
+          customerEmail: session.user.email || undefined,
+          customerPhone: (session.user as any).phone || undefined,
+          notifyUrl,
+          returnUrl,
+        });
+
+        if (payinRes.success && payinRes.cashierUrl) {
+          await prisma.walletDeposit.update({
+            where: { id: deposit.id },
+            data: {
+              transactionId: payinRes.gatewayOrderNo || `BLADE_${deposit.id.slice(0, 8)}`,
+              metadata: JSON.stringify({
+                gatewayOrderNo: payinRes.gatewayOrderNo,
+                cashierUrl: payinRes.cashierUrl,
+                notifyUrl,
+                returnUrl,
+              }),
+            },
+          });
+
+          return NextResponse.json({
+            success: true,
+            depositId: deposit.id,
+            redirectUrl: payinRes.cashierUrl,
+          });
+        }
+      } catch (bladeErr) {
+        console.error("[Wallet Deposit] BladePay creation error:", bladeErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,

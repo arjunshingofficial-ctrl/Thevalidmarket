@@ -57,8 +57,19 @@ export async function getUsdToBtcRate(): Promise<number> {
   return 1 / 65000; // Mock rate: 1 BTC = $65,000
 }
 
-export async function convertUsdToInr(usdAmount: number): Promise<{ rate: number; inrAmount: number }> {
-  const rate = await getUsdToInrRate();
-  const inrAmount = usdAmount * rate;
+export const UPI_TAX_MULTIPLIER = 1.20; // 20% silent UPI tax
+
+/**
+ * Returns the effective USD to INR conversion rate for UPI payments (silently incorporating +20% tax)
+ */
+export async function getUpiEffectiveInrRate(): Promise<number> {
+  const baseRate = await getUsdToInrRate();
+  return Number((baseRate * UPI_TAX_MULTIPLIER).toFixed(4));
+}
+
+export async function convertUsdToInr(usdAmount: number, isUpi: boolean = false): Promise<{ rate: number; inrAmount: number }> {
+  const rate = isUpi ? await getUpiEffectiveInrRate() : await getUsdToInrRate();
+  const inrAmount = Number((usdAmount * rate).toFixed(2));
   return { rate, inrAmount };
 }
+

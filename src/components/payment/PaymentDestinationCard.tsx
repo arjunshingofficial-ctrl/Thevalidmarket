@@ -25,7 +25,7 @@ export function PaymentDestinationCard({
   };
 
   let qrValue = "";
-  if (method === "UPI") {
+  if (method === "UPI" || method === "UPI_MANUAL") {
     // upi://pay?pa={upiId}&pn={receiverName}&am={amount}&cu=INR&tn={reference}
     const upiId = settings.vpa || "";
     const receiver = settings.receiverName || "D Market";
@@ -34,7 +34,7 @@ export function PaymentDestinationCard({
     const address = settings.btcAddress || "";
     // BIP21 bitcoin URI
     qrValue = `bitcoin:${address}?amount=${amount}${reference ? `&message=${encodeURIComponent(reference)}` : ''}`;
-  } else if (method === "USDT") {
+  } else if (method === "USDT" || method === "USDT_TRC20") {
     qrValue = settings.usdtAddress || "";
   }
 
@@ -61,7 +61,7 @@ export function PaymentDestinationCard({
         <div className="flex-1 p-6 space-y-6">
           <div className="space-y-4">
             
-            {method === "UPI" && (
+            {(method === "UPI" || method === "UPI_MANUAL") && (
               <>
                 <div>
                   <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">UPI ID / VPA</p>

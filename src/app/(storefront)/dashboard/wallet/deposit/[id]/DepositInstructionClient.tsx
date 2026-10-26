@@ -96,6 +96,33 @@ export default function DepositInstructionClient({ deposit, methodConfig, settin
         </div>
 
         <div className="p-6 md:p-8 space-y-8">
+          {(() => {
+            let meta: any = {};
+            try {
+              if (deposit.metadata) meta = JSON.parse(deposit.metadata);
+            } catch (e) {}
+
+            if (meta.cashierUrl) {
+              return (
+                <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-3">
+                  <p className="text-sm font-semibold text-emerald-950">
+                    Instant UPI Checkout (BladePay)
+                  </p>
+                  <p className="text-xs text-emerald-800">
+                    Click below to open the dynamic UPI cashier to pay via GPay, PhonePe, Paytm, or QR.
+                  </p>
+                  <a
+                    href={meta.cashierUrl}
+                    className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors shadow-sm"
+                  >
+                    Pay Now with UPI Cashier →
+                  </a>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <div>
             <h3 className="font-semibold text-slate-900 mb-3 border-b pb-2">Payment Instructions</h3>
             <div className="prose prose-sm text-slate-600" dangerouslySetInnerHTML={{ __html: methodConfig?.instructions || "Please transfer the exact amount to the details provided below." }} />
