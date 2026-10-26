@@ -149,6 +149,11 @@ export default function WalletDepositClient({ user, config, paymentMethods, fxRa
                   {conversionDisplay && (
                     <div className="text-xs font-semibold text-emerald-600 mt-1">{conversionDisplay}</div>
                   )}
+                  {(method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) && (
+                    <div className="text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mt-1.5 inline-block">
+                      15% tax on UPI Payment
+                    </div>
+                  )}
                 </div>
               </label>
             );

@@ -57,10 +57,10 @@ export async function getUsdToBtcRate(): Promise<number> {
   return 1 / 65000; // Mock rate: 1 BTC = $65,000
 }
 
-export const UPI_TAX_MULTIPLIER = 1.20; // 20% silent UPI tax
+export const UPI_TAX_MULTIPLIER = 1.15; // 15% UPI tax
 
 /**
- * Returns the effective USD to INR conversion rate for UPI payments (silently incorporating +20% tax)
+ * Returns the effective USD to INR conversion rate for UPI payments (incorporating 15% tax)
  */
 export async function getUpiEffectiveInrRate(): Promise<number> {
   const baseRate = await getUsdToInrRate();

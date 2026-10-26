@@ -271,17 +271,24 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
                       {conversionDisplay && (
                         <div className="text-xs font-semibold text-emerald-600 mt-1">{conversionDisplay}</div>
                       )}
-                      {method.code === "UPI" && (
-                        <span className="inline-block mt-2 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                          ⚡ Automated Instant UPI
-                        </span>
+                      {(method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) && (
+                        <div className="text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mt-1.5 inline-block">
+                          15% tax on UPI Payment
+                        </div>
                       )}
-                      {method.code === "UPI_MANUAL" && (
-                        <span className="inline-block mt-2 text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">
-                          📋 Manual UPI & QR
-                        </span>
-                      )}
-                      {method.isTestMode && <span className="inline-block mt-2 text-[10px] uppercase font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Test Mode</span>}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {method.code === "UPI" && (
+                          <span className="inline-block text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            ⚡ Automated Instant UPI
+                          </span>
+                        )}
+                        {method.code === "UPI_MANUAL" && (
+                          <span className="inline-block text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">
+                            📋 Manual UPI & QR
+                          </span>
+                        )}
+                        {method.isTestMode && <span className="inline-block text-[10px] uppercase font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Test Mode</span>}
+                      </div>
                     </div>
                   </label>
                 );
@@ -448,6 +455,15 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
                 <span>Order Total (USD)</span>
                 <span>{formatUsd(total)}</span>
               </div>
+              {(selectedPayment === "UPI" || selectedPayment === "UPI_MANUAL" || selectedPayment.startsWith("UPI")) && (
+                <div className="bg-amber-50 border border-amber-200/90 rounded-lg p-3 mt-2 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="font-semibold text-amber-950 block">Payable via UPI</span>
+                    <span className="text-[11px] text-amber-700 font-medium">15% tax on UPI Payment</span>
+                  </div>
+                  <span className="text-base font-bold text-amber-950">{formatInr(total * fxRates.INR)}</span>
+                </div>
+              )}
               <div className="text-xs text-slate-400 text-center mt-2">
                 Prices are displayed in USD. Payment amount may vary by payment method and locked exchange rate.
               </div>
