@@ -112,6 +112,12 @@ export default function HeaderClient({ session, menuItems, walletBalance }: { se
 
           <CartIcon />
 
+          {session?.user && (
+            <div className="md:hidden flex items-center">
+              <NotificationBell />
+            </div>
+          )}
+
           <div className="hidden md:block">
             {session?.user ? (
               <div className="flex items-center gap-2">

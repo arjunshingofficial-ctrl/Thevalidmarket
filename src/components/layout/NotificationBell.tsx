@@ -44,7 +44,12 @@ export function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    const handleUpdate = () => fetchNotifications();
+    window.addEventListener("notification-updated", handleUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("notification-updated", handleUpdate);
+    };
   }, [isAdmin]);
 
   useEffect(() => {

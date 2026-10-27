@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import ProgressBarProvider from "@/components/providers/ProgressBarProvider";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import { UserPopupNotification } from "@/components/notifications/UserPopupNotification";
 import { prisma } from "@/lib/prisma";
 
 const inter = Inter({ 
@@ -210,6 +211,7 @@ export default async function RootLayout({
         <GoogleAnalytics />
         <AuthProvider>
           <ProgressBarProvider />
+          <UserPopupNotification />
           {children}
         </AuthProvider>
       </body>
