@@ -103,13 +103,23 @@ export default async function AdminReviews({ searchParams }: { searchParams: Pro
                       }`}>
                         {review.type === "ADMIN_TESTIMONIAL" ? "Testimonial" : (review.verifiedPurchase ? "Verified Customer" : "Customer")}
                       </span>
+
+                      <span className="text-xs text-slate-400 font-medium ml-auto sm:ml-0">
+                        {new Date(review.createdAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
                     </div>
                     <div className="text-xs text-slate-400 mb-2">on <span className="font-medium text-slate-600">{review.product.name}</span></div>
                     {review.title && <div className="font-medium text-slate-800 mb-1">{review.title}</div>}
                     {review.comment && <div className="text-sm text-slate-600 whitespace-pre-wrap">{review.comment}</div>}
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
-                    <ReviewActions reviewId={review.id} currentStatus={review.status} />
+                    <ReviewActions reviewId={review.id} currentStatus={review.status} initialCreatedAt={review.createdAt} />
                   </div>
                 </div>
               </div>

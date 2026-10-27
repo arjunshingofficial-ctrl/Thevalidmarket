@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 import { canReviewProduct } from "./reviews";
 import { trackActivityEvent } from "@/lib/analytics";
 
-export async function moderateReview(reviewId: string, action: string) {
+export async function moderateReview(reviewId: string, action: string, newCreatedAt?: string) {
   try {
     const session = await getServerSession(authOptions) as any;
     if (!session?.user?.role || !["ADMIN", "SUPER_ADMIN"].includes(session?.user?.role)) {
@@ -24,9 +24,14 @@ export async function moderateReview(reviewId: string, action: string) {
       if (!["APPROVED", "REJECTED", "HIDDEN", "PENDING"].includes(action)) {
         return { success: false, error: "Invalid status" };
       }
+      const data: any = { status: action };
+      if (newCreatedAt) {
+        const d = new Date(newCreatedAt);
+        if (!isNaN(d.getTime())) data.createdAt = d;
+      }
       await prisma.review.update({
         where: { id: reviewId },
-        data: { status: action },
+        data,
       });
       
       if (action === "APPROVED") {
@@ -49,6 +54,36 @@ export async function moderateReview(reviewId: string, action: string) {
   } catch (err: any) {
     console.error("Error in moderateReview:", err);
     return { success: false, error: err?.message || "Failed to moderate review" };
+  }
+}
+
+export async function updateReviewDate(reviewId: string, newCreatedAt: string) {
+  try {
+    const session = await getServerSession(authOptions) as any;
+    if (!session?.user?.role || !["ADMIN", "SUPER_ADMIN"].includes(session?.user?.role)) {
+      return { success: false, error: "Unauthorized" };
+    }
+    const d = new Date(newCreatedAt);
+    if (isNaN(d.getTime())) return { success: false, error: "Invalid date" };
+
+    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    if (!review) return { success: false, error: "Review not found" };
+
+    await prisma.review.update({
+      where: { id: reviewId },
+      data: { createdAt: d },
+    });
+
+    const product = await prisma.product.findUnique({ where: { id: review.productId } });
+    if (product) {
+      revalidatePath(`/product/${product.slug}`);
+      revalidatePath(`/product/[slug]`, "page");
+    }
+    revalidatePath("/admin/reviews");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error in updateReviewDate:", err);
+    return { success: false, error: err?.message || "Failed to update review date" };
   }
 }
 

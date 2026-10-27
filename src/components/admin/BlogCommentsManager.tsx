@@ -5,9 +5,46 @@ import Link from "next/link";
 import {
   MessageSquare, CheckCircle, XCircle, Edit3, Trash2,
   Search, Filter, ExternalLink, Clock, ShieldCheck, RefreshCw,
-  AlertCircle, Eye, Check, X, CornerDownRight, Star, Sparkles
+  AlertCircle, Eye, Check, X, CornerDownRight, Star, Sparkles,
+  Calendar
 } from "lucide-react";
 import { parseBlogReviewContent } from "@/lib/blog-reviews";
+
+function toDatetimeLocal(isoOrDateStr?: string | Date | null): string {
+  if (!isoOrDateStr) return "";
+  try {
+    const d = new Date(isoOrDateStr);
+    if (isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const year = d.getFullYear();
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  } catch {
+    return "";
+  }
+}
+
+function getPresetDate(preset: "now" | "1month" | "mid2025" | "early2025" | "late2025"): string {
+  const d = new Date();
+  if (preset === "now") {
+    // Current time
+  } else if (preset === "1month") {
+    d.setMonth(d.getMonth() - 1);
+  } else if (preset === "mid2025") {
+    d.setFullYear(2025, 6, 15);
+    d.setHours(14, 30, 0, 0);
+  } else if (preset === "early2025") {
+    d.setFullYear(2025, 1, 20);
+    d.setHours(11, 15, 0, 0);
+  } else if (preset === "late2025") {
+    d.setFullYear(2025, 10, 25);
+    d.setHours(16, 45, 0, 0);
+  }
+  return toDatetimeLocal(d);
+}
 
 interface CommentData {
   id: string;
@@ -62,7 +99,13 @@ export default function BlogCommentsManager() {
   const [editAuthorEmail, setEditAuthorEmail] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editStatus, setEditStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("APPROVED");
+  const [editCreatedAt, setEditCreatedAt] = useState("");
   const [editSubmitting, setEditSubmitting] = useState(false);
+
+  // Quick Date Modal State
+  const [dateModalComment, setDateModalComment] = useState<CommentData | null>(null);
+  const [dateModalValue, setDateModalValue] = useState("");
+  const [dateModalSubmitting, setDateModalSubmitting] = useState(false);
 
   // Notification message
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -143,6 +186,7 @@ export default function BlogCommentsManager() {
     setEditAuthorEmail(comment.authorEmail || "");
     setEditContent(comment.content);
     setEditStatus(comment.status);
+    setEditCreatedAt(toDatetimeLocal(comment.createdAt));
   };
 
   // Save Edit
@@ -152,15 +196,23 @@ export default function BlogCommentsManager() {
 
     setEditSubmitting(true);
     try {
+      const payload: any = {
+        authorName: editAuthorName.trim(),
+        authorEmail: editAuthorEmail.trim() || null,
+        content: editContent.trim(),
+        status: editStatus,
+      };
+      if (editCreatedAt) {
+        const d = new Date(editCreatedAt);
+        if (!isNaN(d.getTime())) {
+          payload.createdAt = d.toISOString();
+        }
+      }
+
       const res = await fetch(`/api/admin/blog/comments/${editingComment.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          authorName: editAuthorName.trim(),
-          authorEmail: editAuthorEmail.trim() || null,
-          content: editContent.trim(),
-          status: editStatus,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update comment");
@@ -172,6 +224,51 @@ export default function BlogCommentsManager() {
       alert(err.message || "Failed to save comment edits");
     } finally {
       setEditSubmitting(false);
+    }
+  };
+
+  // Open Quick Date Modal
+  const handleOpenDateModal = (comment: CommentData) => {
+    setDateModalComment(comment);
+    setDateModalValue(toDatetimeLocal(comment.createdAt));
+  };
+
+  // Save Quick Date Modal (with optional status override like APPROVED)
+  const handleSaveDateModal = async (statusOverride?: "APPROVED" | "REJECTED" | "PENDING") => {
+    if (!dateModalComment) return;
+    setDateModalSubmitting(true);
+    try {
+      const payload: any = {};
+      if (dateModalValue) {
+        const d = new Date(dateModalValue);
+        if (!isNaN(d.getTime())) {
+          payload.createdAt = d.toISOString();
+        }
+      }
+      if (statusOverride) {
+        payload.status = statusOverride;
+      }
+
+      const res = await fetch(`/api/admin/blog/comments/${dateModalComment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update date");
+
+      setBanner({
+        type: "success",
+        text: statusOverride === "APPROVED"
+          ? `Review date updated and approved successfully!`
+          : `Review date updated successfully!`,
+      });
+      setDateModalComment(null);
+      fetchComments();
+    } catch (err: any) {
+      alert(err.message || "Failed to update date");
+    } finally {
+      setDateModalSubmitting(false);
     }
   };
 
@@ -345,7 +442,7 @@ export default function BlogCommentsManager() {
                       </Link>
 
                       <span className="text-xs text-slate-300">•</span>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500 font-medium">
                         {new Date(comment.createdAt).toLocaleString(undefined, {
                           month: "short",
                           day: "numeric",
@@ -354,6 +451,15 @@ export default function BlogCommentsManager() {
                           minute: "2-digit",
                         })}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDateModal(comment)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 px-2 py-0.5 rounded-md transition-colors"
+                        title="Edit Review Submission Date"
+                      >
+                        <Calendar className="w-3 h-3 text-indigo-600" />
+                        <span>Edit Date</span>
+                      </button>
                     </div>
 
                     {/* Author Details */}
@@ -431,15 +537,26 @@ export default function BlogCommentsManager() {
                   <div className="flex md:flex-col items-center md:items-end gap-2 flex-shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
                     {/* Approve Quick Button */}
                     {comment.status !== "APPROVED" && (
-                      <button
-                        onClick={() => handleUpdateStatus(comment.id, "APPROVED")}
-                        disabled={isActionLoading}
-                        className="stylish-btn btn-emerald btn-xs flex items-center gap-1 text-xs font-bold shadow-xs px-3 py-1.5"
-                        title="Approve Comment"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Approve</span>
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleUpdateStatus(comment.id, "APPROVED")}
+                          disabled={isActionLoading}
+                          className="stylish-btn btn-emerald btn-xs flex items-center gap-1 text-xs font-bold shadow-xs px-2.5 py-1.5"
+                          title="Approve Comment Immediately"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          onClick={() => handleOpenDateModal(comment)}
+                          disabled={isActionLoading}
+                          className="px-2 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors flex items-center gap-1 shadow-2xs"
+                          title="Edit date and approve"
+                        >
+                          <Calendar className="w-3 h-3 text-indigo-600" />
+                          <span>w/ Date</span>
+                        </button>
+                      </div>
                     )}
 
                     {/* Reject Quick Button */}
@@ -565,6 +682,60 @@ export default function BlogCommentsManager() {
                 </select>
               </div>
 
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-primary" />
+                    Review Submission Date &amp; Time
+                  </label>
+                  <span className="text-[11px] text-slate-400 font-medium">Display date</span>
+                </div>
+                <input
+                  type="datetime-local"
+                  value={editCreatedAt}
+                  onChange={(e) => setEditCreatedAt(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono bg-white"
+                />
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 mr-1">Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditCreatedAt(getPresetDate("now"))}
+                    className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                  >
+                    Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditCreatedAt(getPresetDate("1month"))}
+                    className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                  >
+                    1 Mo Ago
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditCreatedAt(getPresetDate("late2025"))}
+                    className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors"
+                  >
+                    Late 2025
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditCreatedAt(getPresetDate("mid2025"))}
+                    className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors"
+                  >
+                    Mid 2025
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditCreatedAt(getPresetDate("early2025"))}
+                    className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors"
+                  >
+                    Early 2025
+                  </button>
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
@@ -583,6 +754,126 @@ export default function BlogCommentsManager() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─ Quick Date & Approval Modal ─ */}
+      {dateModalComment && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">
+                    Edit Review Date
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    For <strong>{dateModalComment.authorName}</strong> &bull; Status: <span className="font-semibold text-slate-700">{dateModalComment.status}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDateModalComment(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                  Review Submission Timestamp
+                </label>
+                <input
+                  type="datetime-local"
+                  value={dateModalValue}
+                  onChange={(e) => setDateModalValue(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white shadow-2xs"
+                />
+              </div>
+
+              {/* Quick Presets */}
+              <div>
+                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+                  Quick Date Presets:
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDateModalValue(getPresetDate("now"))}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors text-center"
+                  >
+                    Today / Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateModalValue(getPresetDate("1month"))}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors text-center"
+                  >
+                    1 Month Ago
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateModalValue(getPresetDate("late2025"))}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors text-center"
+                  >
+                    Late 2025
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateModalValue(getPresetDate("mid2025"))}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors text-center"
+                  >
+                    Mid 2025
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDateModalValue(getPresetDate("early2025"))}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors text-center"
+                  >
+                    Early 2025
+                  </button>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setDateModalComment(null)}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={dateModalSubmitting}
+                  onClick={() => handleSaveDateModal()}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors"
+                >
+                  {dateModalSubmitting ? "Saving..." : "Save Date Only"}
+                </button>
+
+                {dateModalComment.status !== "APPROVED" && (
+                  <button
+                    type="button"
+                    disabled={dateModalSubmitting}
+                    onClick={() => handleSaveDateModal("APPROVED")}
+                    className="w-full sm:w-auto stylish-btn btn-emerald btn-sm flex items-center justify-center gap-1.5 font-bold px-4 py-2 shadow-xs"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>{dateModalSubmitting ? "Approving..." : "Save & Approve"}</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
