@@ -34,13 +34,22 @@ export default async function AdminReviews({ searchParams }: { searchParams: Pro
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Reviews</h1>
           <p className="text-slate-500 mt-1">Moderate customer product reviews and add testimonials.</p>
         </div>
-        <Link
-          href="/admin/reviews/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="h-4 w-4" />
-          Add Review
-        </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/admin/blog/comments"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs sm:text-sm font-bold rounded-lg hover:bg-indigo-100 transition-colors shadow-xs"
+          >
+            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            <span>Store Page Reviews (/blog/the-valid-market-review)</span>
+          </Link>
+          <Link
+            href="/admin/reviews/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Add Review
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-2">

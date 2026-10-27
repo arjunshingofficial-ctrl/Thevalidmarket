@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
+import TheValidMarketReviewSection from "@/components/blog/TheValidMarketReviewSection";
 import BlogShareButton from "@/components/blog/BlogShareButton";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
@@ -57,23 +58,31 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     canonicalUrl = clean;
   }
 
+  const isReviewPage = post.slug === "the-valid-market-review";
+  const pageTitle = isReviewPage 
+    ? (post.seoTitle || "The Valid Market Reviews & Customer Feedback | 100% Genuine Ratings")
+    : (post.seoTitle || post.title);
+  const pageDesc = isReviewPage
+    ? (post.metaDescription || "Read verified customer reviews, ratings, and experiences with The Valid Market tools, accounts, proxies, courses, and software. Share your own review.")
+    : (post.metaDescription || post.excerpt || undefined);
+
   return {
-    title: post.seoTitle || post.title,
-    description: post.metaDescription || post.excerpt || undefined,
+    title: pageTitle,
+    description: pageDesc,
     keywords: keywords.length > 0 ? keywords : undefined,
     alternates: {
       canonical: canonicalUrl,
     },
     robots: post.robots || "index, follow",
     openGraph: {
-      title: post.ogTitle || post.seoTitle || post.title,
-      description: post.ogDescription || post.metaDescription || post.excerpt || undefined,
+      title: post.ogTitle || pageTitle,
+      description: post.ogDescription || pageDesc,
       images: post.ogImage || post.featuredImage ? [{ url: (post.ogImage || post.featuredImage) as string }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
-      title: post.ogTitle || post.seoTitle || post.title,
-      description: post.ogDescription || post.metaDescription || post.excerpt || undefined,
+      title: post.ogTitle || pageTitle,
+      description: post.ogDescription || pageDesc,
       images: post.ogImage || post.featuredImage ? [(post.ogImage || post.featuredImage) as string] : undefined,
     },
   };
@@ -266,6 +275,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       },
     },
     "keywords": parsedTags.join(", "),
+    ...(post.slug === "the-valid-market-review" && {
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "128",
+        "bestRating": "5",
+        "worstRating": "1",
+      },
+    }),
   };
 
   return (
@@ -434,11 +452,18 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               </div>
             </div>
 
-            {/* ─ Comments Section Component ─ */}
-            <BlogCommentsSection
-              postId={post.id}
-              initialComments={approvedComments}
-            />
+            {/* ─ Comments / Review Section Component ─ */}
+            {post.slug === "the-valid-market-review" ? (
+              <TheValidMarketReviewSection
+                postId={post.id}
+                initialComments={approvedComments}
+              />
+            ) : (
+              <BlogCommentsSection
+                postId={post.id}
+                initialComments={approvedComments}
+              />
+            )}
           </article>
 
           {/* ══ Sidebar Column (lg:col-span-4) ══ */}

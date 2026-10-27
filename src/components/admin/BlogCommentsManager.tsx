@@ -5,8 +5,9 @@ import Link from "next/link";
 import {
   MessageSquare, CheckCircle, XCircle, Edit3, Trash2,
   Search, Filter, ExternalLink, Clock, ShieldCheck, RefreshCw,
-  AlertCircle, Eye, Check, X, CornerDownRight
+  AlertCircle, Eye, Check, X, CornerDownRight, Star, Sparkles
 } from "lucide-react";
+import { parseBlogReviewContent } from "@/lib/blog-reviews";
 
 interface CommentData {
   id: string;
@@ -69,7 +70,7 @@ export default function BlogCommentsManager() {
   const fetchComments = useCallback(async () => {
     setLoading(true);
     try {
-      const url = statusFilter === "ALL"
+      const url = (statusFilter === "ALL" || statusFilter === "STORE_REVIEWS")
         ? "/api/admin/blog/comments"
         : `/api/admin/blog/comments?status=${statusFilter}`;
       const res = await fetch(url);
@@ -174,8 +175,13 @@ export default function BlogCommentsManager() {
     }
   };
 
-  // Filter comments locally by search query
+  // Filter comments locally by search query and store review filter
   const filteredComments = comments.filter((c) => {
+    if (statusFilter === "STORE_REVIEWS") {
+      const isReviewSlug = c.post.slug === "the-valid-market-review";
+      const hasRatingTag = /\[rating:[1-5]\]/.test(c.content);
+      if (!isReviewSlug && !hasRatingTag) return false;
+    }
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -254,6 +260,7 @@ export default function BlogCommentsManager() {
           {[
             { id: "ALL", label: "All Comments" },
             { id: "PENDING", label: `Pending (${pendingCount})` },
+            { id: "STORE_REVIEWS", label: "⭐ The Valid Market Reviews" },
             { id: "APPROVED", label: "Approved" },
             { id: "REJECTED", label: "Rejected" },
           ].map((tab) => (
@@ -366,9 +373,46 @@ export default function BlogCommentsManager() {
 
                     {/* Comment Content */}
                     {(() => {
-                      const meta = parseReplyMeta(comment.content);
+                      const meta = parseBlogReviewContent(comment.content);
+                      const isStoreReview = comment.post.slug === "the-valid-market-review";
+                      const hasRating = /\[rating:[1-5]\]/.test(comment.content) || isStoreReview;
+
                       return (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
+                          {/* Rating & Review Title Display */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {isStoreReview && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                                <Sparkles className="w-3 h-3 text-indigo-600" />
+                                Store Review
+                              </span>
+                            )}
+                            {hasRating && (
+                              <div className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                <div className="flex">
+                                  {[1, 2, 3, 4, 5].map((n) => (
+                                    <Star
+                                      key={n}
+                                      className={`w-3.5 h-3.5 ${
+                                        n <= meta.rating
+                                          ? "fill-amber-400 text-amber-400"
+                                          : "text-slate-200"
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-[11px] font-bold text-amber-900 ml-0.5">
+                                  {meta.rating}/5
+                                </span>
+                              </div>
+                            )}
+                            {meta.title && (
+                              <span className="text-xs font-bold text-slate-900 italic">
+                                &ldquo;{meta.title}&rdquo;
+                              </span>
+                            )}
+                          </div>
+
                           {meta.isReply && (
                             <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-md">
                               <CornerDownRight className="w-3.5 h-3.5" />

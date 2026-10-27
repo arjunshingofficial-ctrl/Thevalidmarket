@@ -11,24 +11,24 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const body = await req.json();
 
-    const { postId, content, authorName, authorEmail, parentId, parentAuthor } = body;
+    const { postId, content, authorName, authorEmail, parentId, parentAuthor, rating, title } = body;
 
     if (!postId || typeof postId !== "string") {
       return NextResponse.json({ error: "Post ID is required." }, { status: 400 });
     }
 
     if (!content || typeof content !== "string" || content.trim().length < 3) {
-      return NextResponse.json({ error: "Comment must be at least 3 characters long." }, { status: 400 });
+      return NextResponse.json({ error: "Review or comment must be at least 3 characters long." }, { status: 400 });
     }
 
     if (content.trim().length > 3000) {
-      return NextResponse.json({ error: "Comment cannot exceed 3000 characters." }, { status: 400 });
+      return NextResponse.json({ error: "Text cannot exceed 3000 characters." }, { status: 400 });
     }
 
     // Check if post exists and is published
     const post = await prisma.blogPost.findUnique({
       where: { id: postId },
-      select: { id: true, status: true }
+      select: { id: true, slug: true, status: true }
     });
 
     if (!post || post.status !== "PUBLISHED") {
@@ -55,16 +55,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Please enter your name." }, { status: 400 });
     }
 
-    // Sanitize comment text to prevent XSS
+    // Sanitize review/comment text to prevent XSS
     let cleanContent = sanitizeHtml(content.trim());
 
-    // If this is a reply to an existing comment, record parent association
+    // If rating or title is provided, prepend encoded metadata tags
+    if (rating !== undefined || (title && typeof title === "string" && title.trim())) {
+      const starRating = Math.min(5, Math.max(1, Number(rating) || 5));
+      const cleanTitle = title && typeof title === "string" ? sanitizeHtml(title.trim().slice(0, 120)) : "";
+      cleanContent = `[rating:${starRating}][title:${cleanTitle}]\n\n${cleanContent}`;
+    }
+
+    // If this is a reply to an existing comment/review, record parent association
     if (parentId && typeof parentId === "string") {
       const parentName = typeof parentAuthor === "string" && parentAuthor.trim() ? parentAuthor.trim() : "Member";
       cleanContent = `[reply:${parentId.trim()}:@${parentName}]\n\n${cleanContent}`;
     }
 
-    // By default, all new comments and replies go to PENDING approval
+    // All new comments and reviews go to PENDING approval in admin panel
     const comment = await prisma.blogComment.create({
       data: {
         postId,
@@ -76,9 +83,14 @@ export async function POST(req: Request) {
       }
     });
 
+    const isReview = post.slug === "the-valid-market-review" || rating !== undefined;
+    const successMessage = isReview
+      ? "Thank you for Review us"
+      : (parentId ? "Thank you for your reply!" : "Thank You for commenting!");
+
     return NextResponse.json({
       success: true,
-      message: parentId ? "Thank you for your reply!" : "Thank You for commenting!",
+      message: successMessage,
       comment: {
         id: comment.id,
         authorName: comment.authorName,
@@ -87,7 +99,7 @@ export async function POST(req: Request) {
       }
     }, { status: 201 });
   } catch (error: any) {
-    console.error("Error creating blog comment:", error);
-    return NextResponse.json({ error: error.message || "Failed to submit comment." }, { status: 500 });
+    console.error("Error creating blog comment/review:", error);
+    return NextResponse.json({ error: error.message || "Failed to submit review." }, { status: 500 });
   }
 }
