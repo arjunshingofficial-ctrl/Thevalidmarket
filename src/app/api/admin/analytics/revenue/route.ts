@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     let days = 30;
     if (range === "7d") days = 7;
     else if (range === "90d") days = 90;
-    else if (range === "1y") days = 365;
+    else if (range === "1y" || range === "all") days = 365;
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -24,7 +24,8 @@ export async function GET(req: NextRequest) {
     const orders = await prisma.order.findMany({
       where: {
         paymentStatus: "PAID",
-        createdAt: { gte: startDate }
+        orderStatus: { notIn: ["CANCELLED", "REFUNDED"] },
+        ...(range !== "all" ? { createdAt: { gte: startDate } } : {})
       },
       select: { total: true, createdAt: true }
     });
