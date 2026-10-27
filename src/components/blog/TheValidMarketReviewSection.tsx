@@ -234,9 +234,9 @@ export default function TheValidMarketReviewSection({
         <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-center">
           {/* Left summary */}
-          <div className="lg:col-span-5 space-y-3">
+          <div className="md:col-span-5 space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-bold tracking-wide uppercase">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Customer Reviews &amp; Ratings</span>
@@ -283,7 +283,7 @@ export default function TheValidMarketReviewSection({
           </div>
 
           {/* Right rating bars */}
-          <div className="lg:col-span-7 bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 space-y-2.5">
+          <div className="md:col-span-7 bg-white/5 backdrop-blur-md rounded-2xl p-5 border border-white/10 space-y-2.5">
             <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
               Rating Distribution
             </h4>

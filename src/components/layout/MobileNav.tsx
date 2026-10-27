@@ -149,7 +149,7 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
       <button 
         onClick={toggleDrawer}
         aria-label="Open menu"
-        className="md:hidden p-2 text-slate-600 hover:text-slate-900 transition-colors"
+        className="lg:hidden p-2 text-slate-700 hover:text-slate-900 transition-colors rounded-xl hover:bg-slate-100 flex items-center justify-center active:scale-95 cursor-pointer"
       >
         <Menu className="h-6 w-6" />
       </button>
@@ -158,7 +158,7 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
         <>
           {/* Backdrop */}
           <div 
-            className={`fixed inset-0 bg-black/55 z-[100] md:hidden backdrop-blur-[3px] transition-opacity duration-300 ${
+            className={`fixed inset-0 bg-black/60 z-[100] lg:hidden backdrop-blur-[4px] transition-opacity duration-300 ${
               isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             }`}
             onClick={closeDrawer}
@@ -168,7 +168,7 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
           {/* Drawer */}
           <div 
             ref={drawerRef}
-            className={`fixed top-0 left-0 h-[100dvh] w-[300px] max-w-[84vw] bg-slate-950 z-[110] shadow-2xl rounded-r-2xl border-r border-slate-800 transform transition-transform duration-300 ease-out md:hidden flex flex-col ${
+            className={`fixed top-0 left-0 h-[100dvh] w-[300px] sm:w-[350px] md:w-[380px] max-w-[86vw] bg-slate-950 z-[110] shadow-2xl rounded-r-3xl border-r border-slate-800 transform transition-transform duration-300 ease-out lg:hidden flex flex-col ${
               isOpen ? "translate-x-0" : "-translate-x-full"
             }`}
           >

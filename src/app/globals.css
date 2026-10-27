@@ -759,5 +759,31 @@
   background: #94a3b8;
 }
 
+/* Touch & Tablet Experience Utilities */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+html, body {
+  overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Tablet-specific inertia scrolling and fluid ergonomics */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure comfortable tap target size on tablet devices */
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+}
+
 
 

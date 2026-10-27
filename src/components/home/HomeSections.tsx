@@ -23,7 +23,7 @@ export function HeroSection({ config, products }: { config: any, products: any[]
               <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
               The Premium Digital Marketplace
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tighter leading-[1.1] text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.1] text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400">
               {config.heading || "Everything Digital.\nOne Marketplace."}
             </h1>
             <p className="text-lg md:text-xl text-slate-400 max-w-xl leading-relaxed">

@@ -41,7 +41,7 @@ export default function CategoryMobileNav({ categories, currentCategory }: { cat
       <button 
         type="button"
         onClick={toggleDrawer}
-        className="md:hidden flex items-center justify-center w-full px-4 py-3 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-md shadow-slate-900/10 hover:bg-slate-800 active:scale-[0.98] transition-all"
+        className="lg:hidden flex items-center justify-center w-full px-4 py-2.5 sm:py-3 bg-slate-900 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-slate-900/10 hover:bg-slate-800 active:scale-[0.98] transition-all cursor-pointer"
       >
         <Filter className="h-4 w-4 mr-2" /> Browse Categories
       </button>
@@ -49,7 +49,7 @@ export default function CategoryMobileNav({ categories, currentCategory }: { cat
       {/* Backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 z-[100] md:hidden backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-slate-900/60 z-[100] lg:hidden backdrop-blur-sm transition-opacity"
           onClick={closeDrawer}
         />
       )}
@@ -57,7 +57,7 @@ export default function CategoryMobileNav({ categories, currentCategory }: { cat
       {/* Drawer */}
       <div 
         ref={drawerRef}
-        className={`fixed top-0 left-0 h-full w-[300px] max-w-[85vw] bg-slate-900 z-[110] shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col overflow-y-auto border-r border-slate-800 ${
+        className={`fixed top-0 left-0 h-full w-[300px] sm:w-[340px] md:w-[380px] max-w-[85vw] bg-slate-900 z-[110] shadow-2xl transform transition-transform duration-300 ease-in-out lg:hidden flex flex-col overflow-y-auto border-r border-slate-800 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

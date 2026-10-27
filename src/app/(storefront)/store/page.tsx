@@ -158,11 +158,11 @@ export default async function StorePage({
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 py-8 md:py-12 -mt-6">
-        <div className="flex flex-col md:flex-row gap-8 items-start">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 md:px-6 lg:px-8 py-6 md:py-10 -mt-6">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          {/* Sidebar Navigation */}
-          <aside className="hidden md:block w-72 flex-shrink-0 sticky top-24">
+          {/* Sidebar Navigation - Visible on desktop, drawer on tablet/mobile */}
+          <aside className="hidden lg:block w-64 xl:w-72 flex-shrink-0 sticky top-24">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5">
               <h3 className="font-bold text-slate-900 mb-5 flex items-center uppercase tracking-wider text-xs">
                 <Filter className="mr-2 h-4 w-4 text-primary" /> Browse Categories
@@ -240,13 +240,13 @@ export default async function StorePage({
             ) : currentCategory === "ib" ? (
               <IBProductTable products={productsData} />
             ) : currentCategory === "rdp" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 min-[1440px]:grid-cols-5 gap-5 mt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 min-[1440px]:grid-cols-5 gap-4 md:gap-5 mt-6">
                 {formattedProducts.map((product) => (
                   <RDPProductCard key={product.id} product={product} />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 min-[1440px]:grid-cols-5 gap-4 md:gap-5 min-[1440px]:gap-6 mt-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 min-[1440px]:grid-cols-5 gap-3.5 sm:gap-4 md:gap-5 min-[1440px]:gap-6 mt-6">
                 {formattedProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

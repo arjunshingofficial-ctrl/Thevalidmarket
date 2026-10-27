@@ -468,7 +468,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
           {/* ══ Sidebar Column (lg:col-span-4) ══ */}
           <div className="lg:col-span-4">
-            <div className="sticky top-24 space-y-6">
+            <div className="static lg:sticky lg:top-24 space-y-6">
               <BlogSidebar
                 recentPosts={recentPosts}
                 popularProducts={popularProducts}

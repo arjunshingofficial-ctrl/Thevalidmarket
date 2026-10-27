@@ -255,7 +255,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             <span className="text-slate-900 line-clamp-1">{product.name}</span>
           </nav>
 
-          <div className="grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-12 xl:gap-16 items-start">
+          <div className="grid lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px] gap-8 md:gap-10 lg:gap-12 xl:gap-16 items-start">
             
             {/* Left: Product Gallery */}
             <div className="space-y-6">
@@ -269,8 +269,8 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
 
-            {/* Right: Floating Buy Box */}
-            <div className="sticky top-28 bg-white rounded-3xl p-8 lg:p-10 shadow-2xl shadow-slate-200/50 border border-slate-100 flex flex-col relative z-20">
+            {/* Right: Buy Box (sticky on desktop, static on tablet/mobile) */}
+            <div className="static lg:sticky lg:top-28 bg-white rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col relative z-20">
               
               <div className="flex items-center justify-between mb-4">
                 {product.category && (

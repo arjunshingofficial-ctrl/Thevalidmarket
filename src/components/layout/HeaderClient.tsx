@@ -93,20 +93,20 @@ export default function HeaderClient({ session, menuItems, walletBalance }: { se
           <DesktopNav items={menuItems} />
         </div>
 
-        {/* Right: Search, Cart, Account */}
-        <div className="flex items-center gap-4 lg:gap-6 z-10">
+        {/* Right: Search, Cart, Account, Menu */}
+        <div className="flex items-center gap-2.5 sm:gap-3 md:gap-4 lg:gap-6 z-10">
           
           <form 
             onSubmit={handleSearch}
-            className="hidden md:flex relative group"
+            className="hidden sm:flex relative group"
           >
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
             <input
               type="search"
-              placeholder="Search products, courses & tools..."
+              placeholder="Search store..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-[320px] xl:w-[360px] rounded-full border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm outline-none transition-all focus:border-primary/50 focus:bg-white focus:ring-2 focus:ring-primary/20 placeholder:text-slate-400"
+              className="h-9 md:h-10 w-36 sm:w-48 md:w-52 lg:w-64 xl:w-80 rounded-full border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs md:text-sm outline-none transition-all focus:border-primary/50 focus:bg-white focus:ring-2 focus:ring-primary/20 placeholder:text-slate-400 font-medium"
             />
           </form>
 
@@ -119,18 +119,18 @@ export default function HeaderClient({ session, menuItems, walletBalance }: { se
                 <AccountDropdown user={session.user} walletBalance={walletBalance} />
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
+              <div className="flex items-center gap-2 lg:gap-3">
+                <Link href="/login" className="text-xs md:text-sm font-medium text-slate-600 hover:text-primary transition-colors px-2 py-1">
                   Login
                 </Link>
-                <Link href="/register" className="text-sm font-medium bg-primary text-white px-4 py-2 rounded-full hover:bg-primary/90 transition-colors shadow-sm">
+                <Link href="/register" className="text-xs md:text-sm font-medium bg-primary text-white px-3.5 py-1.5 md:px-4 md:py-2 rounded-full hover:bg-primary/90 transition-colors shadow-sm whitespace-nowrap">
                   Sign Up
                 </Link>
               </div>
             )}
           </div>
 
-          <div className="md:hidden">
+          <div className="lg:hidden flex items-center">
             <MobileNav session={session} menuItems={menuItems} />
           </div>
         </div>

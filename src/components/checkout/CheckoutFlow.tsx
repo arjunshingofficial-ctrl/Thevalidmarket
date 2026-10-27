@@ -214,9 +214,9 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
       {/* Left Column: Flow */}
-      <div className="lg:col-span-2 space-y-6">
+      <div className="md:col-span-7 lg:col-span-8 space-y-6">
         
         <div className="bg-white p-6 rounded-xl border shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Customer Information</h2>
@@ -332,8 +332,8 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
       </div>
 
       {/* Right Column: Order Summary */}
-      <div className="lg:col-span-1">
-        <div className="bg-white p-6 rounded-xl border shadow-sm sticky top-6">
+      <div className="md:col-span-5 lg:col-span-4">
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border shadow-sm sticky top-24">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Order Summary</h2>
           
           <div className="space-y-3 mb-6">

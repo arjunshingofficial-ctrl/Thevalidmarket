@@ -74,8 +74,8 @@ export default function StoreFilterToolbar({
 
       {/* Right Controls: Category Mobile, Search, Shuffle Button, Sort Dropdown */}
       <div className="w-full md:w-auto flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
-        {/* Mobile category navigation */}
-        <div className="w-full md:hidden">
+        {/* Mobile/Tablet category navigation */}
+        <div className="w-full lg:hidden">
           <CategoryMobileNav categories={categories} currentCategory={currentCategory} />
         </div>
 
