@@ -20,29 +20,36 @@ export default function OrderActionsDropdown({ orderId, orderStatus, paymentStat
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleAction = async (action: string) => {
-    setIsOpen(false);
-    
-    // In a full implementation, you would call an API route here
-    // For now, this provides the UI foundation
-    if (action === 'fulfill') {
-      try {
-        await fetch(`/api/admin/payments/system-fulfill`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orderId })
-        });
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+  const handleAction = async (action: 'cancel' | 'fulfill') => {
+    const shortId = orderId.slice(0, 8).toUpperCase();
+    if (action === 'cancel') {
+      const confirmMsg = `Are you sure you want to CANCEL Order #${shortId}?\n\nThis will mark the order as cancelled, cancel any pending payments, and revoke active entitlements.`;
+      if (!window.confirm(confirmMsg)) return;
+    } else if (action === 'fulfill') {
+      const confirmMsg = `Are you sure you want to FORCE FULFILL Order #${shortId}?`;
+      if (!window.confirm(confirmMsg)) return;
+    }
+
+    setLoadingAction(action);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action.toUpperCase() })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("Action failed: " + (data.error || "Unknown error"));
+      } else {
+        setIsOpen(false);
         router.refresh();
-      } catch (e) {}
-    } else if (action === 'cancel') {
-      try {
-        await fetch(`/api/admin/orders/${orderId}/action`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'CANCEL' })
-        });
-        router.refresh();
-      } catch (e) {}
+      }
+    } catch (e: any) {
+      alert("Error: " + (e.message || "Failed to communicate with server"));
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -50,9 +57,10 @@ export default function OrderActionsDropdown({ orderId, orderStatus, paymentStat
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 text-slate-400 hover:text-primary rounded hover:bg-slate-100 focus:outline-none"
+        disabled={loadingAction !== null}
+        className="p-1.5 text-slate-400 hover:text-primary rounded hover:bg-slate-100 focus:outline-none disabled:opacity-50"
       >
-        <MoreHorizontal className="h-4 w-4" />
+        <MoreHorizontal className={`h-4 w-4 ${loadingAction ? 'animate-pulse text-amber-500' : ''}`} />
       </button>
 
       {isOpen && (
@@ -69,20 +77,24 @@ export default function OrderActionsDropdown({ orderId, orderStatus, paymentStat
             {orderStatus !== 'FULFILLED' && paymentStatus === 'PAID' && (
               <button
                 onClick={() => handleAction('fulfill')}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 text-left"
+                disabled={loadingAction !== null}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 text-left disabled:opacity-50"
                 role="menuitem"
               >
-                <CheckCircle className="h-4 w-4 text-emerald-500" /> Force Fulfill
+                <CheckCircle className={`h-4 w-4 text-emerald-500 ${loadingAction === 'fulfill' ? 'animate-spin' : ''}`} />
+                {loadingAction === 'fulfill' ? 'Fulfilling...' : 'Force Fulfill'}
               </button>
             )}
             
             {orderStatus !== 'CANCELLED' && (
               <button
                 onClick={() => handleAction('cancel')}
-                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"
+                disabled={loadingAction !== null}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left font-medium disabled:opacity-50"
                 role="menuitem"
               >
-                <XCircle className="h-4 w-4 text-red-500" /> Cancel Order
+                <XCircle className={`h-4 w-4 text-red-500 ${loadingAction === 'cancel' ? 'animate-spin' : ''}`} />
+                {loadingAction === 'cancel' ? 'Cancelling...' : 'Cancel Order'}
               </button>
             )}
 

@@ -4,6 +4,7 @@ import { ArrowLeft, Edit3, ExternalLink } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ReconcileButton } from "./ReconcileButton";
 import { RefundButton } from "./RefundButton";
+import { CancelOrderButton } from "./CancelOrderButton";
 import { OrderDownloadsManager } from "./OrderDownloadsManager";
 import ClientDateTime from "@/components/common/ClientDateTime";
 
@@ -107,6 +108,11 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <CancelOrderButton
+            orderId={order.id}
+            orderNumber={order.id.slice(0, 8).toUpperCase()}
+            orderStatus={order.orderStatus}
+          />
           <RefundButton
             orderId={order.id}
             orderNumber={order.id.slice(0, 8).toUpperCase()}

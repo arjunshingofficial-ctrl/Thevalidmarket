@@ -12,7 +12,7 @@ const sqlite = new SqliteClient();
 const pg = new PostgresClient({
   datasources: {
     db: {
-      url: 'postgresql://postgres.dvtmzispblbufuzoimkk:ep5JKUM2miFQoDHm@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres'
+      url: process.env.DIRECT_URL || process.env.DATABASE_URL
     }
   }
 });
