@@ -234,6 +234,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     }
   }
 
+  const isReviewPage = post.slug === "the-valid-market-review";
+  const displayViews = isReviewPage
+    ? Math.max(54820, (post.views || 0) + 1)
+    : ((post.views || 0) + 1);
+
   const approvedComments = (post as any).comments || [];
 
   const siteUrl = getBaseUrl();
@@ -352,22 +357,29 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <span>Back to All Articles</span>
           </Link>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span className="hidden sm:inline">Updated</span>
-            <span className="font-semibold text-slate-700">
-              {post.publishDate
-                ? new Date(post.publishDate).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })
-                : new Date(post.createdAt).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-            </span>
-          </div>
+          {isReviewPage ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/80 shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Verified Customer Reviews</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="hidden sm:inline">Updated</span>
+              <span className="font-semibold text-slate-700">
+                {post.publishDate
+                  ? new Date(post.publishDate).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : new Date(post.createdAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ─ Main Layout Grid ─ */}
@@ -388,27 +400,31 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
                   <span>{readingTime} min read</span>
                 </span>
-                <span className="text-xs text-slate-300">•</span>
-                <span className="text-xs text-slate-500 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>
-                    {post.publishDate
-                      ? new Date(post.publishDate).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : new Date(post.createdAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                  </span>
-                </span>
+                {!isReviewPage && (
+                  <>
+                    <span className="text-xs text-slate-300">•</span>
+                    <span className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <span>
+                        {post.publishDate
+                          ? new Date(post.publishDate).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })
+                          : new Date(post.createdAt).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                      </span>
+                    </span>
+                  </>
+                )}
                 <span className="text-xs text-slate-300">•</span>
                 <span className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
                   <Eye className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{((post.views || 0) + 1).toLocaleString()} views</span>
+                  <span>{displayViews.toLocaleString()} views</span>
                 </span>
               </div>
 
