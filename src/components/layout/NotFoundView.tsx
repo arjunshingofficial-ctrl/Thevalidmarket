@@ -220,7 +220,7 @@ export default function NotFoundView() {
           <div className="flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-violet-600" />
             <a 
-              href="https://t.me/thevalidmarket" 
+              href="https://t.me/+xpN22t7nSkk4ZWJl" 
               target="_blank" 
               rel="noopener noreferrer"
               className="hover:text-violet-700 underline underline-offset-2 transition-colors"

@@ -54,7 +54,7 @@ export default function GlobalSeoForm({ initialData }: GlobalSeoFormProps) {
             "caption": `${siteName.trim()} Logo`
           },
           "sameAs": [
-            "https://t.me/thevalidmarket",
+            "https://t.me/+xpN22t7nSkk4ZWJl",
             handleClean ? `https://x.com/${handleClean}` : undefined
           ].filter(Boolean)
         }

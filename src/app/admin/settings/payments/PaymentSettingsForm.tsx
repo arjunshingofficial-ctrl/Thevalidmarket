@@ -412,15 +412,15 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-slate-700">
-                      Telegram Username
+                      Telegram Username or Group Link
                     </label>
                     <input
                       name="setting_telegramUsername"
                       defaultValue={settings.telegramUsername || ""}
-                      placeholder="@TheValidMarketSupport"
+                      placeholder="https://t.me/+xpN22t7nSkk4ZWJl or @username"
                       className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
-                    <p className="text-xs text-slate-500">Include the @ symbol</p>
+                    <p className="text-xs text-slate-500">Invite link or @username. Defaults to https://t.me/+xpN22t7nSkk4ZWJl if empty.</p>
                   </div>
                 </div>
               </div>

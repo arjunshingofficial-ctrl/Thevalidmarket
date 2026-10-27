@@ -1,14 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Send } from "lucide-react";
 import Link from "next/link";
 
 export default function NewTicketPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [telegramUrl, setTelegramUrl] = useState("https://t.me/+xpN22t7nSkk4ZWJl");
+  
+  useEffect(() => {
+    fetch("/api/support/channels")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.telegramUrl) setTelegramUrl(data.telegramUrl);
+      })
+      .catch(() => {});
+  }, []);
   
   const [formData, setFormData] = useState({
     subject: "",
@@ -57,6 +67,26 @@ export default function NewTicketPage() {
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm p-6">
+        {telegramUrl && (
+          <div className="mb-6 p-4 rounded-xl bg-[#0088cc]/10 border border-[#0088cc]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#0088cc] text-white flex items-center justify-center shrink-0">
+                <Send className="w-4 h-4 -ml-0.5" />
+              </div>
+              <span className="text-slate-700 font-medium">Need immediate assistance? Our mentors are online 24/7 on Telegram.</span>
+            </div>
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0088cc] text-white font-bold hover:bg-[#0077b5] transition-colors shrink-0 shadow-xs"
+            >
+              <span>Open Telegram</span>
+              <span className="text-[10px]">&rarr;</span>
+            </a>
+          </div>
+        )}
+
         {error && (
           <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
             {error}

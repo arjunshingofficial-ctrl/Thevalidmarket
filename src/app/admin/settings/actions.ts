@@ -77,15 +77,20 @@ export async function updateSupportChannels(formData: FormData) {
       metadata: { telegramUrl, telegramActive, whatsappUrl, whatsappActive }
     });
 
-    revalidatePath("/login");
-    revalidatePath("/admin/settings");
-    revalidatePath("/contact");
+    // Invalidate root layout cache so every page in the website reflects changes immediately
+    revalidatePath("/", "layout");
     revalidatePath("/");
+    revalidatePath("/login");
+    revalidatePath("/register");
+    revalidatePath("/contact");
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard", "layout");
     revalidatePath("/store");
+    revalidatePath("/admin/settings");
 
     return { 
       success: true, 
-      message: "Telegram & WhatsApp support channels updated successfully!",
+      message: "Telegram & WhatsApp support channels updated successfully across the entire website!",
       data: { telegramUrl, telegramActive, whatsappUrl, whatsappActive }
     };
   } catch (error: any) {

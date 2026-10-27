@@ -61,9 +61,13 @@ Thank you.`;
   };
 
   const getTelegramUrl = () => {
-    if (!settings.telegramUsername) return "#";
-    let username = settings.telegramUsername.trim();
-    if (username.startsWith("@")) username = username.substring(1);
+    const raw = (settings?.telegramUsername || "https://t.me/+xpN22t7nSkk4ZWJl").trim();
+    if (raw.startsWith("http://") || raw.startsWith("https://")) {
+      return raw.includes("?") 
+        ? `${raw}&text=${encodeURIComponent(messageText)}`
+        : `${raw}?text=${encodeURIComponent(messageText)}`;
+    }
+    const username = raw.replace(/^@/, "");
     return `https://t.me/${username}?text=${encodeURIComponent(messageText)}`;
   };
 

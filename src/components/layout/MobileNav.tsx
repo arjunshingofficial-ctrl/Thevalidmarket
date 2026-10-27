@@ -8,7 +8,7 @@ import {
   Menu, X, User, LayoutDashboard, ShoppingBag, DownloadCloud, Key, 
   Repeat, BookOpen, Heart, Star, Ticket, Users, Bell, LifeBuoy, 
   UserCircle, ShieldCheck, LogOut, Package, Folders, FileText, 
-  Settings, Globe, ChevronRight, Briefcase, ChevronDown, Wallet, MessageSquare, Copy, Check, Headphones
+  Settings, Globe, ChevronRight, Briefcase, ChevronDown, Wallet, MessageSquare, Copy, Check, Headphones, Send
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
@@ -42,6 +42,7 @@ const NavItem = ({ link, isActive, onClick }: { link: any, isActive: boolean, on
 export default function MobileNav({ session, menuItems = [] }: { session: any, menuItems?: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [telegramUrl, setTelegramUrl] = useState("https://t.me/+xpN22t7nSkk4ZWJl");
   const pathname = usePathname() || "";
   const drawerRef = useRef<HTMLDivElement>(null);
   const [copiedId, setCopiedId] = useState(false);
@@ -57,6 +58,14 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
 
   useEffect(() => {
     setMounted(true);
+    fetch("/api/support/channels")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.telegramUrl) {
+          setTelegramUrl(data.telegramUrl);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const toggleDrawer = () => setIsOpen(!isOpen);
@@ -315,6 +324,31 @@ export default function MobileNav({ session, menuItems = [] }: { session: any, m
                     </ul>
                   </div>
                 )}
+
+                {/* Telegram VIP Channel & Support Card */}
+                <div className="px-3 pt-3">
+                  <a
+                    href={telegramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={closeDrawer}
+                    className="group relative flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-[#0088cc]/20 via-[#0088cc]/10 to-transparent border border-[#0088cc]/30 hover:border-[#0088cc]/60 transition-all shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-[#0088cc] text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+                        <Send className="w-4 h-4 -ml-0.5" />
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-bold text-white group-hover:text-[#0088cc] transition-colors flex items-center gap-1.5">
+                          <span>Telegram VIP Support</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        </div>
+                        <div className="text-[11px] text-slate-400">Official Group &amp; Live Desk</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-[#0088cc] group-hover:translate-x-0.5 transition-all" />
+                  </a>
+                </div>
               </div>
             </div>
 

@@ -16,6 +16,7 @@ function formatBytes(bytes: number, decimals = 2) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 import { redirect } from "next/navigation";
+import { getSupportSettings } from "@/lib/settings/support";
 
 export default async function DashboardHome() {
   const session = await getServerSession(authOptions) as any;
@@ -58,17 +59,7 @@ export default async function DashboardHome() {
     take: 3
   });
 
-  const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
-  const t1 = performance.now();
-  console.log(`[Perf] /dashboard all sequential queries took ${(t1 - t0).toFixed(2)}ms`);
-
-  let telegramUrl = "https://t.me/thevalidmarket";
-  if (settings?.footerConfig) {
-    try { 
-      const parsed = JSON.parse(settings.footerConfig);
-      if (parsed.telegramUrl) telegramUrl = parsed.telegramUrl;
-    } catch(e) {}
-  }
+  const { telegramUrl } = await getSupportSettings();
 
   return (
     <div className="space-y-8">

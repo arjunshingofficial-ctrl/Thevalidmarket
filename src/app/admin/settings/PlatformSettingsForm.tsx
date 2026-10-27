@@ -263,8 +263,8 @@ export default function PlatformSettingsForm({ initialData }: PlatformSettingsFo
                     <Send className="w-4 h-4" />
                   </span>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">Telegram Support</h3>
-                    <p className="text-[11px] text-slate-500">Official Channel or VIP Support Bot</p>
+                    <h3 className="text-sm font-bold text-slate-900">Telegram Support &amp; VIP Group</h3>
+                    <p className="text-[11px] text-slate-500">Official Group, Channel or Support Desk</p>
                   </div>
                 </div>
 
@@ -282,17 +282,20 @@ export default function PlatformSettingsForm({ initialData }: PlatformSettingsFo
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Telegram Link or Username
+                  Telegram Group / Support Link or Username
                 </label>
                 <input 
                   type="text" 
                   name="telegramUrl"
                   value={telegramUrl}
                   onChange={(e) => setTelegramUrl(e.target.value)}
-                  placeholder="https://t.me/thevalidmarket or @thevalidmarket"
+                  placeholder="https://t.me/+xpN22t7nSkk4ZWJl or @username"
                   disabled={isSupportPending}
                   className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#0088cc] focus:border-[#0088cc] outline-none transition-colors disabled:opacity-60 disabled:bg-slate-50 bg-white" 
                 />
+                <p className="text-[11px] text-emerald-600 font-medium mt-1">
+                  ⚡ When updated here, every page, footer, floating button, and login/register support link across the website updates immediately.
+                </p>
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">

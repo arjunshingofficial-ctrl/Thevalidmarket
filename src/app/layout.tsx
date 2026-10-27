@@ -149,11 +149,13 @@ export default async function RootLayout({
   const siteName = settings?.siteName?.trim() || "The Valid Market";
   const siteDescription = settings?.siteDescription?.trim() || undefined;
 
+  let telegramUrl = "https://t.me/+xpN22t7nSkk4ZWJl";
   let twitterHandle = "@TheValidMarket";
   if (settings?.footerConfig) {
     try {
       const parsed = JSON.parse(settings.footerConfig);
       if (parsed.twitterHandle) twitterHandle = parsed.twitterHandle;
+      if (parsed.telegramUrl) telegramUrl = parsed.telegramUrl;
     } catch {}
   }
   const twitterClean = twitterHandle.replace(/^@/, "");
@@ -173,7 +175,7 @@ export default async function RootLayout({
           "caption": `${siteName} Logo`
         },
         "sameAs": [
-          "https://t.me/thevalidmarket",
+          telegramUrl,
           twitterClean ? `https://x.com/${twitterClean}` : "https://x.com/TheValidMarket"
         ].filter(Boolean)
       },

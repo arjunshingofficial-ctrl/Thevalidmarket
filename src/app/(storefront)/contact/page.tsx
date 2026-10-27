@@ -18,8 +18,10 @@ import {
 import ContactForm from "./ContactForm";
 
 import { getBaseUrl } from "@/lib/siteUrl";
+import { getSupportSettings, formatTelegramUrl, formatWhatsAppUrl } from "@/lib/settings/support";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
@@ -42,47 +44,21 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ContactPage() {
-  const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
-
-  let telegramUrl = "";
-  let telegramActive = true;
-  let whatsappUrl = "";
-  let whatsappActive = true;
-  let supportEmail = "support@thevalidmarket.com";
-
-  if (settings?.footerConfig) {
-    try {
-      const parsed = JSON.parse(settings.footerConfig);
-      if (parsed.telegramUrl !== undefined) telegramUrl = parsed.telegramUrl;
-      if (parsed.telegramActive !== undefined) telegramActive = !!parsed.telegramActive;
-      if (parsed.whatsappUrl !== undefined) whatsappUrl = parsed.whatsappUrl;
-      if (parsed.whatsappActive !== undefined) whatsappActive = !!parsed.whatsappActive;
-      if (parsed.supportEmail) supportEmail = parsed.supportEmail;
-    } catch (e) {
-      console.error("Failed to parse footerConfig in contact page:", e);
-    }
-  }
+  const support = await getSupportSettings();
+  const telegramUrl = support.telegramUrl;
+  const telegramActive = support.telegramActive;
+  const whatsappUrl = support.whatsappUrl;
+  const whatsappActive = support.whatsappActive;
+  const supportEmail = support.supportEmail;
 
   const isTelegramVisible = telegramActive && !!telegramUrl.trim();
   const isWhatsAppVisible = whatsappActive && !!whatsappUrl.trim();
 
   // Helper for WhatsApp click link
-  const formattedWhatsAppUrl = (() => {
-    if (!whatsappUrl) return "";
-    const trimmed = whatsappUrl.trim();
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
-    const digits = trimmed.replace(/[^\d]/g, "");
-    return digits ? `https://wa.me/${digits}` : "";
-  })();
+  const formattedWhatsAppUrl = formatWhatsAppUrl(whatsappUrl);
 
   // Helper for Telegram click link
-  const formattedTelegramUrl = (() => {
-    if (!telegramUrl) return "";
-    const trimmed = telegramUrl.trim();
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
-    const clean = trimmed.replace(/^@/, "");
-    return `https://t.me/${clean}`;
-  })();
+  const formattedTelegramUrl = formatTelegramUrl(telegramUrl);
 
   const faqs = [
     {
