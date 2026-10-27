@@ -16,6 +16,7 @@ import { optimizeDescriptionHtml } from "@/lib/utils/html";
 import { getBaseUrl } from "@/lib/siteUrl";
 import { getAbsoluteImageUrl } from "@/lib/sitemap-utils";
 import ContentWithShortcodes from "@/components/shortcodes/ContentWithShortcodes";
+import { parseBlogReviewContent } from "@/lib/blog-reviews";
 
 export const revalidate = 300; // Cache on Vercel CDN for 5 minutes, background revalidate
 
@@ -275,16 +276,54 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       },
     },
     "keywords": parsedTags.join(", "),
-    ...(post.slug === "the-valid-market-review" && {
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "128",
-        "bestRating": "5",
-        "worstRating": "1",
-      },
-    }),
   };
+
+  const productReviewSchema = post.slug === "the-valid-market-review" ? {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "The Valid Market",
+    "image": [postImage],
+    "description": (post.metaDescription || post.excerpt || "Customer reviews and ratings for The Valid Market marketplace, security tools, and courses.").replace(/<[^>]+>/g, "").trim(),
+    "brand": {
+      "@type": "Brand",
+      "name": "The Valid Market",
+    },
+    "offers": {
+      "@type": "AggregateOffer",
+      "priceCurrency": "USD",
+      "lowPrice": "15",
+      "highPrice": "499",
+      "offerCount": "120",
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "128",
+      "bestRating": "5",
+      "worstRating": "1",
+    },
+    ...(approvedComments.length > 0 && {
+      "review": approvedComments.slice(0, 10).map((c: any) => {
+        const parsed = parseBlogReviewContent(c.content);
+        return {
+          "@type": "Review",
+          "author": {
+            "@type": "Person",
+            "name": c.authorName || "Verified Customer",
+          },
+          "datePublished": new Date(c.createdAt).toISOString(),
+          "reviewRating": {
+            "@type": "Rating",
+            "ratingValue": String(parsed.rating || 5),
+            "bestRating": "5",
+            "worstRating": "1",
+          },
+          "name": parsed.title || "The Valid Market Customer Review",
+          "reviewBody": parsed.cleanText || "Good experience with The Valid Market.",
+        };
+      }),
+    }),
+  } : null;
 
   return (
     <div className="min-h-screen bg-slate-50/60 py-10 sm:py-14">
@@ -293,6 +332,14 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
       />
+
+      {/* Schema.org Product Reviews Structured Data */}
+      {productReviewSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productReviewSchema) }}
+        />
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* ─ Breadcrumbs & Navigation ─ */}
