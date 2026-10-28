@@ -13,6 +13,7 @@ import { formatUsd } from "@/lib/currency";
 import { normalizeImageUrl } from "@/lib/storage/client";
 import { optimizeDescriptionHtml } from "@/lib/utils/html";
 import CourseCurriculumAccordion from "@/components/course/CourseCurriculumAccordion";
+import ProductReviewsSection from "@/components/reviews/ProductReviewsSection";
 
 import { getBaseUrl } from "@/lib/siteUrl";
 
@@ -307,33 +308,13 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ s
             </div>
 
             {/* Student Reviews & Rating */}
-            {product.reviews.length > 0 && (
-              <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs">
-                <h2 className="text-lg font-black text-slate-900 tracking-tight mb-4 flex items-center justify-between">
-                  <span>Student Feedback &amp; Reviews</span>
-                  <span className="text-xs text-slate-400">{product.reviews.length} Verified Reviews</span>
-                </h2>
-
-                <div className="space-y-4">
-                  {product.reviews.map((rev) => (
-                    <div key={rev.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs text-slate-900">{rev.user?.name || "Student"}</span>
-                          <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-50 px-2 py-0.2 rounded">Verified Student</span>
-                        </div>
-                        <div className="flex text-amber-400">
-                          {[...Array(rev.rating)].map((_, i) => (
-                            <Star key={i} className="w-3.5 h-3.5 fill-amber-400" />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-600 leading-relaxed">{rev.comment || rev.title || "Great course!"}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <ProductReviewsSection
+              productId={product.id}
+              productName={product.name}
+              productSlug={product.slug}
+              initialReviews={product.reviews as any}
+              isCourse={true}
+            />
 
           </div>
 

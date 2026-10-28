@@ -23,14 +23,56 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
       },
       entitlements: true,
       payments: {
-        orderBy: { createdAt: "desc" },
-        take: 1
+        orderBy: { createdAt: "desc" }
       }
     }
   });
 
   if (!order || order.userId !== session.user.id) {
     redirect("/dashboard/orders");
+  }
+
+  // Wallet transaction lookup (if paid via wallet)
+  const walletTx = await prisma.walletTransaction.findFirst({
+    where: {
+      referenceType: "ORDER",
+      referenceId: order.id,
+    },
+  });
+
+  // Match coupon if discount applied
+  let matchedCoupon: { code: string; discountType: string; discountValue: number } | null = null;
+  if (order.discount > 0) {
+    for (const p of order.payments) {
+      try {
+        const meta = p.metadata ? JSON.parse(p.metadata) : {};
+        if (meta.couponCode) {
+          const c = await prisma.coupon.findUnique({ where: { code: meta.couponCode } });
+          if (c) {
+            matchedCoupon = { code: c.code, discountType: c.discountType, discountValue: c.discountValue };
+            break;
+          }
+        }
+      } catch {}
+    }
+
+    if (!matchedCoupon) {
+      const allCoupons = await prisma.coupon.findMany();
+      for (const c of allCoupons) {
+        if (c.discountType === "PERCENTAGE") {
+          const expected = Number((order.subtotal * (c.discountValue / 100)).toFixed(2));
+          if (Math.abs(expected - order.discount) < 0.05) {
+            matchedCoupon = { code: c.code, discountType: c.discountType, discountValue: c.discountValue };
+            break;
+          }
+        } else if (c.discountType === "FIXED") {
+          if (Math.abs(c.discountValue - order.discount) < 0.05) {
+            matchedCoupon = { code: c.code, discountType: c.discountType, discountValue: c.discountValue };
+            break;
+          }
+        }
+      }
+    }
   }
 
   const getPaymentStatusColor = (status: string) => {
@@ -60,8 +102,24 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
     return status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   };
 
-  const paymentMethod = order.payments?.[0]?.method || (order.paymentStatus === 'PAID' && order.payments?.length === 0 ? 'WALLET' : 'N/A');
-  const actualPaymentStatus = order.payments?.[0]?.status || order.paymentStatus;
+  const primaryPayment = order.payments?.[0];
+  const isWalletPayment = !primaryPayment && (walletTx || (order.paymentStatus === 'PAID' && order.payments?.length === 0));
+
+  const formatPaymentMethod = (method?: string, mode?: string) => {
+    const m = (method || "").toUpperCase();
+    if (m === "WALLET" || mode === "INTERNAL_WALLET" || isWalletPayment) return "Wallet Balance";
+    if (m === "UPI") {
+      if (mode === "BLADEPAY") return "BladePay UPI";
+      return "Manual UPI";
+    }
+    if (m === "USDT" || m === "USDT_TRC20") return "USDT (TRC-20)";
+    if (m === "BTC") return "Bitcoin (BTC)";
+    return method || "Direct Payment";
+  };
+
+  const paymentMethod = formatPaymentMethod(primaryPayment?.method, primaryPayment?.mode);
+  const actualPaymentStatus = primaryPayment?.status || order.paymentStatus;
+  const transactionId = primaryPayment?.transactionId || walletTx?.id || null;
 
   return (
     <div className="space-y-6">
@@ -259,8 +317,14 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
             <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center text-muted-foreground pb-2 border-b">
                 <span>Payment Method</span>
-                <span className="font-medium">{paymentMethod}</span>
+                <span className="font-semibold text-slate-800">{paymentMethod}</span>
               </div>
+              {transactionId && (
+                <div className="flex justify-between items-center text-muted-foreground pb-2 border-b">
+                  <span>Reference ID</span>
+                  <span className="font-mono text-xs font-semibold text-slate-800 break-all select-all">{transactionId}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-muted-foreground pb-2 border-b">
                 <span>Payment Status</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusColor(actualPaymentStatus)}`}>
@@ -275,21 +339,39 @@ export default async function OrderDetailsPage({ params }: { params: Promise<{ i
               </div>
               <div className="flex justify-between text-muted-foreground pt-2">
                 <span>Subtotal</span>
-                <span>${order.subtotal.toLocaleString()}</span>
+                <span>${order.subtotal.toFixed(2)}</span>
               </div>
               {order.discount > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Discount</span>
-                  <span className="text-red-500">-${order.discount.toLocaleString()}</span>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-rose-600 font-medium">
+                    <span>Discount</span>
+                    <span>-${order.discount.toFixed(2)}</span>
+                  </div>
+                  {matchedCoupon && (
+                    <div className="text-[11px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 font-medium flex justify-between">
+                      <span>Coupon Applied</span>
+                      <span className="font-bold">{matchedCoupon.code}</span>
+                    </div>
+                  )}
                 </div>
               )}
-              <div className="flex justify-between text-muted-foreground">
-                <span>Tax</span>
-                <span>${order.tax.toLocaleString()}</span>
-              </div>
+              {order.tax > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Tax</span>
+                  <span>${order.tax.toFixed(2)}</span>
+                </div>
+              )}
+              {order.paymentCurrency && order.paymentCurrency !== "USD" && (
+                <div className="p-2 rounded bg-slate-50 border border-slate-100 flex justify-between text-xs">
+                  <span className="text-slate-500">Paid in {order.paymentCurrency}</span>
+                  <span className="font-bold text-slate-800">
+                    {order.paymentCurrency === "INR" ? `₹${order.paymentAmount?.toLocaleString()}` : `${order.paymentAmount} ${order.paymentCurrency}`}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-base border-t pt-3 mt-3">
                 <span>Total</span>
-                <span>${order.total.toLocaleString()}</span>
+                <span>${order.total.toFixed(2)}</span>
               </div>
             </div>
             

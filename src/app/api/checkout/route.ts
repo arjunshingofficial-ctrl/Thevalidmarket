@@ -212,6 +212,29 @@ export async function POST(req: NextRequest) {
           }
         });
 
+        // Create Payment record for wallet payment
+        await prisma.payment.create({
+          data: {
+            orderId: order.id,
+            method: "WALLET",
+            mode: "AUTOMATIC",
+            transactionId: `WALLET-${order.id.slice(0, 8).toUpperCase()}`,
+            amount: total,
+            currency: "USD",
+            baseAmount: total,
+            baseCurrency: "USD",
+            fxRate: 1,
+            status: "PAID",
+            verifiedAt: new Date(),
+            metadata: JSON.stringify({
+              couponCode: appliedCoupon?.code || null,
+              discount,
+              subtotal,
+              walletPayment: true,
+            }),
+          },
+        });
+
         // Trigger fulfillment via internal fetch or directly if imported
         // (Usually there's a webhook or fulfillment logic to call, but setting to PAID triggers UI at least)
         // Note: Full automatic fulfillment logic should run here or via a job.
@@ -345,6 +368,8 @@ export async function POST(req: NextRequest) {
                 cashierUrl: payinResult.cashierUrl,
                 notifyUrl,
                 returnUrl,
+                couponCode: appliedCoupon?.code || null,
+                discount,
               }),
             },
           });
@@ -369,6 +394,11 @@ export async function POST(req: NextRequest) {
     if (methodConfig.mode === "MANUAL") {
       // Create Manual Payment Record
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      let parsedSettings: any = {};
+      try {
+        if (methodConfig.settings) parsedSettings = JSON.parse(methodConfig.settings);
+      } catch (e) {}
+
       const paymentRecord = await prisma.payment.create({
         data: {
           orderId: order.id,
@@ -379,7 +409,11 @@ export async function POST(req: NextRequest) {
           baseAmount: total,     // Store original base amount
           baseCurrency: "USD",
           fxRate,
-          metadata: methodConfig.settings, // Snapshot payment destination
+          metadata: JSON.stringify({
+            ...parsedSettings,
+            couponCode: appliedCoupon?.code || null,
+            discount,
+          }),
           status: "PAYMENT_REQUIRED",
           expiresAt: expiresAt
         }

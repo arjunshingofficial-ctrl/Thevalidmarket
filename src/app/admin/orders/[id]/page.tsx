@@ -1,11 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { ArrowLeft, Edit3, ExternalLink } from "lucide-react";
+import { ArrowLeft, Edit3, ExternalLink, Tag } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ReconcileButton } from "./ReconcileButton";
 import { RefundButton } from "./RefundButton";
 import { CancelOrderButton } from "./CancelOrderButton";
 import { OrderDownloadsManager } from "./OrderDownloadsManager";
+import { PaymentDetailsCard } from "./PaymentDetailsCard";
 import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +19,14 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
     include: {
       user: true,
       items: { include: { product: true } },
-      entitlements: true
-    }
+      entitlements: true,
+      payments: {
+        include: {
+          verifiedBy: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 
   if (!order) {
@@ -35,6 +42,49 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
       { createdAt: "desc" }
     ]
   });
+
+  // Wallet transaction lookup (if paid via customer wallet balance)
+  const walletTx = await prisma.walletTransaction.findFirst({
+    where: {
+      referenceType: "ORDER",
+      referenceId: order.id,
+    },
+  });
+
+  // Match coupon if discount applied
+  let matchedCoupon: { code: string; discountType: string; discountValue: number } | null = null;
+  if (order.discount > 0) {
+    for (const p of order.payments) {
+      try {
+        const meta = p.metadata ? JSON.parse(p.metadata) : {};
+        if (meta.couponCode) {
+          const c = await prisma.coupon.findUnique({ where: { code: meta.couponCode } });
+          if (c) {
+            matchedCoupon = { code: c.code, discountType: c.discountType, discountValue: c.discountValue };
+            break;
+          }
+        }
+      } catch {}
+    }
+
+    if (!matchedCoupon) {
+      const allCoupons = await prisma.coupon.findMany();
+      for (const c of allCoupons) {
+        if (c.discountType === "PERCENTAGE") {
+          const expected = Number((order.subtotal * (c.discountValue / 100)).toFixed(2));
+          if (Math.abs(expected - order.discount) < 0.05) {
+            matchedCoupon = { code: c.code, discountType: c.discountType, discountValue: c.discountValue };
+            break;
+          }
+        } else if (c.discountType === "FIXED") {
+          if (Math.abs(c.discountValue - order.discount) < 0.05) {
+            matchedCoupon = { code: c.code, discountType: c.discountType, discountValue: c.discountValue };
+            break;
+          }
+        }
+      }
+    }
+  }
 
   // Collect download entitlements and resolve their files
   const downloadEntitlements = order.entitlements.filter(e => e.type === "DOWNLOAD");
@@ -190,6 +240,20 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
             </div>
           </div>
 
+          {/* Payment & Transaction Details Card */}
+          <PaymentDetailsCard
+            order={order}
+            matchedCoupon={matchedCoupon}
+            payments={order.payments as any}
+            walletTx={walletTx as any}
+            customer={{
+              id: order.user.id,
+              name: order.user.name,
+              email: order.user.email,
+              accountId: order.user.accountId,
+            }}
+          />
+
           {/* Assigned Download Files Manager */}
           <OrderDownloadsManager
             orderId={order.id}
@@ -237,6 +301,12 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
                 <div className="text-slate-500 text-xs mb-1">Email</div>
                 <div className="font-medium text-slate-900">{order.user.email}</div>
               </div>
+              {order.user.accountId && (
+                <div>
+                  <div className="text-slate-500 text-xs mb-1">Account ID</div>
+                  <div className="font-mono font-bold text-slate-800">{order.user.accountId}</div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -245,12 +315,59 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
             <div className="space-y-3 text-sm">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal</span>
-                <span>${order.subtotal}</span>
+                <span className="font-medium">${order.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between font-bold text-base text-slate-900 border-t pt-3 mt-3">
+
+              {order.discount > 0 && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-rose-600 font-semibold">
+                    <span>Discount</span>
+                    <span>-${order.discount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+                    <Tag className="w-3 h-3 shrink-0" />
+                    <span>
+                      {matchedCoupon
+                        ? `Coupon: ${matchedCoupon.code} (${matchedCoupon.discountValue}${
+                            matchedCoupon.discountType === "PERCENTAGE" ? "% OFF" : " USD OFF"
+                          })`
+                        : `${Math.round((order.discount / order.subtotal) * 100)}% Discount Applied`}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {order.tax > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Tax</span>
+                  <span>${order.tax.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between font-extrabold text-base text-slate-900 border-t pt-3 mt-3">
                 <span>Total</span>
-                <span>${order.total}</span>
+                <span>${order.total.toFixed(2)}</span>
               </div>
+
+              {order.paymentCurrency && order.paymentCurrency !== "USD" && (
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 space-y-1 text-xs">
+                  <div className="flex justify-between items-center text-slate-600">
+                    <span>Paid Currency</span>
+                    <span className="font-bold text-slate-900">
+                      {order.paymentCurrency === "INR"
+                        ? `₹${order.paymentAmount?.toLocaleString()} INR`
+                        : `${order.paymentAmount} ${order.paymentCurrency}`}
+                    </span>
+                  </div>
+                  {order.fxRate && order.fxRate !== 1 && (
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                      <span>Exchange Rate</span>
+                      <span>1 USD = {order.fxRate} {order.paymentCurrency}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-between items-center text-xs pt-3 border-t">
                 <span className="text-slate-500 font-medium">Payment Status</span>
                 <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase text-[10px] tracking-wider ${
