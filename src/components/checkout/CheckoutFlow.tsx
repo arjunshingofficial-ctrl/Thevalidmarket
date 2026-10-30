@@ -120,19 +120,8 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
         return;
       }
 
-      // Trigger fulfillment (simulates payment webhook firing from Sandbox)
-      // In real world, this would redirect to payment gateway and wait for webhook
-      const verifyRes = await fetch(`/api/checkout/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: data.order.id, transactionId: data.transactionId })
-      });
-
-      if (!verifyRes.ok) {
-        throw new Error("Payment verification failed");
-      }
-
-      setStep("CONFIRMED");
+      // If no redirect URL provided, take user to the pending order screen
+      router.push(`/dashboard/orders/${data.order.id}`);
 
     } catch (err: any) {
       setError(err.message);

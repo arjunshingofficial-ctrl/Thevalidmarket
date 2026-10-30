@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { getPaymentProvider } from "@/lib/payments";
+import { queryBladePayOrder } from "@/lib/payments/bladepay";
 import { fulfillOrder } from "@/lib/fulfillment";
 import { trackPurchaseCompleted } from "@/lib/analytics";
+import { processReferralCommission } from "@/lib/referrals";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,9 +14,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { orderId, transactionId } = await req.json();
+    const { orderId } = await req.json();
 
-    if (!orderId || !transactionId) {
+    if (!orderId) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
@@ -36,49 +37,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: "Order already paid and fulfilled" });
     }
 
-    const paymentRecord = order.payments.find(p => p.transactionId === transactionId);
-    if (!paymentRecord) {
-      return NextResponse.json({ error: "Transaction not found for this order" }, { status: 404 });
+    const bladePayment = order.payments.find(p => p.method === "UPI" || p.mode === "BLADEPAY");
+
+    if (!bladePayment) {
+      return NextResponse.json({
+        error: "This order requires manual administrator review or an official payment gateway callback."
+      }, { status: 400 });
     }
 
-    // Verify payment with provider
-    const provider = getPaymentProvider(paymentRecord.method);
-    const verification = await provider.verifyPayment(transactionId);
+    // Query live BladePay API server directly
+    const bladeCheck = await queryBladePayOrder(order.id);
 
-    if (verification.success && verification.status === "PAID") {
-      // Update Payment and Order state using a transaction
+    if (bladeCheck.success && bladeCheck.isPaid) {
       await prisma.$transaction(async (tx) => {
         await tx.payment.update({
-          where: { id: paymentRecord.id },
-          data: { status: "PAID" }
+          where: { id: bladePayment.id },
+          data: {
+            status: "PAID",
+            transactionId: bladeCheck.utr || bladeCheck.gatewayOrderNo || bladePayment.transactionId,
+            verifiedAt: new Date(),
+          }
         });
         await tx.order.update({
           where: { id: orderId },
-          data: { paymentStatus: "PAID" }
+          data: {
+            paymentStatus: "PAID",
+            orderStatus: "PROCESSING",
+          }
         });
-        
-        // Log event
+
         await tx.auditLog.create({
           data: {
             actorId: session.user.id,
             actorEmail: session.user.email,
-            action: "PAYMENT_VERIFIED",
+            action: "BLADEPAY_DIRECT_VERIFIED",
             entity: "Order",
             entityId: orderId,
-            metadata: JSON.stringify({ transactionId })
+            metadata: JSON.stringify({ utr: bladeCheck.utr, gatewayOrderNo: bladeCheck.gatewayOrderNo })
           }
         });
       });
 
       // TRIGGER FULFILLMENT ENGINE
-      await fulfillOrder(orderId);
-      
-      // Track Analytics
-      await trackPurchaseCompleted(orderId, session.user.id);
+      try {
+        await fulfillOrder(orderId);
+        await processReferralCommission(orderId);
+        await trackPurchaseCompleted(orderId, session.user.id);
+      } catch (fulfillErr) {
+        console.error("[Verify Route] Fulfillment error:", fulfillErr);
+      }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, isPaid: true });
     } else {
-      return NextResponse.json({ error: "Payment verification failed" }, { status: 400 });
+      return NextResponse.json({
+        error: "Payment has not yet settled at the gateway. Please wait or check your bank account.",
+        isPaid: false,
+      }, { status: 400 });
     }
 
   } catch (error: any) {

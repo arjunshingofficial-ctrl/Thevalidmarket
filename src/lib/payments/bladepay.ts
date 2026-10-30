@@ -7,6 +7,8 @@ import { createUserNotification, createAdminNotification } from "@/lib/notificat
 
 export const DEFAULT_BLADEPAY_BASE_URL = "https://api.bladepay.pro";
 export const DEFAULT_BLADEPAY_TOKEN = "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a";
+export const BLADEPAY_MIN_INR = 100;
+export const BLADEPAY_MAX_INR = 10000;
 
 export interface BladePayConfig {
   baseUrl: string;
@@ -84,6 +86,13 @@ export async function createBladePayPayinOrder({
   error?: string;
   raw?: any;
 }> {
+  if (amountInr < BLADEPAY_MIN_INR || amountInr > BLADEPAY_MAX_INR) {
+    return {
+      success: false,
+      error: `BladePay UPI transaction range is ₹${BLADEPAY_MIN_INR} - ₹${BLADEPAY_MAX_INR.toLocaleString()} INR. Order amount is ₹${amountInr.toFixed(2)} INR.`,
+    };
+  }
+
   const config = await getBladePayConfig();
   const endpoint = `${config.baseUrl}/merchant/api/payin/create`;
 

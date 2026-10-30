@@ -17,42 +17,38 @@ export interface PaymentProvider {
   verifyWebhook?: (req: Request) => Promise<boolean>;
 }
 
-// Development / Sandbox Environment Implementation
-// In a true production rollout, these are replaced by the respective provider SDKs (Stripe, NowPayments, etc.)
-// Currently, this simulates the Sandbox API responses for testing fulfillment flows.
+// Strict production payment provider interface
+// Simulation mocks are permanently disabled to prevent payment bypass.
 export const getPaymentProvider = (providerId: string): PaymentProvider => {
   return {
     id: providerId,
     createPayment: async (orderId, amount, currency, metadata) => {
-      // Sandbox creation simulation
       return {
-        success: true,
-        transactionId: `sandbox_tx_${Date.now()}`,
-        status: "PENDING",
-        amount,
-        currency
+        success: false,
+        status: "FAILED",
+        message: "Automated simulation provider is disabled in production.",
       };
     },
     verifyPayment: async (transactionId) => {
-      // Sandbox verification simulation
       return {
-        success: true,
+        success: false,
         transactionId,
-        status: "PAID"
+        status: "FAILED",
+        message: "Sandbox verification is disabled in production.",
       };
     },
     getPaymentStatus: async (transactionId) => {
       return {
-        success: true,
+        success: false,
         transactionId,
-        status: "PAID" // Default to paid in sandbox
+        status: "FAILED",
       };
     },
     refundPayment: async (transactionId) => {
       return {
-        success: true,
+        success: false,
         transactionId,
-        status: "FAILED"
+        status: "FAILED",
       };
     }
   };

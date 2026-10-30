@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { getPaymentProvider } from "@/lib/payments";
 import { getWalletBalance, deductWalletFunds } from "@/lib/wallet";
 import { createUserNotification, createAdminNotification } from "@/lib/notifications";
 import { getBaseUrl } from "@/lib/siteUrl";
@@ -381,12 +380,60 @@ export async function POST(req: NextRequest) {
             redirectUrl: payinResult.cashierUrl,
           });
         } else {
-          console.warn("[BladePay] Order creation failed, checking if manual fallback exists:", payinResult.error);
-          if (!upiSettings.vpa && methodConfig.mode !== "MANUAL") {
+          console.warn("[BladePay] Order creation failed:", payinResult.error);
+
+          // If manual UPI VPA is configured, safely fall back to manual QR/VPA transfer
+          if (upiSettings?.vpa) {
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+            const paymentRecord = await prisma.payment.create({
+              data: {
+                orderId: order.id,
+                method: "UPI",
+                mode: "MANUAL",
+                amount: paymentAmount,
+                currency: "INR",
+                baseAmount: total,
+                baseCurrency: "USD",
+                fxRate,
+                status: "PAYMENT_REQUIRED",
+                expiresAt,
+                metadata: JSON.stringify({
+                  ...upiSettings,
+                  couponCode: appliedCoupon?.code || null,
+                  discount,
+                  fallbackNotice: payinResult.error || "Automated gateway limit exceeded. Switched to manual UPI transfer.",
+                }),
+              },
+            });
+
+            createUserNotification({
+              userId: session.user.id,
+              type: "PAYMENT",
+              title: "Payment Required - UPI Transfer",
+              message: `Please complete your UPI payment of ₹${paymentAmount.toFixed(2)} to ${upiSettings.vpa} and submit your UTR.`,
+              priority: "NORMAL",
+              actionUrl: `/payment/${paymentRecord.id}`,
+              entityType: "PAYMENT",
+              entityId: paymentRecord.id,
+            }).catch(console.error);
+
             return NextResponse.json({
-              error: payinResult.error || "Failed to initiate automated UPI payment.",
-            }, { status: 400 });
+              success: true,
+              order,
+              paymentRecord,
+              redirectUrl: `/payment/${paymentRecord.id}`,
+            });
           }
+
+          // No manual fallback available - cancel order and report clear error
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { paymentStatus: "FAILED", orderStatus: "CANCELLED" },
+          });
+
+          return NextResponse.json({
+            error: payinResult.error || "Automated UPI gateway unavailable. Please choose another payment method.",
+          }, { status: 400 });
         }
       }
     }
@@ -450,40 +497,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // AUTOMATIC FLOW
-    // Initialize payment provider
-    const provider = getPaymentProvider(paymentMethod);
-    const paymentResult = await provider.createPayment(order.id, paymentAmount, paymentCurrency);
-
-    if (!paymentResult.success) {
-      // Mark as failed if provider rejected creation
-      await prisma.order.update({ where: { id: order.id }, data: { paymentStatus: "FAILED", orderStatus: "CANCELLED" } });
-      return NextResponse.json({ error: "Payment initialization failed" }, { status: 400 });
-    }
-
-    // Create Payment Record
-    const paymentRecord = await prisma.payment.create({
-      data: {
-        orderId: order.id,
-        method: paymentMethod,
-        mode: "AUTOMATIC",
-        transactionId: paymentResult.transactionId,
-        amount: paymentAmount,
-        currency: paymentCurrency,
-        baseAmount: total,
-        baseCurrency: "USD",
-        fxRate,
-        status: paymentResult.status
-      }
+    // Safety fallback: Never create fake sandbox transactions in production
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paymentStatus: "FAILED", orderStatus: "CANCELLED" },
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      order, 
-      paymentRecord, 
-      transactionId: paymentResult.transactionId,
-      status: paymentResult.status 
-    });
+    return NextResponse.json({
+      error: "The selected payment method is currently unavailable.",
+    }, { status: 400 });
 
   } catch (error: any) {
     console.error("Checkout error:", error);
