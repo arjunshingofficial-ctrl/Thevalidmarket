@@ -30,10 +30,21 @@ export default async function AdminCustomers({ searchParams }: AdminCustomersPro
   } : {};
 
   const customerRoleCondition = {
-    OR: [
-      { role: { name: "CUSTOMER" } },
-      { roleId: null },
-    ]
+    AND: [
+      {
+        OR: [
+          { role: { name: "CUSTOMER" } },
+          { roleId: null },
+        ],
+      },
+      {
+        email: {
+          not: {
+            endsWith: "@thevalidmarket.local",
+          },
+        },
+      },
+    ],
   };
 
   // Fetch overview KPI metrics

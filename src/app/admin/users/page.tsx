@@ -33,9 +33,12 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     totalOrdersCount,
     users,
   ] = await Promise.all([
-    prisma.user.count(),
+    prisma.user.count({
+      where: { email: { not: { endsWith: "@thevalidmarket.local" } } },
+    }),
     prisma.user.count({
       where: {
+        email: { not: { endsWith: "@thevalidmarket.local" } },
         OR: [
           { role: { name: "CUSTOMER" } },
           { roleId: null },
@@ -52,6 +55,7 @@ export default async function AdminUsersPage({ searchParams }: AdminUsersPagePro
     prisma.order.count(),
     prisma.user.findMany({
       where: {
+        email: { not: { endsWith: "@thevalidmarket.local" } },
         ...(selectedRole ? { role: { name: selectedRole } } : {}),
         ...(query ? {
           OR: [
