@@ -1,6 +1,3 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import HackerHero from "@/components/home/HackerHero";
 
@@ -51,12 +48,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AuthLandingPage() {
-  const session = await getServerSession(authOptions);
-
-  if (session) {
-    redirect("/store");
-  }
-
   return (
     <main className="bg-black min-h-screen">
       <HackerHero />

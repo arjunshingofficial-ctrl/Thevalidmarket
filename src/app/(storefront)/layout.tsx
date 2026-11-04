@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import QuickCheckoutToast from "@/components/cart/QuickCheckoutToast";
 import RecentSalesToast from "@/components/common/RecentSalesToast";
 import { FloatingSupportButton } from "@/components/layout/FloatingSupportButton";
+import { TelegramWelcomeModal } from "@/components/modals/TelegramWelcomeModal";
 import { getSupportSettings } from "@/lib/settings/support";
 
 export default async function StorefrontLayout({
@@ -22,6 +24,9 @@ export default async function StorefrontLayout({
       <FloatingSupportButton initialTelegramUrl={telegramUrl} />
       <QuickCheckoutToast />
       <RecentSalesToast />
+      <Suspense fallback={null}>
+        <TelegramWelcomeModal telegramUrl={telegramUrl} />
+      </Suspense>
     </>
   );
 }

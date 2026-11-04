@@ -33,8 +33,17 @@ export function LoginForm({ telegramUrl }: { telegramUrl: string }) {
       if (res?.error) {
         setError(res.error);
       } else {
-        const safeCallback = callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/store";
-        router.push(safeCallback);
+        const isFromRegistration = searchParams.get("registered") === "true";
+        if (isFromRegistration) {
+          try {
+            localStorage.setItem("tvm_pending_telegram_welcome", "true");
+            localStorage.removeItem("tvm_telegram_welcome_dismissed");
+          } catch (e) {}
+          router.push("/?welcome=telegram");
+        } else {
+          const safeCallback = callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/store";
+          router.push(safeCallback);
+        }
         router.refresh();
       }
     } catch (err) {

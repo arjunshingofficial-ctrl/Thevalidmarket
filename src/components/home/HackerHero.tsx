@@ -2,24 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Terminal, Shield, Zap, Lock } from "lucide-react";
 
 export default function HackerHero() {
+  const { data: session } = useSession();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [typedText, setTypedText] = useState("");
   
-  const fullText = "INITIALIZING CONNECTION...\n> ACCESS GRANTED\n> WELCOME TO THE VALID MARKET";
+  const userName = session?.user?.name ? session.user.name.toUpperCase() : null;
+  const fullText = userName
+    ? `INITIALIZING CONNECTION...\n> ACCESS GRANTED\n> OPERATOR: ${userName}\n> WELCOME TO THE VALID MARKET`
+    : "INITIALIZING CONNECTION...\n> ACCESS GRANTED\n> WELCOME TO THE VALID MARKET";
 
   // Typing effect
   useEffect(() => {
     let i = 0;
+    setTypedText("");
     const interval = setInterval(() => {
       setTypedText(fullText.substring(0, i));
       i++;
       if (i > fullText.length) clearInterval(interval);
-    }, 50);
+    }, 40);
     return () => clearInterval(interval);
-  }, []);
+  }, [fullText]);
 
   // Matrix Rain Effect
   useEffect(() => {
@@ -95,7 +101,7 @@ export default function HackerHero() {
               <div className="w-3 h-3 rounded-full bg-green-500/50" />
             </div>
             <div className="ml-4 text-green-500/50 text-xs flex items-center gap-2">
-              <Terminal className="w-3 h-3" /> sys_login.exe
+              <Terminal className="w-3 h-3" /> sys_terminal.exe
             </div>
           </div>
           
@@ -108,24 +114,45 @@ export default function HackerHero() {
               </pre>
             </div>
 
-            <div className="w-full max-w-sm space-y-4">
-              <Link
-                href="/login"
-                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded bg-green-500/10 px-4 py-3 text-sm font-bold text-green-400 border border-green-500/50 transition-all hover:bg-green-500 hover:text-black hover:shadow-[0_0_20px_rgba(0,255,0,0.4)]"
-              >
-                <Lock className="w-4 h-4" />
-                LOGIN
-                <div className="absolute inset-0 h-full w-0 bg-green-400/20 transition-all duration-300 ease-out group-hover:w-full" />
-              </Link>
-              
-              <Link
-                href="/register"
-                className="flex w-full items-center justify-center gap-2 rounded px-4 py-3 text-sm font-bold text-slate-400 border border-slate-700 transition-all hover:text-white hover:border-slate-500 bg-black/50"
-              >
-                <Zap className="w-4 h-4" />
-                CREATE ACCOUNT
-              </Link>
-            </div>
+            {session?.user ? (
+              <div className="w-full max-w-sm space-y-4">
+                <Link
+                  href="/store"
+                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded bg-green-500/10 px-4 py-3 text-sm font-bold text-green-400 border border-green-500/50 transition-all hover:bg-green-500 hover:text-black hover:shadow-[0_0_20px_rgba(0,255,0,0.4)]"
+                >
+                  <Zap className="w-4 h-4" />
+                  ENTER STORE &amp; BROWSE MARKET
+                  <div className="absolute inset-0 h-full w-0 bg-green-400/20 transition-all duration-300 ease-out group-hover:w-full" />
+                </Link>
+                
+                <Link
+                  href="/dashboard"
+                  className="flex w-full items-center justify-center gap-2 rounded px-4 py-3 text-sm font-bold text-slate-400 border border-slate-700 transition-all hover:text-white hover:border-slate-500 bg-black/50"
+                >
+                  <Terminal className="w-4 h-4" />
+                  USER DASHBOARD
+                </Link>
+              </div>
+            ) : (
+              <div className="w-full max-w-sm space-y-4">
+                <Link
+                  href="/login"
+                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded bg-green-500/10 px-4 py-3 text-sm font-bold text-green-400 border border-green-500/50 transition-all hover:bg-green-500 hover:text-black hover:shadow-[0_0_20px_rgba(0,255,0,0.4)]"
+                >
+                  <Lock className="w-4 h-4" />
+                  LOGIN
+                  <div className="absolute inset-0 h-full w-0 bg-green-400/20 transition-all duration-300 ease-out group-hover:w-full" />
+                </Link>
+                
+                <Link
+                  href="/register"
+                  className="flex w-full items-center justify-center gap-2 rounded px-4 py-3 text-sm font-bold text-slate-400 border border-slate-700 transition-all hover:text-white hover:border-slate-500 bg-black/50"
+                >
+                  <Zap className="w-4 h-4" />
+                  CREATE ACCOUNT
+                </Link>
+              </div>
+            )}
             
             <div className="mt-8 grid grid-cols-3 gap-4 w-full border-t border-green-500/20 pt-6">
               <div className="flex flex-col items-center justify-center text-center">

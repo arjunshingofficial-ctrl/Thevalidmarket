@@ -57,6 +57,12 @@ export function RegisterForm({ telegramUrl }: { telegramUrl: string }) {
         throw new Error(data.error || "Registration failed");
       }
 
+      // Store first-time welcome flag for Telegram popup
+      try {
+        localStorage.setItem("tvm_pending_telegram_welcome", "true");
+        localStorage.removeItem("tvm_telegram_welcome_dismissed");
+      } catch (e) {}
+
       // Automatically log the user in after registration
       const signInRes = await signIn("credentials", {
         redirect: false,
@@ -67,8 +73,7 @@ export function RegisterForm({ telegramUrl }: { telegramUrl: string }) {
       if (signInRes?.error) {
         router.push("/login?registered=true");
       } else {
-        const safeCallback = callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//") ? callbackUrl : "/store";
-        router.push(safeCallback);
+        router.push("/?welcome=telegram");
         router.refresh();
       }
 
