@@ -355,14 +355,22 @@ export async function processBladePayWebhook(payload: Record<string, any>): Prom
   // 1. Validate signature using MD5 specification
   const isValidSign = verifyBladePaySignature(payload, token);
 
-  if (!isValidSign) {
-    // Secondary fallback: query API verification
-    const orderRef = payload.gatewayOrderNo || payload.merchantOrderNo;
-    const queryCheck = orderRef ? await queryBladePayOrder(orderRef) : null;
-    if (!queryCheck?.isPaid) {
-      console.error("[BladePay Webhook] Invalid signature from incoming payload:", payload);
-      return { success: false, status: 400, message: "Invalid signature" };
-    }
+  // 2. Security hardening: ALWAYS perform live gateway query verification
+  // Never trust incoming webhook payloads alone to prevent signature forgery or replay attacks
+  const orderRef = payload.gatewayOrderNo || payload.merchantOrderNo;
+  if (!orderRef) {
+    console.error("[BladePay Webhook Security Block] Missing order reference in payload:", payload);
+    return { success: false, status: 400, message: "Missing order reference" };
+  }
+
+  const liveCheck = await queryBladePayOrder(orderRef);
+  if (!liveCheck.success || !liveCheck.isPaid) {
+    console.error("[BladePay Webhook Security Block] Live gateway verification failed. Order is NOT settled on BladePay:", {
+      orderRef,
+      gatewayResponse: liveCheck,
+      signatureValid: isValidSign,
+    });
+    return { success: false, status: 400, message: "Payment settlement verification failed on gateway" };
   }
 
   const { merchantOrderNo, gatewayOrderNo, payinState, cashState, utr, amount, actualAmount } = payload;

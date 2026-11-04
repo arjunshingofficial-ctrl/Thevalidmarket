@@ -30,7 +30,17 @@ export async function POST(req: NextRequest) {
     }
 
     let proofUrl = null;
-    if (proofFile) {
+    if (proofFile && proofFile.size > 0) {
+      // Validate file size (max 5MB)
+      if (proofFile.size > 5 * 1024 * 1024) {
+        return NextResponse.json({ error: "File size exceeds 5MB limit" }, { status: 400 });
+      }
+
+      // Validate file type
+      if (!["image/jpeg", "image/png", "image/webp"].includes(proofFile.type)) {
+        return NextResponse.json({ error: "Invalid file type. Only JPEG, PNG, and WEBP images allowed." }, { status: 400 });
+      }
+
       const bytes = await proofFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
       
