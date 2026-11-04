@@ -43,38 +43,108 @@ const VideoEmbed = TipTapNode.create({
   name: "videoEmbed",
   group: "block",
   atom: true,
+  draggable: true,
   addAttributes() {
     return {
-      src: { default: null },
-      provider: { default: "youtube" },
-      caption: { default: null },
+      src: {
+        default: null,
+        parseHTML: (element) => {
+          return (
+            element.getAttribute("data-src") ||
+            element.getAttribute("src") ||
+            element.querySelector("iframe")?.getAttribute("src") ||
+            null
+          );
+        },
+        renderHTML: (attributes) => {
+          if (!attributes.src) return {};
+          return { "data-src": attributes.src };
+        },
+      },
+      provider: {
+        default: "youtube",
+        parseHTML: (element) => element.getAttribute("data-provider") || "youtube",
+        renderHTML: (attributes) => ({ "data-provider": attributes.provider || "youtube" }),
+      },
+      caption: {
+        default: null,
+        parseHTML: (element) =>
+          element.getAttribute("data-caption") ||
+          element.querySelector("figcaption, .video-caption, p")?.textContent?.trim() ||
+          null,
+        renderHTML: (attributes) => (attributes.caption ? { "data-caption": attributes.caption } : {}),
+      },
     };
   },
   parseHTML() {
-    return [{ tag: "div[data-video-embed]" }];
+    return [
+      { tag: "div[data-video-embed]" },
+      { tag: "div.video-embed-wrapper" },
+      {
+        tag: "iframe[src*='youtube'], iframe[src*='youtube-nocookie'], iframe[src*='youtu.be'], iframe[src*='vimeo']",
+        getAttrs: (element) => {
+          if (typeof element === "string") return false;
+          const el = element as HTMLElement;
+          const src = el.getAttribute("src") || "";
+          const isVimeo = src.includes("vimeo");
+          return {
+            src,
+            provider: isVimeo ? "vimeo" : "youtube",
+            caption: null,
+          };
+        },
+      },
+    ];
   },
-  renderHTML({ HTMLAttributes }) {
-    return ["div", mergeAttributes({ "data-video-embed": "" }, HTMLAttributes), 0];
+  renderHTML({ node, HTMLAttributes }) {
+    const src = node.attrs.src || HTMLAttributes["data-src"] || "";
+    const caption = node.attrs.caption;
+
+    return [
+      "div",
+      mergeAttributes(
+        {
+          "data-video-embed": "",
+          class: "video-embed-wrapper my-6 overflow-hidden rounded-2xl shadow-sm border border-slate-200 bg-black relative",
+          style: "position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;",
+        },
+        HTMLAttributes
+      ),
+      [
+        "iframe",
+        {
+          src,
+          style: "position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;",
+          allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+          allowfullscreen: "true",
+          loading: "lazy",
+        },
+      ],
+      ...(caption ? [["p", { class: "video-caption text-center text-xs text-slate-500 mt-2 font-medium" }, caption]] : []),
+    ];
   },
   addNodeView() {
     return ({ node }) => {
       const wrapper = document.createElement("div");
       wrapper.setAttribute("data-video-embed", "");
       wrapper.setAttribute("contenteditable", "false");
-      wrapper.style.cssText = "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;margin:1rem 0;background:#000";
+      wrapper.className = "video-embed-wrapper my-6 overflow-hidden rounded-2xl shadow-sm border border-slate-200 bg-black relative";
+      wrapper.style.cssText = "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:12px;margin:1.5rem 0;background:#000;";
 
       const iframe = document.createElement("iframe");
       iframe.setAttribute("src", node.attrs.src || "");
       iframe.setAttribute("frameborder", "0");
       iframe.setAttribute("allowfullscreen", "true");
-      iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture");
-      iframe.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%";
+      iframe.setAttribute("loading", "lazy");
+      iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share");
+      iframe.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;border:0;";
       wrapper.appendChild(iframe);
 
       if (node.attrs.caption) {
         const cap = document.createElement("p");
         cap.textContent = node.attrs.caption;
-        cap.style.cssText = "text-align:center;font-size:0.875rem;color:#64748b;margin-top:0.5rem";
+        cap.className = "video-caption";
+        cap.style.cssText = "text-align:center;font-size:0.875rem;color:#64748b;margin-top:0.5rem;font-weight:500;";
         wrapper.appendChild(cap);
       }
 
@@ -449,14 +519,52 @@ const CALLOUT_STYLES: Record<CalloutType, { bg: string; border: string; icon: Re
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
 function getYoutubeEmbedUrl(url: string): string | null {
+  if (!url || typeof url !== "string") return null;
+  const trimmed = url.trim();
+
+  // Handle raw pasted iframe embed code: <iframe src="https://www.youtube.com/embed/..." ...>
+  const iframeMatch = trimmed.match(/<iframe\b[^>]*\bsrc=["']([^"']+)["']/i);
+  const actualUrl = iframeMatch ? iframeMatch[1] : trimmed;
+
   try {
-    const u = new URL(url);
+    // If already an embed url
+    const directEmbedMatch = actualUrl.match(/^https?:\/\/(?:www\.)?(?:youtube\.com|youtube-nocookie\.com)\/embed\/([a-zA-Z0-9_-]{11})/i);
+    if (directEmbedMatch) {
+      return `https://www.youtube-nocookie.com/embed/${directEmbedMatch[1]}?rel=0&modestbranding=1`;
+    }
+
+    const u = new URL(actualUrl.startsWith("http") ? actualUrl : `https://${actualUrl}`);
     let id: string | null = null;
-    if (u.hostname.includes("youtube.com")) id = u.searchParams.get("v");
-    else if (u.hostname === "youtu.be") id = u.pathname.slice(1);
+
+    if (u.hostname.includes("youtube.com") || u.hostname.includes("youtube-nocookie.com")) {
+      if (u.pathname.startsWith("/shorts/")) {
+        id = u.pathname.split("/")[2]?.split("?")[0];
+      } else if (u.pathname.startsWith("/embed/")) {
+        id = u.pathname.split("/")[2]?.split("?")[0];
+      } else if (u.pathname.startsWith("/live/")) {
+        id = u.pathname.split("/")[2]?.split("?")[0];
+      } else {
+        id = u.searchParams.get("v");
+      }
+    } else if (u.hostname === "youtu.be") {
+      id = u.pathname.slice(1).split("?")[0];
+    }
+
+    // Secondary regex fallback for complex queries (e.g. ?si=..., timestamp, etc.)
+    if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) {
+      const fallbackMatch = actualUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|shorts|v|live)\/))([a-zA-Z0-9_-]{11})/i);
+      if (fallbackMatch) id = fallbackMatch[1];
+    }
+
     if (!id) return null;
     return `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
-  } catch { return null; }
+  } catch {
+    const fallbackMatch = actualUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|(?:embed|shorts|v|live)\/))([a-zA-Z0-9_-]{11})/i);
+    if (fallbackMatch) {
+      return `https://www.youtube-nocookie.com/embed/${fallbackMatch[1]}?rel=0&modestbranding=1`;
+    }
+    return null;
+  }
 }
 
 function getVimeoEmbedUrl(url: string): string | null {

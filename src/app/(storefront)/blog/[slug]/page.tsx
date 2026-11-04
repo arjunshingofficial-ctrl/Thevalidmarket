@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { 
   ArrowLeft, Calendar, Clock, Tag, 
-  CheckCircle2, ShieldCheck, Eye 
+  CheckCircle2, ShieldCheck, Eye, Send 
 } from "lucide-react";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import BlogCommentsSection from "@/components/blog/BlogCommentsSection";
@@ -17,6 +17,7 @@ import { getBaseUrl } from "@/lib/siteUrl";
 import { getAbsoluteImageUrl } from "@/lib/sitemap-utils";
 import ContentWithShortcodes from "@/components/shortcodes/ContentWithShortcodes";
 import { parseBlogReviewContent } from "@/lib/blog-reviews";
+import { getSupportSettings } from "@/lib/settings/support";
 
 export const revalidate = 300; // Cache on Vercel CDN for 5 minutes, background revalidate
 
@@ -254,6 +255,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const postImage = getAbsoluteImageUrl(post.ogImage || post.featuredImage, siteUrl) || `${siteUrl}/og-image.jpg`;
 
+  const supportSettings = await getSupportSettings();
+  const telegramUrl = supportSettings.telegramUrl || "https://t.me/+xpN22t7nSkk4ZWJl";
+
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -483,6 +487,41 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 content={optimizeDescriptionHtml(post.content, (post as any).featuredImageAlt || post.title)}
                 className="product-description text-slate-800 leading-relaxed text-base"
               />
+
+              {/* Telegram Channel Join Banner (Default After Description) */}
+              {telegramUrl && (
+                <div className="my-8 p-6 sm:p-7 rounded-2xl bg-gradient-to-br from-[#0088cc]/15 via-[#0088cc]/5 to-slate-900/5 border border-[#0088cc]/25 shadow-xs">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-[#0088cc] text-white flex items-center justify-center shrink-0 shadow-md">
+                        <Send className="w-6 h-6 ml-0.5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                            Join Our Official Telegram Channel
+                          </h3>
+                          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#0088cc]/15 text-[#0088cc]">
+                            Official Channel
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                          Stay updated with real-time announcements, daily VIP drops, security tools &amp; guides.
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={telegramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-[#0088cc] hover:bg-[#0077b5] text-white font-bold text-sm shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto shrink-0 group"
+                    >
+                      <Send className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                      <span>Join Telegram Channel</span>
+                    </a>
+                  </div>
+                </div>
+              )}
 
               {/* Article Tags */}
               {parsedTags.length > 0 && (
