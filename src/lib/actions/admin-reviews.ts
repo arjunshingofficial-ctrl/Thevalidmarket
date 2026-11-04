@@ -47,6 +47,7 @@ export async function moderateReview(reviewId: string, action: string, newCreate
     const product = await prisma.product.findUnique({ where: { id: review.productId } });
     if (product) {
       revalidatePath(`/product/${product.slug}`);
+      revalidatePath(`/courses/${product.slug}`);
       revalidatePath(`/product/[slug]`, "page");
     }
     revalidatePath("/admin/reviews");
@@ -77,6 +78,7 @@ export async function updateReviewDate(reviewId: string, newCreatedAt: string) {
     const product = await prisma.product.findUnique({ where: { id: review.productId } });
     if (product) {
       revalidatePath(`/product/${product.slug}`);
+      revalidatePath(`/courses/${product.slug}`);
       revalidatePath(`/product/[slug]`, "page");
     }
     revalidatePath("/admin/reviews");
@@ -89,12 +91,15 @@ export async function updateReviewDate(reviewId: string, newCreatedAt: string) {
 
 export async function adminAddReview(data: {
   productId: string;
-  userId: string;
+  userId?: string;
+  reviewerName?: string;
+  reviewerEmail?: string;
   rating: number;
   title?: string;
   comment: string;
   type: string;
   avatarSeed?: string;
+  createdAt?: string;
 }) {
   try {
     const session = await getServerSession(authOptions) as any;
@@ -102,17 +107,48 @@ export async function adminAddReview(data: {
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!data.productId || !data.userId || !data.comment) {
+    if (!data.productId || (!data.userId && !data.reviewerName) || !data.comment) {
       return { success: false, error: "Please fill in all required fields" };
+    }
+
+    let targetUserId = data.userId;
+
+    if (data.reviewerName && data.reviewerName.trim()) {
+      const name = data.reviewerName.trim();
+      const email = data.reviewerEmail?.trim()
+        ? data.reviewerEmail.trim().toLowerCase()
+        : `reviewer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@thevalidmarket.local`;
+
+      let user = await prisma.user.findUnique({ where: { email } });
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            email,
+            name,
+          },
+        });
+      } else if (user.name !== name) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { name },
+        });
+      }
+      targetUserId = user.id;
+    }
+
+    if (!targetUserId) {
+      return { success: false, error: "Reviewer user could not be determined" };
     }
 
     // For admin-created reviews, if admin selects VERIFIED_CUSTOMER_REVIEW, mark it as verified
     const verifiedPurchase = data.type === "VERIFIED_CUSTOMER_REVIEW";
+    const reviewDate = data.createdAt ? new Date(data.createdAt) : new Date();
+    const validDate = isNaN(reviewDate.getTime()) ? new Date() : reviewDate;
 
     await prisma.review.upsert({
       where: {
         userId_productId: {
-          userId: data.userId,
+          userId: targetUserId,
           productId: data.productId,
         },
       },
@@ -124,10 +160,11 @@ export async function adminAddReview(data: {
         verifiedPurchase,
         status: "APPROVED",
         avatarSeed: data.avatarSeed || Math.random().toString(36).substring(7),
+        createdAt: validDate,
       },
       create: {
         productId: data.productId,
-        userId: data.userId,
+        userId: targetUserId,
         rating: Number(data.rating),
         title: data.title || null,
         comment: data.comment,
@@ -135,6 +172,7 @@ export async function adminAddReview(data: {
         verifiedPurchase,
         status: "APPROVED",
         avatarSeed: data.avatarSeed || Math.random().toString(36).substring(7),
+        createdAt: validDate,
       },
     });
 
@@ -147,6 +185,7 @@ export async function adminAddReview(data: {
     const product = await prisma.product.findUnique({ where: { id: data.productId } });
     if (product) {
       revalidatePath(`/product/${product.slug}`);
+      revalidatePath(`/courses/${product.slug}`);
       revalidatePath(`/product/[slug]`, "page");
     }
     revalidatePath("/admin/reviews");

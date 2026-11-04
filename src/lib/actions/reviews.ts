@@ -68,16 +68,39 @@ export async function submitReview(data: {
   let verifiedPurchase = false;
   let finalAuthorName = "";
 
-  if (session?.user?.id) {
+  const isSpecialAdmin = session?.user?.role && ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
+  const authorNameSpecified = authorName?.trim();
+
+  if (session?.user?.id && isSpecialAdmin && authorNameSpecified && authorNameSpecified !== session.user.name) {
+    // Admin is submitting a review with a custom reviewer name from the storefront
+    finalAuthorName = authorNameSpecified;
+    const reviewerEmail = authorEmail?.trim() || `reviewer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@thevalidmarket.local`;
+    let user = await prisma.user.findUnique({ where: { email: reviewerEmail } });
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: reviewerEmail,
+          name: finalAuthorName,
+        },
+      });
+    } else if (user.name !== finalAuthorName) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { name: finalAuthorName },
+      });
+    }
+    userId = user.id;
+    verifiedPurchase = true;
+  } else if (session?.user?.id) {
     userId = session.user.id;
-    finalAuthorName = authorName?.trim() || session.user.name || "Customer";
+    finalAuthorName = authorNameSpecified || session.user.name || "Customer";
     verifiedPurchase = await canReviewProduct(userId, productId);
 
-    if (authorName?.trim() && (!session.user.name || session.user.name !== authorName.trim())) {
+    if (authorNameSpecified && (!session.user.name || session.user.name !== authorNameSpecified)) {
       try {
         await prisma.user.update({
           where: { id: userId },
-          data: { name: authorName.trim() },
+          data: { name: authorNameSpecified },
         });
       } catch (e) {
         console.error("Could not update user name:", e);
@@ -85,7 +108,7 @@ export async function submitReview(data: {
     }
   } else {
     // Guest submission
-    finalAuthorName = authorName?.trim() || "";
+    finalAuthorName = authorNameSpecified || "";
     if (!finalAuthorName || finalAuthorName.length < 2) {
       throw new Error("Please enter your name.");
     }
