@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { MoreHorizontal, Eye, CheckCircle, XCircle, RotateCcw } from "lucide-react";
+import { MoreHorizontal, Eye, CheckCircle, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function OrderActionsDropdown({ orderId, orderStatus, paymentStatus }: { orderId: string, orderStatus: string, paymentStatus: string }) {
@@ -22,13 +22,16 @@ export default function OrderActionsDropdown({ orderId, orderStatus, paymentStat
 
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
-  const handleAction = async (action: 'cancel' | 'fulfill') => {
+  const handleAction = async (action: 'cancel' | 'fulfill' | 'mark_paid') => {
     const shortId = orderId.slice(0, 8).toUpperCase();
     if (action === 'cancel') {
       const confirmMsg = `Are you sure you want to CANCEL Order #${shortId}?\n\nThis will mark the order as cancelled, cancel any pending payments, and revoke active entitlements.`;
       if (!window.confirm(confirmMsg)) return;
     } else if (action === 'fulfill') {
       const confirmMsg = `Are you sure you want to FORCE FULFILL Order #${shortId}?`;
+      if (!window.confirm(confirmMsg)) return;
+    } else if (action === 'mark_paid') {
+      const confirmMsg = `Are you sure you want to MARK Order #${shortId} as PAID?\n\nThis will approve payment, deliver digital downloads, generate licenses, enroll in courses, and notify the customer.`;
       if (!window.confirm(confirmMsg)) return;
     }
 
@@ -73,6 +76,18 @@ export default function OrderActionsDropdown({ orderId, orderStatus, paymentStat
             >
               <Eye className="h-4 w-4 text-slate-500" /> View Details
             </Link>
+
+            {paymentStatus !== 'PAID' && orderStatus !== 'CANCELLED' && (
+              <button
+                onClick={() => handleAction('mark_paid')}
+                disabled={loadingAction !== null}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-emerald-700 bg-emerald-50/50 hover:bg-emerald-100 text-left font-semibold disabled:opacity-50"
+                role="menuitem"
+              >
+                <CheckCircle2 className={`h-4 w-4 text-emerald-600 ${loadingAction === 'mark_paid' ? 'animate-spin' : ''}`} />
+                {loadingAction === 'mark_paid' ? 'Marking Paid...' : 'Mark as Paid'}
+              </button>
+            )}
             
             {orderStatus !== 'FULFILLED' && paymentStatus === 'PAID' && (
               <button

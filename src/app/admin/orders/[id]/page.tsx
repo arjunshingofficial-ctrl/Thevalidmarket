@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ReconcileButton } from "./ReconcileButton";
 import { RefundButton } from "./RefundButton";
 import { CancelOrderButton } from "./CancelOrderButton";
+import { MarkPaidButton } from "./MarkPaidButton";
 import { OrderDownloadsManager } from "./OrderDownloadsManager";
 import { PaymentDetailsCard } from "./PaymentDetailsCard";
 import ClientDateTime from "@/components/common/ClientDateTime";
@@ -158,6 +159,15 @@ export default async function AdminOrderDetails({ params }: { params: Promise<{ 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {order.paymentStatus !== "PAID" && order.orderStatus !== "CANCELLED" && (
+            <MarkPaidButton
+              orderId={order.id}
+              orderNumber={order.id.slice(0, 8).toUpperCase()}
+              paymentStatus={order.paymentStatus}
+              orderStatus={order.orderStatus}
+              total={order.total}
+            />
+          )}
           <CancelOrderButton
             orderId={order.id}
             orderNumber={order.id.slice(0, 8).toUpperCase()}

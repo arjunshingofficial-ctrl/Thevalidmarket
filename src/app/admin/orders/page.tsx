@@ -16,6 +16,7 @@ import {
   RotateCcw
 } from "lucide-react";
 import OrderActionsDropdown from "@/components/admin/OrderActionsDropdown";
+import QuickMarkPaidButton from "@/components/admin/QuickMarkPaidButton";
 import ClientDateTime from "@/components/common/ClientDateTime";
 
 export const dynamic = "force-dynamic";
@@ -531,7 +532,13 @@ export default async function AdminOrders({ searchParams }: AdminOrdersProps) {
 
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {order.paymentStatus !== "PAID" && order.orderStatus !== "CANCELLED" && (
+                          <QuickMarkPaidButton
+                            orderId={order.id}
+                            orderNumber={order.id.slice(0, 8).toUpperCase()}
+                          />
+                        )}
                         <Link 
                           href={`/admin/orders/${order.id}`} 
                           className="p-1.5 text-slate-500 hover:text-primary rounded-md hover:bg-slate-100 transition-colors" 
