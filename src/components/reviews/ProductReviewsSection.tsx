@@ -2,15 +2,34 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { Star, Check, ShieldCheck, Plus, Sparkles, AlertCircle, CheckCircle2, MessageSquare, RefreshCw } from "lucide-react";
+import { 
+  Star, 
+  Check, 
+  ShieldCheck, 
+  Plus, 
+  Sparkles, 
+  AlertCircle, 
+  CheckCircle2, 
+  MessageSquare, 
+  RefreshCw,
+  Camera,
+  Upload,
+  X,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon
+} from "lucide-react";
 import { ReviewAvatar } from "./ReviewAvatar";
 import { submitReview } from "@/lib/actions/reviews";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export interface ReviewItem {
   id: string;
   rating: number;
   title?: string | null;
   comment?: string | null;
+  images?: string | string[] | null;
   type?: string;
   verifiedPurchase?: boolean;
   avatarSeed?: string | null;
@@ -50,9 +69,60 @@ export default function ProductReviewsSection({
   const [authorName, setAuthorName] = useState("");
   const [authorEmail, setAuthorEmail] = useState("");
   const [avatarSeed, setAvatarSeed] = useState(() => Math.random().toString(36).substring(7));
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Lightbox State
+  const [lightboxState, setLightboxState] = useState<{
+    isOpen: boolean;
+    images: string[];
+    currentIndex: number;
+  }>({
+    isOpen: false,
+    images: [],
+    currentIndex: 0,
+  });
+
+  const openLightbox = (images: string[], index: number) => {
+    setLightboxState({
+      isOpen: true,
+      images,
+      currentIndex: index,
+    });
+  };
+
+  const closeLightbox = () => {
+    setLightboxState((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const nextLightboxImage = () => {
+    setLightboxState((prev) => ({
+      ...prev,
+      currentIndex: (prev.currentIndex + 1) % prev.images.length,
+    }));
+  };
+
+  const prevLightboxImage = () => {
+    setLightboxState((prev) => ({
+      ...prev,
+      currentIndex: (prev.currentIndex - 1 + prev.images.length) % prev.images.length,
+    }));
+  };
+
+  // Close lightbox on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!lightboxState.isOpen) return;
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") nextLightboxImage();
+      if (e.key === "ArrowLeft") prevLightboxImage();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxState.isOpen]);
 
   // Filter
   const [filterRating, setFilterRating] = useState<number | "ALL">("ALL");
@@ -102,6 +172,70 @@ export default function ProductReviewsSection({
     return reviews.filter((r) => Math.round(r.rating) === filterRating);
   }, [reviews, filterRating]);
 
+  // Helper to parse review images
+  const parseReviewImages = (images: string | string[] | null | undefined): string[] => {
+    if (!images) return [];
+    if (Array.isArray(images)) return images.filter(Boolean);
+    try {
+      const parsed = JSON.parse(images);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean);
+    } catch {
+      if (typeof images === "string" && images.trim()) {
+        return [images.trim()];
+      }
+    }
+    return [];
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (uploadedImages.length + files.length > 5) {
+      setErrorMessage("You can attach a maximum of 5 images per review.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setErrorMessage(null);
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith("image/")) {
+          throw new Error(`File "${file.name}" is not a valid image format.`);
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`File "${file.name}" exceeds the 10 MB limit.`);
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/reviews/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || "Failed to upload image.");
+        }
+
+        setUploadedImages((prev) => [...prev, data.url]);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to upload image.");
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setUploadedImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
   // Handle Review Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +260,7 @@ export default function ProductReviewsSection({
         rating,
         title: title.trim() || undefined,
         comment: comment.trim(),
+        images: uploadedImages.length > 0 ? uploadedImages : undefined,
         avatarSeed,
         authorName: nameToSubmit,
         authorEmail: authorEmail.trim() || undefined,
@@ -142,6 +277,7 @@ export default function ProductReviewsSection({
       // Clear form
       setTitle("");
       setComment("");
+      setUploadedImages([]);
       setHoverRating(0);
       setRating(5);
     } catch (err: any) {
@@ -380,6 +516,72 @@ export default function ProductReviewsSection({
                 className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all resize-y"
                 maxLength={1500}
               />
+            </div>
+
+            {/* Review Photos Upload */}
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Camera className="w-4 h-4 text-emerald-600" />
+                  <span>Attach Photos / Screenshots <span className="text-slate-400 font-normal lowercase">(optional - up to 5)</span></span>
+                </label>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {uploadedImages.length}/5
+                </span>
+              </div>
+
+              {/* Previews Grid */}
+              {uploadedImages.length > 0 && (
+                <div className="flex flex-wrap gap-2.5 mb-3">
+                  {uploadedImages.map((imgUrl, idx) => (
+                    <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group shadow-xs">
+                      <img
+                        src={normalizeImageUrl(imgUrl)}
+                        alt={`Review upload ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors"
+                        title="Remove photo"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Trigger Dropzone */}
+              {uploadedImages.length < 5 && (
+                <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl bg-white hover:bg-emerald-50/20 cursor-pointer transition-all group">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={isUploadingImage}
+                    className="hidden"
+                  />
+                  <div className="flex items-center gap-2 text-slate-600 group-hover:text-emerald-700 font-semibold text-xs sm:text-sm">
+                    {isUploadingImage ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-emerald-600" />
+                        <span>Uploading photo...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform" />
+                        <span>Click to upload product photos or screenshots</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    PNG, JPG, WebP up to 10MB each
+                  </p>
+                </label>
+              )}
             </div>
 
             {/* Admin Moderation Notice */}
@@ -628,12 +830,96 @@ export default function ProductReviewsSection({
                   <p className="text-slate-600 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
                     {review.comment}
                   </p>
+
+                  {/* Attached Review Photos */}
+                  {parseReviewImages(review.images).length > 0 && (
+                    <div className="mt-3.5 flex flex-wrap gap-2.5">
+                      {parseReviewImages(review.images).map((imgUrl, imgIdx) => (
+                        <button
+                          type="button"
+                          key={imgIdx}
+                          onClick={() => openLightbox(parseReviewImages(review.images), imgIdx)}
+                          className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-slate-200 hover:border-emerald-500 hover:ring-2 hover:ring-emerald-500/20 transition-all group bg-slate-50 shrink-0"
+                          title="Click to enlarge"
+                        >
+                          <img
+                            src={normalizeImageUrl(imgUrl)}
+                            alt={`Review image ${imgIdx + 1}`}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* ── Image Lightbox Modal ── */}
+      {lightboxState.isOpen && (
+        <div
+          className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={closeLightbox}
+        >
+          <button
+            type="button"
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
+            title="Close image"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {lightboxState.images.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  prevLightboxImage();
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
+                title="Previous image"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextLightboxImage();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors z-10"
+                title="Next image"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+
+          <div
+            className="relative max-w-4xl max-h-[85vh] flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={normalizeImageUrl(lightboxState.images[lightboxState.currentIndex])}
+              alt="Review attachment enlarged"
+              className="max-h-[80vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/10"
+            />
+            {lightboxState.images.length > 1 && (
+              <div className="mt-3 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-mono font-bold tracking-wider">
+                {lightboxState.currentIndex + 1} / {lightboxState.images.length}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

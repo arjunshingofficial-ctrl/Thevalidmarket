@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Star, User, Users, Calendar } from "lucide-react";
+import { Star, User, Users, Calendar, Camera, Upload, X, RefreshCw } from "lucide-react";
 import { adminAddReview } from "@/lib/actions/admin-reviews";
 import { useRouter } from "next/navigation";
 import { ReviewAvatar } from "../reviews/ReviewAvatar";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export function AdminReviewForm({ products, users }: { products: any[]; users: any[] }) {
   const [productId, setProductId] = useState("");
@@ -19,10 +20,60 @@ export function AdminReviewForm({ products, users }: { products: any[]; users: a
   const [comment, setComment] = useState("");
   const [customDate, setCustomDate] = useState("");
   const [avatarSeed, setAvatarSeed] = useState(() => Math.random().toString(36).substring(7));
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const router = useRouter();
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (uploadedImages.length + files.length > 5) {
+      setError("Maximum 5 photos allowed per review.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setError(null);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith("image/")) {
+          throw new Error(`"${file.name}" is not an image.`);
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`"${file.name}" is too large (max 10MB).`);
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/reviews/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || "Failed to upload image.");
+        }
+
+        setUploadedImages((prev) => [...prev, data.url]);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to upload image.");
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setUploadedImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +103,7 @@ export function AdminReviewForm({ products, users }: { products: any[]; users: a
         rating,
         title: title.trim() || undefined,
         comment: comment.trim(),
+        images: uploadedImages.length > 0 ? uploadedImages : undefined,
         type,
         avatarSeed,
         createdAt: customDate ? new Date(customDate).toISOString() : undefined,
@@ -287,6 +339,55 @@ export function AdminReviewForm({ products, users }: { products: any[]; users: a
             className="w-full border border-slate-300 rounded-lg p-2.5 text-sm min-h-[120px]"
             required
           />
+        </div>
+
+        {/* Attached Photos */}
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
+            <Camera className="w-4 h-4 text-primary" />
+            <span>Review Photos / Proof <span className="text-slate-400 font-normal">(Optional - up to 5)</span></span>
+          </label>
+
+          {uploadedImages.length > 0 && (
+            <div className="flex flex-wrap gap-2.5 mb-3">
+              {uploadedImages.map((imgUrl, idx) => (
+                <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group shadow-xs">
+                  <img src={normalizeImageUrl(imgUrl)} alt={`Review upload ${idx + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {uploadedImages.length < 5 && (
+            <label className="flex items-center justify-center gap-2 p-3.5 border-2 border-dashed border-slate-300 hover:border-primary rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100/60 transition-colors">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                onChange={handleImageUpload}
+                disabled={isUploadingImage}
+                className="hidden"
+              />
+              {isUploadingImage ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-xs font-semibold text-slate-600">Uploading photo...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-semibold text-slate-600">Click to upload photos or screenshots</span>
+                </>
+              )}
+            </label>
+          )}
         </div>
       </div>
 

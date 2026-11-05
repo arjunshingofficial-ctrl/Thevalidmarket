@@ -3,6 +3,7 @@ import { Star, Search, Plus } from "lucide-react";
 import Link from "next/link";
 import { ReviewActions } from "@/components/admin/ReviewActions";
 import { ReviewAvatar } from "@/components/reviews/ReviewAvatar";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,40 @@ export default async function AdminReviews({ searchParams }: { searchParams: Pro
                     <div className="text-xs text-slate-400 mb-2">on <span className="font-medium text-slate-600">{review.product.name}</span></div>
                     {review.title && <div className="font-medium text-slate-800 mb-1">{review.title}</div>}
                     {review.comment && <div className="text-sm text-slate-600 whitespace-pre-wrap">{review.comment}</div>}
+
+                    {/* Attached Review Images */}
+                    {(() => {
+                      let reviewImages: string[] = [];
+                      if (review.images) {
+                        try {
+                          const parsed = JSON.parse(review.images);
+                          if (Array.isArray(parsed)) reviewImages = parsed;
+                        } catch {
+                          if (typeof review.images === "string") reviewImages = [review.images];
+                        }
+                      }
+                      if (reviewImages.length === 0) return null;
+                      return (
+                        <div className="mt-2.5 flex flex-wrap gap-2">
+                          {reviewImages.map((imgUrl, imgIdx) => (
+                            <a
+                              key={imgIdx}
+                              href={normalizeImageUrl(imgUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 hover:border-primary transition-all group"
+                              title="Click to view full image in new tab"
+                            >
+                              <img
+                                src={normalizeImageUrl(imgUrl)}
+                                alt={`Proof ${imgIdx + 1}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
                     <ReviewActions reviewId={review.id} currentStatus={review.status} initialCreatedAt={review.createdAt} />

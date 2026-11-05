@@ -562,6 +562,7 @@ model Review {
   rating           Int
   title            String?
   comment          String?
+  images           String?
   type             String   @default("VERIFIED_CUSTOMER_REVIEW") // VERIFIED_CUSTOMER_REVIEW, ADMIN_TESTIMONIAL
   status           String   @default("PENDING") // PENDING, APPROVED, REJECTED, HIDDEN
   verifiedPurchase Boolean  @default(false)

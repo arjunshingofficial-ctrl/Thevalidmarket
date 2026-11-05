@@ -47,11 +47,12 @@ export async function submitReview(data: {
   rating: number;
   title?: string;
   comment: string;
+  images?: string[] | string;
   avatarSeed?: string;
   authorName?: string;
   authorEmail?: string;
 }) {
-  const { productId, rating, title, comment, avatarSeed, authorName, authorEmail } = data;
+  const { productId, rating, title, comment, images, avatarSeed, authorName, authorEmail } = data;
 
   if (!productId) throw new Error("Product ID is required.");
   if (!rating || rating < 1 || rating > 5) throw new Error("Invalid rating. Please select 1-5 stars.");
@@ -151,6 +152,11 @@ export async function submitReview(data: {
   });
 
   const reviewType = verifiedPurchase ? "VERIFIED_CUSTOMER_REVIEW" : "CUSTOMER_REVIEW";
+  const imagesJson = Array.isArray(images)
+    ? JSON.stringify(images)
+    : typeof images === "string" && images.trim()
+      ? images.trim()
+      : null;
 
   if (existingReview) {
     await prisma.review.update({
@@ -159,6 +165,7 @@ export async function submitReview(data: {
         rating: Math.round(rating),
         title: title?.trim() || null,
         comment: comment.trim(),
+        images: imagesJson,
         status: "PENDING", // Always PENDING for admin approval
         type: reviewType,
         verifiedPurchase,
@@ -173,6 +180,7 @@ export async function submitReview(data: {
         rating: Math.round(rating),
         title: title?.trim() || null,
         comment: comment.trim(),
+        images: imagesJson,
         status: "PENDING", // Always PENDING for admin approval
         type: reviewType,
         verifiedPurchase,

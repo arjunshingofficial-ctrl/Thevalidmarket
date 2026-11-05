@@ -97,6 +97,7 @@ export async function adminAddReview(data: {
   rating: number;
   title?: string;
   comment: string;
+  images?: string[] | string;
   type: string;
   avatarSeed?: string;
   createdAt?: string;
@@ -145,6 +146,12 @@ export async function adminAddReview(data: {
     const reviewDate = data.createdAt ? new Date(data.createdAt) : new Date();
     const validDate = isNaN(reviewDate.getTime()) ? new Date() : reviewDate;
 
+    const imagesJson = Array.isArray(data.images)
+      ? JSON.stringify(data.images)
+      : typeof data.images === "string" && data.images.trim()
+        ? data.images.trim()
+        : null;
+
     await prisma.review.upsert({
       where: {
         userId_productId: {
@@ -156,6 +163,7 @@ export async function adminAddReview(data: {
         rating: Number(data.rating),
         title: data.title || null,
         comment: data.comment,
+        images: imagesJson,
         type: data.type,
         verifiedPurchase,
         status: "APPROVED",
@@ -168,6 +176,7 @@ export async function adminAddReview(data: {
         rating: Number(data.rating),
         title: data.title || null,
         comment: data.comment,
+        images: imagesJson,
         type: data.type,
         verifiedPurchase,
         status: "APPROVED",

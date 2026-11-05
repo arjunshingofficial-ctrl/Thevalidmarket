@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Star, X } from "lucide-react";
+import { Star, X, Camera, Upload, RefreshCw } from "lucide-react";
 import { submitReview } from "@/lib/actions/reviews";
 import { ReviewAvatar } from "./ReviewAvatar";
+import { normalizeImageUrl } from "@/lib/storage/client";
 
 export function ReviewForm({
   productId,
@@ -27,8 +28,58 @@ export function ReviewForm({
   const [title, setTitle] = useState(initialTitle);
   const [comment, setComment] = useState(initialComment);
   const [avatarSeed, setAvatarSeed] = useState(() => Math.random().toString(36).substring(7));
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    if (uploadedImages.length + files.length > 5) {
+      setError("Maximum 5 photos allowed per review.");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    setError(null);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file.type.startsWith("image/")) {
+          throw new Error(`"${file.name}" is not an image.`);
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`"${file.name}" is too large (max 10MB).`);
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/reviews/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          throw new Error(data.error || "Failed to upload image.");
+        }
+
+        setUploadedImages((prev) => [...prev, data.url]);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to upload image.");
+    } finally {
+      setIsUploadingImage(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setUploadedImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +95,14 @@ export function ReviewForm({
     setLoading(true);
 
     try {
-      await submitReview({ productId, rating, title, comment, avatarSeed });
+      await submitReview({
+        productId,
+        rating,
+        title,
+        comment,
+        images: uploadedImages.length > 0 ? uploadedImages : undefined,
+        avatarSeed,
+      });
       if (onSuccess) onSuccess();
     } catch (err: any) {
       setError(err.message || "Failed to submit review");
@@ -143,6 +201,55 @@ export function ReviewForm({
           <div className="text-right text-xs text-slate-400 mt-1">
             {comment.length}/1000
           </div>
+        </div>
+
+        {/* Photo Upload */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-1.5">
+            <Camera className="w-4 h-4 text-primary" />
+            <span>Attach Photos <span className="text-slate-400 font-normal">(Optional, up to 5)</span></span>
+          </label>
+
+          {uploadedImages.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {uploadedImages.map((imgUrl, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-slate-100">
+                  <img src={normalizeImageUrl(imgUrl)} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(idx)}
+                    className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {uploadedImages.length < 5 && (
+            <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-300 hover:border-primary rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100/60 transition-colors">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
+                onChange={handleImageUpload}
+                disabled={isUploadingImage}
+                className="hidden"
+              />
+              {isUploadingImage ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-xs font-medium text-slate-600">Uploading photo...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium text-slate-600">Upload screenshot or photo</span>
+                </>
+              )}
+            </label>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
