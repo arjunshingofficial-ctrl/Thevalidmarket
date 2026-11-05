@@ -27,6 +27,7 @@ model User {
   accounts       Account[]
   sessions       Session[]
   orders         Order[]
+  createdPaymentLinks PaymentLink[] @relation("PaymentLinkCreator")
   licenses       License[]
   licenseKeys    LicenseKey[]
   downloads      Download[]
@@ -290,6 +291,8 @@ model Order {
   subscriptions Subscription[]
   entitlements  Entitlement[]
   referralCommissions ReferralCommission[]
+  paymentLinkId       String?
+  paymentLink         PaymentLink?   @relation(fields: [paymentLinkId], references: [id])
 
   @@index([userId])
   @@index([paymentStatus])
@@ -333,6 +336,38 @@ model Payment {
 
   order      Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   verifiedBy User?  @relation("PaymentVerifier", fields: [verifiedById], references: [id])
+}
+
+model PaymentLink {
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  title           String
+  description     String?
+  amount          Float
+  currency        String    @default("USD")
+  allowedMethods  String    @default("ALL") // ALL, UPI, CRYPTO
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+  status          String    @default("ACTIVE") // ACTIVE, PAID, EXPIRED, DISABLED
+  singleUse       Boolean   @default(false)
+  expiresAt       DateTime?
+  metadata        String?
+  createdById     String?
+
+  paymentsCount   Int       @default(0)
+  totalCollected  Float     @default(0)
+  lastPaidAt      DateTime?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  createdBy       User?     @relation("PaymentLinkCreator", fields: [createdById], references: [id])
+  orders          Order[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Coupon {

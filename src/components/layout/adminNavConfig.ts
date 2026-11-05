@@ -49,6 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
       { name: "Payments", href: "/admin/payments", icon: CreditCard },
+      { name: "Payment Links", href: "/admin/payment-links", icon: Link2 },
       { name: "Payment Reviews", href: "/admin/payments/review", icon: ShieldAlert },
       { name: "Payment Settings", href: "/admin/settings/payments", icon: Receipt },
       { name: "Coupons", href: "/admin/coupons", icon: Ticket },
