@@ -209,7 +209,7 @@ export async function getPaymentLinkPublic(slug: string) {
     };
 
     // Calculate approximate amounts
-    const amountInr = Math.round(link.amount * inrRate);
+    const amountInr = link.currency === "INR" ? Math.round(link.amount) : Math.round(link.amount * inrRate);
 
     // Parse methods settings
     const methods: Record<string, any> = {};
@@ -242,7 +242,7 @@ export async function getPaymentLinkPublic(slug: string) {
  */
 export async function processPaymentLinkCheckout(data: {
   slug: string;
-  name: string;
+  name?: string;
   email: string;
   phone?: string;
   paymentMethod: "BLADEPAY" | "UPI_MANUAL" | "USDT" | "BTC";
@@ -250,11 +250,12 @@ export async function processPaymentLinkCheckout(data: {
   customerNote?: string;
 }) {
   try {
-    const { slug, name, email, phone, paymentMethod, utrTransactionId, customerNote } = data;
+    const { slug, email, phone, paymentMethod, utrTransactionId, customerNote } = data;
 
     if (!slug) return { success: false, error: "Invalid payment link" };
-    if (!name || name.trim().length < 2) return { success: false, error: "Please enter your full name" };
     if (!email || !email.includes("@")) return { success: false, error: "Please enter a valid email address" };
+
+    const name = (data.name && data.name.trim().length >= 2) ? data.name.trim() : (email.split("@")[0] || "Customer");
 
     const link = await prisma.paymentLink.findUnique({ where: { slug } });
     if (!link) return { success: false, error: "Payment page not found" };
@@ -303,7 +304,8 @@ export async function processPaymentLinkCheckout(data: {
 
     // Determine FX Rate & INR Amount
     const inrRate = await getUpiEffectiveInrRate();
-    const amountInr = Math.round(link.amount * inrRate);
+    const amountInr = link.currency === "INR" ? Math.round(link.amount) : Math.round(link.amount * inrRate);
+    const amountUsd = link.currency === "INR" ? Number((link.amount / inrRate).toFixed(2)) : link.amount;
 
     // Create unique Order ID
     const orderId = `ORD-PL-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -314,13 +316,13 @@ export async function processPaymentLinkCheckout(data: {
         id: orderId,
         userId,
         paymentLinkId: link.id,
-        subtotal: link.amount,
+        subtotal: amountUsd,
         discount: 0,
         tax: 0,
-        total: link.amount,
+        total: amountUsd,
         baseCurrency: "USD",
         paymentCurrency: paymentMethod.includes("UPI") ? "INR" : paymentMethod,
-        paymentAmount: paymentMethod.includes("UPI") ? amountInr : link.amount,
+        paymentAmount: paymentMethod.includes("UPI") ? amountInr : amountUsd,
         fxRate: paymentMethod.includes("UPI") ? inrRate : 1.0,
         paymentStatus: "PENDING",
         orderStatus: "PENDING",
@@ -344,7 +346,7 @@ export async function processPaymentLinkCheckout(data: {
       if (!bladePayOrder.success || !bladePayOrder.cashierUrl) {
         return {
           success: false,
-          error: bladePayOrder.error || "Failed to initialize automated UPI gateway. Please try manual UPI or crypto.",
+          error: bladePayOrder.error || "Failed to initialize automated UPI gateway. Please try manual UPI or contact support.",
         };
       }
 
@@ -357,7 +359,7 @@ export async function processPaymentLinkCheckout(data: {
           status: "PAYMENT_REQUIRED",
           amount: amountInr,
           currency: "INR",
-          baseAmount: link.amount,
+          baseAmount: amountUsd,
           baseCurrency: "USD",
           fxRate: inrRate,
           transactionId: bladePayOrder.gatewayOrderNo || null,
@@ -385,9 +387,9 @@ export async function processPaymentLinkCheckout(data: {
         method: isUpiManual ? "UPI" : paymentMethod,
         mode: "MANUAL",
         status: utrTransactionId?.trim() ? "PAYMENT_REVIEW" : "PAYMENT_REQUIRED",
-        amount: isUpiManual ? amountInr : link.amount,
+        amount: isUpiManual ? amountInr : amountUsd,
         currency: isUpiManual ? "INR" : paymentMethod,
-        baseAmount: link.amount,
+        baseAmount: amountUsd,
         baseCurrency: "USD",
         fxRate: isUpiManual ? inrRate : 1.0,
         transactionId: utrTransactionId?.trim() || null,
@@ -416,6 +418,7 @@ export async function processPaymentLinkCheckout(data: {
         where: { id: link.id },
         data: {
           paymentsCount: { increment: 1 },
+          totalCollected: { increment: link.currency === "INR" ? amountInr : link.amount },
           lastPaidAt: new Date(),
         },
       });

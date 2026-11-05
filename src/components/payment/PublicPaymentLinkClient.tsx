@@ -13,16 +13,14 @@ import {
   AlertCircle,
   ArrowRight,
   Smartphone,
-  Wallet,
   QrCode,
   Printer,
   ChevronRight,
   HelpCircle,
   Building2,
-  DollarSign,
 } from "lucide-react";
 import { processPaymentLinkCheckout } from "@/lib/actions/payment-links";
-import { formatUsd, formatInr, formatBtc, formatUsdt } from "@/lib/currency";
+import { formatInr } from "@/lib/currency";
 
 interface PublicPaymentLinkClientProps {
   link: {
@@ -69,15 +67,11 @@ export function PublicPaymentLinkClient({
   supportSettings,
 }: PublicPaymentLinkClientProps) {
   // Form State
-  const [name, setName] = useState(link.customerName || "");
   const [email, setEmail] = useState(link.customerEmail || "");
-  const [phone, setPhone] = useState(link.customerPhone || "");
-  const [customerNote, setCustomerNote] = useState("");
 
-  // Determine allowed methods
-  const allowed = (link.allowedMethods || "ALL").toUpperCase();
+  // Determine available UPI methods (Only UPI)
   const availableMethods: Array<{
-    id: "BLADEPAY" | "UPI_MANUAL" | "USDT" | "BTC";
+    id: "BLADEPAY" | "UPI_MANUAL";
     label: string;
     badge?: string;
     icon: any;
@@ -85,7 +79,7 @@ export function PublicPaymentLinkClient({
   }> = [];
 
   // BladePay Instant UPI
-  if ((allowed === "ALL" || allowed === "UPI" || allowed === "BLADEPAY") && bladePayEnabled) {
+  if (bladePayEnabled) {
     availableMethods.push({
       id: "BLADEPAY",
       label: "Instant Automated UPI",
@@ -96,41 +90,16 @@ export function PublicPaymentLinkClient({
   }
 
   // Manual UPI
-  if (allowed === "ALL" || allowed === "UPI" || allowed === "UPI_MANUAL") {
-    availableMethods.push({
-      id: "UPI_MANUAL",
-      label: "Direct UPI Transfer",
-      badge: "QR / VPA",
-      icon: QrCode,
-      desc: "Scan QR or Transfer to UPI ID & submit UTR",
-    });
-  }
+  availableMethods.push({
+    id: "UPI_MANUAL",
+    label: "Direct UPI Transfer",
+    badge: "QR / VPA",
+    icon: QrCode,
+    desc: "Scan QR or Transfer to UPI ID & submit UTR",
+  });
 
-  // USDT
-  if (allowed === "ALL" || allowed === "CRYPTO" || allowed === "USDT") {
-    availableMethods.push({
-      id: "USDT",
-      label: "USDT (TRC20)",
-      badge: "ZERO FEES",
-      icon: DollarSign,
-      desc: "Instant Tron Network transfer ($1 = 1 USDT)",
-    });
-  }
-
-  // BTC
-  if (allowed === "ALL" || allowed === "CRYPTO" || allowed === "BTC") {
-    availableMethods.push({
-      id: "BTC",
-      label: "Bitcoin (BTC)",
-      badge: "MAINNET",
-      icon: Wallet,
-      desc: "Decentralized Bitcoin Mainnet transfer",
-    });
-  }
-
-  // Fallback if none matched
   const defaultMethod = availableMethods[0]?.id || "UPI_MANUAL";
-  const [selectedMethod, setSelectedMethod] = useState<"BLADEPAY" | "UPI_MANUAL" | "USDT" | "BTC">(defaultMethod);
+  const [selectedMethod, setSelectedMethod] = useState<"BLADEPAY" | "UPI_MANUAL">(defaultMethod);
   const [transactionRef, setTransactionRef] = useState("");
 
   // UI status
@@ -156,18 +125,9 @@ export function PublicPaymentLinkClient({
   const upiSettings = methods.UPI || methods.UPI_MANUAL || {};
   const upiVpa = upiSettings.vpa || "eqw@upi";
   const upiReceiver = upiSettings.receiverName || "The Valid Market";
-  const usdtSettings = methods.USDT || {};
-  const usdtAddress = usdtSettings.usdtAddress || "TDJeGRXEoeeGBjfacLrZrSK7N2iJ1PDfaF";
-  const btcSettings = methods.BTC || {};
-  const btcAddress = btcSettings.btcAddress || "1FkQTQT9js96P5r1G6G2apGcgQrhLa166v";
-
-  // Calculations
-  const btcAmount = fxRates.BTC > 0 ? (link.amount * fxRates.BTC).toFixed(8) : "0.00000000";
-  const usdtAmount = link.amount.toFixed(2);
 
   // UPI QR String
   const upiQrString = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(upiReceiver)}&am=${amountInr}&cu=INR&tn=${encodeURIComponent(link.title)}`;
-  const btcQrString = `bitcoin:${btcAddress}?amount=${btcAmount}&message=${encodeURIComponent(link.title)}`;
 
   // WhatsApp Support Config
   const whatsappNumber = upiSettings.whatsappNumber || "+916389458286";
@@ -180,21 +140,13 @@ export function PublicPaymentLinkClient({
     e.preventDefault();
     setErrorMessage("");
 
-    if (!name.trim()) {
-      setErrorMessage("Please enter your full name.");
-      return;
-    }
     if (!email.trim() || !email.includes("@")) {
-      setErrorMessage("Please enter a valid email address for receipt and verification.");
+      setErrorMessage("Please enter a valid email address to receive your receipt & order confirmation.");
       return;
     }
 
-    if (selectedMethod !== "BLADEPAY" && !transactionRef.trim()) {
-      if (selectedMethod === "UPI_MANUAL") {
-        setErrorMessage("Please enter your 12-digit UPI UTR number after making the transfer.");
-      } else {
-        setErrorMessage("Please enter your Transaction Hash (TxID) after completing the transfer.");
-      }
+    if (selectedMethod === "UPI_MANUAL" && !transactionRef.trim()) {
+      setErrorMessage("Please enter your 12-digit UPI UTR number after making the transfer.");
       return;
     }
 
@@ -202,12 +154,10 @@ export function PublicPaymentLinkClient({
       setSubmitting(true);
       const res = await processPaymentLinkCheckout({
         slug: link.slug,
-        name: name.trim(),
+        name: email.split("@")[0] || "Customer",
         email: email.trim(),
-        phone: phone.trim() || undefined,
         paymentMethod: selectedMethod,
         utrTransactionId: transactionRef.trim() || undefined,
-        customerNote: customerNote.trim() || undefined,
       });
 
       if (!res.success) {
@@ -238,7 +188,7 @@ export function PublicPaymentLinkClient({
 
   // SUCCESS SCREEN
   if (successOrder) {
-    const waSupportMsg = `Hello The Valid Market Support,%0A%0AI have submitted payment for *${encodeURIComponent(link.title)}*.%0A%0A*Order ID:* ${successOrder.orderId}%0A*Amount:* $${link.amount} USD (${selectedMethod.includes("UPI") ? `₹${amountInr.toLocaleString()} INR` : selectedMethod})%0A*Method:* ${selectedMethod}%0A*Reference / UTR:* ${transactionRef}%0A*Name:* ${name}%0A*Email:* ${email}%0A%0APlease verify my transaction.`;
+    const waSupportMsg = `Hello The Valid Market Support,%0A%0AI have submitted payment for *${encodeURIComponent(link.title)}*.%0A%0A*Order ID:* ${successOrder.orderId}%0A*Amount:* ₹${amountInr.toLocaleString()} INR%0A*Method:* ${selectedMethod === "BLADEPAY" ? "Instant Automated UPI" : "Direct UPI Transfer"}%0A${transactionRef ? `*UTR:* ${transactionRef}%0A` : ""}*Email:* ${email}%0A%0APlease verify my transaction.`;
     const waHref = `https://wa.me/${cleanPhone}?text=${waSupportMsg}`;
 
     return (
@@ -285,13 +235,13 @@ export function PublicPaymentLinkClient({
             <div className="flex justify-between items-center border-b border-slate-800/80 pb-2.5">
               <span className="text-slate-400">Amount Paid:</span>
               <span className="font-bold text-emerald-400">
-                ${link.amount.toFixed(2)} USD {selectedMethod.includes("UPI") ? `(₹${amountInr.toLocaleString()} INR)` : ""}
+                ₹{amountInr.toLocaleString()} INR
               </span>
             </div>
 
             <div className="flex justify-between items-center border-b border-slate-800/80 pb-2.5">
               <span className="text-slate-400">Payment Method:</span>
-              <span className="font-medium text-slate-200">{selectedMethod}</span>
+              <span className="font-medium text-slate-200">{selectedMethod === "BLADEPAY" ? "Instant Automated UPI" : "Direct UPI Transfer"}</span>
             </div>
 
             {transactionRef && (
@@ -397,21 +347,19 @@ export function PublicPaymentLinkClient({
               )}
 
               <div className="mt-6 pt-5 border-t border-slate-800">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Due</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Due</p>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-4xl font-extrabold text-white tracking-tight">
-                    ${link.amount.toFixed(2)}
+                  <span className="text-4xl sm:text-5xl font-black text-emerald-400 tracking-tight">
+                    ₹{amountInr.toLocaleString()}
                   </span>
-                  <span className="text-sm font-semibold text-slate-400">USD</span>
+                  <span className="text-sm font-extrabold text-slate-400">INR</span>
                 </div>
 
-                <div className="mt-2.5 flex items-center justify-between text-xs bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                  <span className="text-slate-400">Equivalent INR (UPI):</span>
-                  <span className="font-bold text-emerald-400">₹{amountInr.toLocaleString()} INR</span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500 px-1">
-                  <span>Exchange Rate</span>
-                  <span>1 USD = ₹{fxRates.INR.toFixed(2)} INR</span>
+                <div className="mt-3 flex items-center justify-between text-xs bg-slate-950/70 p-3 rounded-xl border border-slate-800/80">
+                  <span className="text-slate-400">Payment Mode:</span>
+                  <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5" /> Direct UPI (Instant)
+                  </span>
                 </div>
               </div>
 
@@ -423,66 +371,29 @@ export function PublicPaymentLinkClient({
               )}
             </div>
 
-            {/* Customer Contact Details */}
+            {/* Customer Contact Details (Only Email) */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
               <h2 className="text-base font-bold text-white flex items-center gap-2 mb-4">
                 <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs flex items-center justify-center font-bold">1</span>
-                Your Details for Delivery & Receipt
+                Your Email Address
               </h2>
 
               <div className="space-y-4 text-sm">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                    Full Name <span className="text-rose-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                    Email Address (Receipt) <span className="text-rose-400">*</span>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Email Address <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="youremail@example.com"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+                    placeholder="Enter your email address"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition text-sm font-medium"
                   />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                    WhatsApp / Telegram Contact <span className="text-slate-500 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                    Remarks / Notes <span className="text-slate-500 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={customerNote}
-                    onChange={(e) => setCustomerNote(e.target.value)}
-                    placeholder="e.g., custom order details or telegram username"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                  />
+                  <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                    Order confirmation, invoice receipt, and access details will be sent directly to this email.
+                  </p>
                 </div>
               </div>
             </div>
@@ -493,7 +404,7 @@ export function PublicPaymentLinkClient({
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl">
               <h2 className="text-base font-bold text-white flex items-center gap-2 mb-5">
                 <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs flex items-center justify-center font-bold">2</span>
-                Select Payment Method
+                UPI Payment Method
               </h2>
 
               {/* Method Selector Tabs */}
@@ -645,127 +556,7 @@ export function PublicPaymentLinkClient({
                 </div>
               )}
 
-              {/* METHOD 3: USDT (TRC20) */}
-              {selectedMethod === "USDT" && (
-                <div className="space-y-6 bg-slate-950/70 border border-slate-800/80 rounded-xl p-5 sm:p-6">
-                  <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-800">
-                    <div className="bg-white p-3 rounded-2xl shadow-xl shrink-0">
-                      <QRCode value={usdtAddress} size={150} level="M" />
-                    </div>
-                    <div className="space-y-3 w-full">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                          TRON Network (TRC-20) Only
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wider font-semibold text-slate-400">USDT Wallet Address</p>
-                        <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-2.5 mt-1">
-                          <span className="font-mono text-xs font-bold text-white break-all mr-2">{usdtAddress}</span>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(usdtAddress, "usdtAddress")}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-                            title="Copy USDT Address"
-                          >
-                            {copiedKey === "usdtAddress" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Exact Payable USDT:</span>
-                        <span className="font-extrabold text-emerald-400 text-sm">${usdtAmount} USDT</span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        Transaction Hash (TxID) <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={transactionRef}
-                        onChange={(e) => setTransactionRef(e.target.value)}
-                        placeholder="Paste TRC20 TxHash here"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-3 text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={handleCheckout}
-                      className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition shadow-lg shadow-emerald-950 disabled:opacity-50"
-                    >
-                      {submitting ? "Verifying..." : "Submit TxID & Complete Payment"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* METHOD 4: BITCOIN (BTC) */}
-              {selectedMethod === "BTC" && (
-                <div className="space-y-6 bg-slate-950/70 border border-slate-800/80 rounded-xl p-5 sm:p-6">
-                  <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-800">
-                    <div className="bg-white p-3 rounded-2xl shadow-xl shrink-0">
-                      <QRCode value={btcQrString} size={150} level="M" />
-                    </div>
-                    <div className="space-y-3 w-full">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                          Bitcoin Mainnet
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wider font-semibold text-slate-400">BTC Wallet Address</p>
-                        <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-2.5 mt-1">
-                          <span className="font-mono text-xs font-bold text-white break-all mr-2">{btcAddress}</span>
-                          <button
-                            type="button"
-                            onClick={() => copyToClipboard(btcAddress, "btcAddress")}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300"
-                            title="Copy BTC Address"
-                          >
-                            {copiedKey === "btcAddress" ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Payable Amount:</span>
-                        <span className="font-extrabold text-amber-400 text-sm">{btcAmount} BTC</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                        Bitcoin Transaction ID (TxID) <span className="text-rose-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={transactionRef}
-                        onChange={(e) => setTransactionRef(e.target.value)}
-                        placeholder="Paste BTC TxHash here"
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-3 text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={submitting}
-                      onClick={handleCheckout}
-                      className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow-lg shadow-amber-950 disabled:opacity-50"
-                    >
-                      {submitting ? "Verifying..." : "Submit TxID & Complete Payment"}
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* Error Alert */}
               {errorMessage && (
