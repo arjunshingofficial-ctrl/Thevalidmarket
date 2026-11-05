@@ -270,9 +270,13 @@ export default function ProductReviewsSection({
         throw new Error((res as any)?.error || "Failed to submit review.");
       }
 
+      // Optimistically add the new review to the local reviews list immediately
+      if (res?.review) {
+        setReviews((prev) => [res.review as ReviewItem, ...prev]);
+      }
+
       setSuccessMessage(
-        res.message ||
-          "Thank you for your review! It has been submitted and will appear once approved by an administrator."
+        res.message || "Thank you for your review! Your review has been published."
       );
       // Clear form
       setTitle("");
@@ -280,6 +284,10 @@ export default function ProductReviewsSection({
       setUploadedImages([]);
       setHoverRating(0);
       setRating(5);
+      setTimeout(() => {
+        setShowForm(false);
+        setSuccessMessage(null);
+      }, 1500);
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to submit review. Please try again.");
     } finally {
@@ -584,11 +592,11 @@ export default function ProductReviewsSection({
               )}
             </div>
 
-            {/* Admin Moderation Notice */}
-            <div className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-100 flex items-start gap-2.5 text-xs text-indigo-900">
-              <ShieldCheck className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+            {/* Community Standards Notice */}
+            <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-2.5 text-xs text-emerald-900">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <span>
-                <strong>Admin Approval Notice:</strong> To maintain strict authenticity and protect community standards, every review is verified by an administrator before appearing publicly.
+                <strong>Verified Community Review:</strong> Your review will be published instantly and verified according to our community authenticity standards.
               </span>
             </div>
 

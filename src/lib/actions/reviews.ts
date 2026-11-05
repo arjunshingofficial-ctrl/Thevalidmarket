@@ -72,9 +72,9 @@ export async function submitReview(data: {
   const isSpecialAdmin = session?.user?.role && ["ADMIN", "SUPER_ADMIN"].includes(session.user.role);
   const authorNameSpecified = authorName?.trim();
 
-  if (session?.user?.id && isSpecialAdmin && authorNameSpecified && authorNameSpecified !== session.user.name) {
-    // Admin is submitting a review with a custom reviewer name from the storefront
-    finalAuthorName = authorNameSpecified;
+  if (session?.user?.id && isSpecialAdmin) {
+    // Admin is submitting a review: create a distinct reviewer profile so multiple reviews can be added
+    finalAuthorName = authorNameSpecified || session.user.name || "Verified Customer";
     const reviewerEmail = authorEmail?.trim() || `reviewer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@thevalidmarket.local`;
     let user = await prisma.user.findUnique({ where: { email: reviewerEmail } });
     if (!user) {
@@ -84,7 +84,7 @@ export async function submitReview(data: {
           name: finalAuthorName,
         },
       });
-    } else if (user.name !== finalAuthorName) {
+    } else if (user.name !== finalAuthorName && !user.email.includes("@asiadmarket.com")) {
       user = await prisma.user.update({
         where: { id: user.id },
         data: { name: finalAuthorName },
@@ -142,15 +142,6 @@ export async function submitReview(data: {
     }
   }
 
-  const existingReview = await prisma.review.findUnique({
-    where: {
-      userId_productId: {
-        userId,
-        productId,
-      },
-    },
-  });
-
   const reviewType = verifiedPurchase ? "VERIFIED_CUSTOMER_REVIEW" : "CUSTOMER_REVIEW";
   const imagesJson = Array.isArray(images)
     ? JSON.stringify(images)
@@ -158,36 +149,26 @@ export async function submitReview(data: {
       ? images.trim()
       : null;
 
-  if (existingReview) {
-    await prisma.review.update({
-      where: { id: existingReview.id },
-      data: {
-        rating: Math.round(rating),
-        title: title?.trim() || null,
-        comment: comment.trim(),
-        images: imagesJson,
-        status: "PENDING", // Always PENDING for admin approval
-        type: reviewType,
-        verifiedPurchase,
-        ...(avatarSeed && { avatarSeed }),
+  // Always create a new review with APPROVED status so it immediately appears on the product page
+  const createdReview = await prisma.review.create({
+    data: {
+      userId,
+      productId,
+      rating: Math.round(rating),
+      title: title?.trim() || null,
+      comment: comment.trim(),
+      images: imagesJson,
+      status: "APPROVED",
+      type: reviewType,
+      verifiedPurchase,
+      avatarSeed: avatarSeed || Math.random().toString(36).substring(7),
+    },
+    include: {
+      user: {
+        select: { name: true, image: true },
       },
-    });
-  } else {
-    await prisma.review.create({
-      data: {
-        userId,
-        productId,
-        rating: Math.round(rating),
-        title: title?.trim() || null,
-        comment: comment.trim(),
-        images: imagesJson,
-        status: "PENDING", // Always PENDING for admin approval
-        type: reviewType,
-        verifiedPurchase,
-        avatarSeed: avatarSeed || Math.random().toString(36).substring(7),
-      },
-    });
-  }
+    },
+  });
 
   // Notify administrator of new review awaiting approval
   try {
@@ -213,7 +194,22 @@ export async function submitReview(data: {
 
   return { 
     success: true,
-    message: "Thank you for your review! It has been submitted and will appear once approved by an administrator."
+    review: {
+      id: createdReview.id,
+      rating: createdReview.rating,
+      title: createdReview.title,
+      comment: createdReview.comment,
+      images: createdReview.images,
+      type: createdReview.type,
+      verifiedPurchase: createdReview.verifiedPurchase,
+      avatarSeed: createdReview.avatarSeed,
+      createdAt: createdReview.createdAt.toISOString(),
+      user: {
+        name: finalAuthorName || createdReview.user?.name || "Customer",
+        image: createdReview.user?.image || null,
+      },
+    },
+    message: "Thank you for your review! Your review has been published."
   };
 }
 

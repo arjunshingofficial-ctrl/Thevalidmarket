@@ -152,25 +152,8 @@ export async function adminAddReview(data: {
         ? data.images.trim()
         : null;
 
-    await prisma.review.upsert({
-      where: {
-        userId_productId: {
-          userId: targetUserId,
-          productId: data.productId,
-        },
-      },
-      update: {
-        rating: Number(data.rating),
-        title: data.title || null,
-        comment: data.comment,
-        images: imagesJson,
-        type: data.type,
-        verifiedPurchase,
-        status: "APPROVED",
-        avatarSeed: data.avatarSeed || Math.random().toString(36).substring(7),
-        createdAt: validDate,
-      },
-      create: {
+    await prisma.review.create({
+      data: {
         productId: data.productId,
         userId: targetUserId,
         rating: Number(data.rating),
