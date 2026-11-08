@@ -149,7 +149,7 @@ export async function submitReview(data: {
       ? images.trim()
       : null;
 
-  // Always create a new review with APPROVED status so it immediately appears on the product page
+  // Reviews submitted from storefront require administrator approval before going live
   const createdReview = await prisma.review.create({
     data: {
       userId,
@@ -158,7 +158,7 @@ export async function submitReview(data: {
       title: title?.trim() || null,
       comment: comment.trim(),
       images: imagesJson,
-      status: "APPROVED",
+      status: "PENDING",
       type: reviewType,
       verifiedPurchase,
       avatarSeed: avatarSeed || Math.random().toString(36).substring(7),
@@ -200,6 +200,7 @@ export async function submitReview(data: {
       title: createdReview.title,
       comment: createdReview.comment,
       images: createdReview.images,
+      status: createdReview.status,
       type: createdReview.type,
       verifiedPurchase: createdReview.verifiedPurchase,
       avatarSeed: createdReview.avatarSeed,
@@ -209,7 +210,7 @@ export async function submitReview(data: {
         image: createdReview.user?.image || null,
       },
     },
-    message: "Thank you for your review! Your review has been published."
+    message: "Thank you for your review! Your review has been submitted and will appear publicly once approved by our team."
   };
 }
 

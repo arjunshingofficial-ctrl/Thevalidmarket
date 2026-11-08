@@ -270,13 +270,13 @@ export default function ProductReviewsSection({
         throw new Error((res as any)?.error || "Failed to submit review.");
       }
 
-      // Optimistically add the new review to the local reviews list immediately
-      if (res?.review) {
+      // Only add to live list if explicitly approved (pending reviews await admin moderation)
+      if (res?.review && (res.review as any).status === "APPROVED") {
         setReviews((prev) => [res.review as ReviewItem, ...prev]);
       }
 
       setSuccessMessage(
-        res.message || "Thank you for your review! Your review has been published."
+        res.message || "Thank you for your review! Your review has been submitted and will appear once approved by our team."
       );
       // Clear form
       setTitle("");
@@ -287,7 +287,7 @@ export default function ProductReviewsSection({
       setTimeout(() => {
         setShowForm(false);
         setSuccessMessage(null);
-      }, 1500);
+      }, 3500);
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to submit review. Please try again.");
     } finally {
@@ -381,7 +381,7 @@ export default function ProductReviewsSection({
             <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-bold text-emerald-900">Review Submitted Successfully!</p>
+                <p className="text-sm font-bold text-emerald-900">Review Submitted for Approval!</p>
                 <p className="text-xs text-emerald-700 mt-0.5">{successMessage}</p>
               </div>
             </div>
@@ -593,10 +593,10 @@ export default function ProductReviewsSection({
             </div>
 
             {/* Community Standards Notice */}
-            <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-start gap-2.5 text-xs text-emerald-900">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200/70 flex items-start gap-2.5 text-xs text-amber-900">
+              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>
-                <strong>Verified Community Review:</strong> Your review will be published instantly and verified according to our community authenticity standards.
+                <strong>Admin Approval Notice:</strong> To maintain strict authenticity and protect community standards, every review is verified by an administrator before appearing publicly.
               </span>
             </div>
 
