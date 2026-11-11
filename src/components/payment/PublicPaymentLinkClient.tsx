@@ -122,9 +122,9 @@ export function PublicPaymentLinkClient({
   };
 
   // Addresses & Configurations
-  const upiSettings = methods.UPI || methods.UPI_MANUAL || {};
-  const upiVpa = upiSettings.vpa || "eqw@upi";
-  const upiReceiver = upiSettings.receiverName || "The Valid Market";
+  const upiSettings = { ...(methods.UPI_MANUAL || {}), ...(methods.UPI || {}) };
+  const upiVpa = methods.UPI?.vpa?.trim() || methods.UPI_MANUAL?.vpa?.trim() || "";
+  const upiReceiver = methods.UPI?.receiverName?.trim() || methods.UPI_MANUAL?.receiverName?.trim() || "The Valid Market";
 
   // UPI QR String
   const upiQrString = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(upiReceiver)}&am=${amountInr}&cu=INR&tn=${encodeURIComponent(link.title)}`;
@@ -162,6 +162,13 @@ export function PublicPaymentLinkClient({
 
       if (!res.success) {
         setErrorMessage(res.error || "Payment submission failed. Please try again or contact support.");
+        setSubmitting(false);
+        return;
+      }
+
+      if ((res as any).fallbackToManual) {
+        setSelectedMethod("UPI_MANUAL");
+        setErrorMessage((res as any).notice || "Instant gateway is temporarily offline. Please scan the QR code or transfer directly to the UPI ID below and enter your UTR.");
         setSubmitting(false);
         return;
       }

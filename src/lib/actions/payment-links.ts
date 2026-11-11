@@ -228,7 +228,7 @@ export async function getPaymentLinkPublic(slug: string) {
       fxRates,
       amountInr,
       methods,
-      bladePayEnabled: bladePayConfig.isEnabled,
+      bladePayEnabled: bladePayConfig.isEnabled && bladePayConfig.mode === "BLADEPAY",
       supportSettings,
     };
   } catch (err: any) {
@@ -344,9 +344,41 @@ export async function processPaymentLinkCheckout(data: {
       });
 
       if (!bladePayOrder.success || !bladePayOrder.cashierUrl) {
+        console.warn("[PaymentLink] BladePay unavailable, falling back to manual UPI:", bladePayOrder.error);
+        
+        // Auto fallback to Direct Manual UPI
+        const fallbackPayment = await prisma.payment.create({
+          data: {
+            orderId: order.id,
+            method: "UPI",
+            mode: "MANUAL",
+            status: utrTransactionId?.trim() ? "PAYMENT_REVIEW" : "PAYMENT_REQUIRED",
+            amount: amountInr,
+            currency: "INR",
+            baseAmount: amountUsd,
+            baseCurrency: "USD",
+            fxRate: inrRate,
+            transactionId: utrTransactionId?.trim() || null,
+            submittedAt: utrTransactionId?.trim() ? new Date() : null,
+            metadata: JSON.stringify({
+              paymentLinkId: link.id,
+              customerName: name.trim(),
+              customerEmail: email.trim(),
+              customerPhone: phone?.trim() || null,
+              customerNote,
+              fallbackFromBladePay: true,
+              error: bladePayOrder.error,
+            }),
+          },
+        });
+
         return {
-          success: false,
-          error: bladePayOrder.error || "Failed to initialize automated UPI gateway. Please try manual UPI or contact support.",
+          success: true,
+          fallbackToManual: true,
+          orderId: order.id,
+          paymentId: fallbackPayment.id,
+          paymentStatus: fallbackPayment.status,
+          notice: "Instant gateway is temporarily offline. Please scan the QR code or transfer directly to the UPI ID below.",
         };
       }
 

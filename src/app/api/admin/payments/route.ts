@@ -5,8 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/actions/admin";
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== "ADMIN") {
+  const session = (await getServerSession(authOptions)) as any;
+  if (!session?.user || !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
     return NextResponse.json({ error: "Forbidden: Admin only" }, { status: 403 });
   }
 

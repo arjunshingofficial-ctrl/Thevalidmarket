@@ -171,6 +171,13 @@ export default function PaymentClient({ payment, order, methodConfig, settings, 
         </div>
 
         <div className="p-6 md:p-8 space-y-8">
+          {settings.fallbackNotice && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-lg text-xs font-medium flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>{settings.fallbackNotice}</span>
+            </div>
+          )}
+
           <div className="flex flex-col items-center justify-center">
             <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-4 py-2 rounded-full font-medium">
               <Clock className="w-5 h-5" />

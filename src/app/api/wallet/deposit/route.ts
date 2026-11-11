@@ -141,7 +141,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      depositId: deposit.id
+      depositId: deposit.id,
+      redirectUrl: `/dashboard/wallet/deposit/${deposit.id}`,
     });
   } catch (error: any) {
     console.error("Wallet deposit error:", error);

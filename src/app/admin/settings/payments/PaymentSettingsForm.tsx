@@ -30,6 +30,9 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
   // States for Manual UPI
   const [upiMode, setUpiMode] = useState(settings.upiPaymentMode || "DIRECT_SUPPORT");
   const [upiId, setUpiId] = useState(settings.vpa || "");
+  const [gatewayMode, setGatewayMode] = useState<"MANUAL" | "BLADEPAY">(
+    settings.gatewayMode || (method.mode === "AUTOMATIC" ? "BLADEPAY" : "MANUAL")
+  );
 
   // BladePay Live Balance & Diagnostics
   const [balanceData, setBalanceData] = useState<any>(null);
@@ -83,8 +86,8 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
     });
 
     if (method.code === "UPI") {
-      newSettings.gatewayMode = "BLADEPAY";
-      formData.set("mode", "AUTOMATIC");
+      newSettings.gatewayMode = gatewayMode;
+      formData.set("mode", gatewayMode === "BLADEPAY" ? "AUTOMATIC" : "MANUAL");
     } else if (method.code === "UPI_MANUAL") {
       newSettings.gatewayMode = "MANUAL";
       formData.set("mode", "MANUAL");
@@ -138,7 +141,7 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
           <div>
             <h3 className="font-semibold text-slate-900">{method.displayName}</h3>
             <span className="text-xs text-slate-500 font-medium">
-              MODE: {method.code === "UPI" ? "AUTOMATIC (BLADEPAY)" : method.mode}
+              MODE: {method.code === "UPI" ? (gatewayMode === "BLADEPAY" ? "AUTOMATIC (BLADEPAY)" : "MANUAL (DIRECT UPI QR)") : method.mode}
             </span>
           </div>
         </div>
@@ -194,120 +197,281 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
               : `${method.code} specific settings`}
           </h4>
 
-          {/* BladePay Automated UPI Configuration */}
+          {/* UPI Gateway Mode & Dual Configuration */}
           {method.code === "UPI" && (
-            <div className="p-5 bg-emerald-50/50 rounded-xl border border-emerald-200 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                  <h5 className="font-semibold text-sm text-emerald-950">
-                    BladePay Integration Credentials
-                  </h5>
-                </div>
-                <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">
-                  Instant QR & Intent + MD5 Webhook
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">
-                    BladePay API Base URL
-                  </label>
-                  <input
-                    name="setting_bladePayBaseUrl"
-                    defaultValue={settings.bladePayBaseUrl || "https://api.bladepay.pro"}
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700">
-                    Merchant Code
-                  </label>
-                  <input
-                    name="setting_bladePayMerchantCode"
-                    defaultValue={settings.bladePayMerchantCode || "MCH-20261026-5480"}
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">
-                  Bearer API Token
-                </label>
-                <input
-                  name="setting_bladePayToken"
-                  type="password"
-                  defaultValue={
-                    settings.bladePayToken ||
-                    "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a"
-                  }
-                  className="w-full border rounded-md px-3 py-2 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
-                />
-                <p className="text-xs text-slate-500">
-                  Used for Bearer authorization on payin creation and balance queries.
-                </p>
-              </div>
-
-              {/* Webhook Endpoint */}
-              <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
+            <div className="space-y-6">
+              {/* Mode Selection */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">
-                    BladePay Webhook URL (For Real-time Callback)
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    UPI Processing Mode
+                  </label>
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Switch between Direct Transfer or Automated Gateway
                   </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
+                      gatewayMode === "MANUAL"
+                        ? "border-emerald-500 bg-emerald-50/70 text-emerald-950 font-medium ring-1 ring-emerald-500"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gatewayModeSelection"
+                      value="MANUAL"
+                      checked={gatewayMode === "MANUAL"}
+                      onChange={() => setGatewayMode("MANUAL")}
+                      className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <div className="text-sm font-semibold flex items-center gap-1.5">
+                        <span>Direct UPI (QR & VPA)</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                          Recommended / 100% Uptime
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        Customer scans auto-generated UPI QR or copies UPI ID and submits 12-digit UTR.
+                      </div>
+                    </div>
+                  </label>
+
+                  <label
+                    className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
+                      gatewayMode === "BLADEPAY"
+                        ? "border-primary bg-primary/5 text-slate-900 font-medium ring-1 ring-primary"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="gatewayModeSelection"
+                      value="BLADEPAY"
+                      checked={gatewayMode === "BLADEPAY"}
+                      onChange={() => setGatewayMode("BLADEPAY")}
+                      className="mt-0.5 text-primary focus:ring-primary"
+                    />
+                    <div>
+                      <div className="text-sm font-semibold flex items-center gap-1.5">
+                        <span>BladePay Automated</span>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">
+                          Auto-Cashier
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        Redirects customer to BladePay cashier and verifies via webhook. (Auto-falls back to Direct UPI if offline).
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Direct UPI Transfer Settings (Always available as active mode or auto-fallback) */}
+              <div className="p-5 bg-white rounded-xl border border-slate-200 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-emerald-600" />
+                    <h5 className="font-semibold text-sm text-slate-900">
+                      Direct UPI Destination Details {gatewayMode === "BLADEPAY" && <span className="text-xs text-slate-500 font-normal">(Used for Instant Fallback)</span>}
+                    </h5>
+                  </div>
+                  <span className="text-xs bg-slate-100 text-slate-700 font-medium px-2.5 py-0.5 rounded">
+                    QR Code & VPA
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">UPI ID / VPA *</label>
+                    <input
+                      name="setting_vpa"
+                      defaultValue={settings.vpa || ""}
+                      placeholder="e.g. yourname@okaxis, merchant@upi"
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <p className="text-[11px] text-slate-500">The UPI ID where customer funds are sent.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Receiver / Payee Name</label>
+                    <input
+                      name="setting_receiverName"
+                      defaultValue={settings.receiverName || ""}
+                      placeholder="e.g. The Valid Market"
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <p className="text-[11px] text-slate-500">Official business or payee name encoded into the UPI QR.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Manual UPI Display Mode</label>
+                  <select
+                    name="setting_upiPaymentMode"
+                    defaultValue={settings.upiPaymentMode || "DIRECT_SUPPORT"}
+                    className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="DIRECT_SUPPORT">Direct + Support (Show QR/ID and WhatsApp/Telegram buttons)</option>
+                    <option value="DIRECT">Direct Only (Show QR and UPI ID only)</option>
+                    <option value="SUPPORT">Support Only (Hide QR/ID, redirect to chat support)</option>
+                  </select>
+                </div>
+
+                {/* WhatsApp & Telegram Configuration */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-700">WhatsApp Support Contact</span>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="setting_whatsappSupportEnabled"
+                          value="true"
+                          defaultChecked={settings.whatsappSupportEnabled !== false}
+                          className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                        />
+                        <span className="text-xs font-medium text-slate-600">Enabled</span>
+                      </label>
+                    </div>
+                    <input
+                      name="setting_whatsappNumber"
+                      defaultValue={settings.whatsappNumber || "+916389458286"}
+                      placeholder="+916389458286"
+                      className="w-full border rounded-md px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+
+                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-700">Telegram Channel / Support</span>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="setting_telegramSupportEnabled"
+                          value="true"
+                          defaultChecked={settings.telegramSupportEnabled !== false}
+                          className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                        />
+                        <span className="text-xs font-medium text-slate-600">Enabled</span>
+                      </label>
+                    </div>
+                    <input
+                      name="setting_telegramUsername"
+                      defaultValue={settings.telegramUsername || "https://t.me/+xpN22t7nSkk4ZWJl"}
+                      placeholder="https://t.me/+xpN22t7nSkk4ZWJl or @username"
+                      className="w-full border rounded-md px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* BladePay Automated UPI Configuration */}
+              <div className={`p-5 rounded-xl border space-y-4 ${gatewayMode === "BLADEPAY" ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50 border-slate-200 opacity-90"}`}>
+                <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-emerald-600" />
+                    <h5 className="font-semibold text-sm text-emerald-950">
+                      BladePay Gateway Credentials
+                    </h5>
+                  </div>
+                  <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">
+                    Auto Webhook & Cashier
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">BladePay API Base URL</label>
+                    <input
+                      name="setting_bladePayBaseUrl"
+                      defaultValue={settings.bladePayBaseUrl || "https://api.bladepay.pro"}
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Merchant Code</label>
+                    <input
+                      name="setting_bladePayMerchantCode"
+                      defaultValue={settings.bladePayMerchantCode || "MCH-20261026-5480"}
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Bearer API Token</label>
+                  <input
+                    name="setting_bladePayToken"
+                    type="password"
+                    defaultValue={settings.bladePayToken || "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a"}
+                    className="w-full border rounded-md px-3 py-2 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Used for Bearer authorization on payin creation and balance queries.
+                  </p>
+                </div>
+
+                {/* Webhook Endpoint */}
+                <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-700">
+                      BladePay Webhook URL (For Real-time Callback)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyWebhook}
+                      className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+                    >
+                      {copiedWebhook ? (
+                        <>
+                          <Check className="h-3 w-3 text-emerald-600" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3 w-3" />
+                          Copy Webhook URL
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded border text-xs font-mono text-slate-800 break-all select-all">
+                    {origin || "https://asiadmarket.com"}/api/webhooks/bladepay
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Set this in your BladePay merchant dashboard. Signatures are automatically verified using MD5 and acknowledged with raw &quot;SUCCESS&quot;.
+                  </p>
+                </div>
+
+                {/* Live Balance Checker */}
+                <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <button
                     type="button"
-                    onClick={handleCopyWebhook}
-                    className="flex items-center gap-1 text-xs text-primary font-medium hover:underline"
+                    onClick={fetchBladePayBalance}
+                    disabled={loadingBalance}
+                    className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-50"
                   >
-                    {copiedWebhook ? (
-                      <>
-                        <Check className="h-3 w-3 text-emerald-600" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3 w-3" />
-                        Copy Webhook URL
-                      </>
-                    )}
+                    <RefreshCw className={`h-3.5 w-3.5 ${loadingBalance ? "animate-spin" : ""}`} />
+                    {loadingBalance ? "Querying BladePay..." : "Check Live BladePay Balance"}
                   </button>
-                </div>
-                <div className="p-2 bg-slate-50 rounded border text-xs font-mono text-slate-800 break-all select-all">
-                  {origin || "https://asiadmarket.com"}/api/webhooks/bladepay
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Set this in your BladePay merchant dashboard. Signatures are automatically verified using MD5 and acknowledged with raw &quot;SUCCESS&quot;.
-                </p>
-              </div>
 
-              {/* Live Balance Checker */}
-              <div className="pt-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={fetchBladePayBalance}
-                  disabled={loadingBalance}
-                  className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-50"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${loadingBalance ? "animate-spin" : ""}`} />
-                  {loadingBalance ? "Querying BladePay..." : "Check Live BladePay Balance"}
-                </button>
-
-                {balanceData && (
-                  <div className="text-xs">
-                    {balanceData.success ? (
-                      <div className="flex items-center gap-3 font-medium text-emerald-800 bg-emerald-100 px-3 py-1 rounded-md">
-                        <span>Available: ₹{balanceData.availableBalance?.toFixed(2) || "0.00"}</span>
-                        <span>Pending: ₹{balanceData.pendingBalance?.toFixed(2) || "0.00"}</span>
-                      </div>
-                    ) : (
-                      <span className="text-red-600 font-medium">
-                        {balanceData.error || "Failed to load balance"}
-                      </span>
-                    )}
-                  </div>
-                )}
+                  {balanceData && (
+                    <div className="text-xs">
+                      {balanceData.success ? (
+                        <div className="flex items-center gap-3 font-medium text-emerald-800 bg-emerald-100 px-3 py-1 rounded-md">
+                          <span>Available: ₹{balanceData.availableBalance?.toFixed(2) || "0.00"}</span>
+                          <span>Pending: ₹{balanceData.pendingBalance?.toFixed(2) || "0.00"}</span>
+                        </div>
+                      ) : (
+                        <span className="text-red-600 font-medium">
+                          {balanceData.error || "Failed to load balance"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
