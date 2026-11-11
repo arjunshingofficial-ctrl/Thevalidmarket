@@ -78,6 +78,8 @@ export function PublicPaymentLinkClient({
     desc: string;
   }> = [];
 
+  const isUpiEnabled = Boolean(methods.UPI?.isEnabled || methods.UPI_MANUAL?.isEnabled || bladePayEnabled);
+
   // BladePay Instant UPI
   if (bladePayEnabled) {
     availableMethods.push({
@@ -90,13 +92,15 @@ export function PublicPaymentLinkClient({
   }
 
   // Manual UPI
-  availableMethods.push({
-    id: "UPI_MANUAL",
-    label: "Direct UPI Transfer",
-    badge: "QR / VPA",
-    icon: QrCode,
-    desc: "Scan QR or Transfer to UPI ID & submit UTR",
-  });
+  if (methods.UPI_MANUAL?.isEnabled || methods.UPI?.isEnabled) {
+    availableMethods.push({
+      id: "UPI_MANUAL",
+      label: "Direct UPI Transfer",
+      badge: "QR / VPA",
+      icon: QrCode,
+      desc: "Scan QR or Transfer to UPI ID & submit UTR",
+    });
+  }
 
   const defaultMethod = availableMethods[0]?.id || "UPI_MANUAL";
   const [selectedMethod, setSelectedMethod] = useState<"BLADEPAY" | "UPI_MANUAL">(defaultMethod);
@@ -139,6 +143,11 @@ export function PublicPaymentLinkClient({
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+
+    if (!isUpiEnabled) {
+      setErrorMessage("UPI payment methods are currently turned off. Please contact support via WhatsApp to complete your payment.");
+      return;
+    }
 
     if (!email.trim() || !email.includes("@")) {
       setErrorMessage("Please enter a valid email address to receive your receipt & order confirmation.");
@@ -414,8 +423,33 @@ export function PublicPaymentLinkClient({
                 UPI Payment Method
               </h2>
 
-              {/* Method Selector Tabs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              {!isUpiEnabled ? (
+                <div className="bg-slate-950/70 border border-amber-500/30 rounded-xl p-6 text-center space-y-4">
+                  <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mx-auto text-amber-400">
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">UPI Payments Temporarily Offline</h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                      UPI payments are currently turned off for maintenance. Please connect with our official support team below to complete your transaction.
+                    </p>
+                  </div>
+                  <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-md transition"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Contact WhatsApp Support</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Method Selector Tabs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                 {availableMethods.map((m) => {
                   const Icon = m.icon;
                   const isSelected = selectedMethod === m.id;
@@ -562,6 +596,8 @@ export function PublicPaymentLinkClient({
                   </div>
                 </div>
               )}
+            </>
+          )}
 
 
 

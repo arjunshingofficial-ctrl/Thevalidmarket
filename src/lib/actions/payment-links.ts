@@ -274,6 +274,20 @@ export async function processPaymentLinkCheckout(data: {
       return { success: false, error: "This single-use payment link has already been paid" };
     }
 
+    // Check if UPI is enabled when attempting UPI payment
+    const isUpiPayment = paymentMethod === "BLADEPAY" || paymentMethod === "UPI_MANUAL";
+    if (isUpiPayment) {
+      const activeUpi = await prisma.paymentMethodConfig.findFirst({
+        where: { code: { in: ["UPI", "UPI_MANUAL"] }, isEnabled: true },
+      });
+      if (!activeUpi) {
+        return {
+          success: false,
+          error: "UPI payments are currently turned off for maintenance. Please contact support via WhatsApp to complete your transaction.",
+        };
+      }
+    }
+
     // Authenticated user check or lookup/create customer account
     const session = (await getServerSession(authOptions)) as any;
     let userId: string;
