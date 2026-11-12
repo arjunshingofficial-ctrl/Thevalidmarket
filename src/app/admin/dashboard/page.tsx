@@ -235,7 +235,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
                           #{order.id.slice(0, 8).toUpperCase()}
                         </Link>
                         <div className="text-[11px] text-slate-400 font-normal mt-0.5">
-                          <ClientDateTime date={order.createdAt} format="time" />
+                          <ClientDateTime date={order.createdAt} format="time-only" />
                         </div>
                       </td>
                       <td className="px-6 py-4 text-slate-600 truncate max-w-[180px]">
