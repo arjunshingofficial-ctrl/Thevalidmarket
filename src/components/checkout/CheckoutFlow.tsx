@@ -251,29 +251,29 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
                     <div>
                       <div className="font-medium text-slate-900">{method.displayName}</div>
                       <div className="text-xs text-slate-500 mt-1">
-                        {method.code === "UPI"
-                          ? "GPay, PhonePe, Paytm, BHIM & Dynamic QR"
-                          : method.code === "UPI_MANUAL"
-                          ? "Static QR & Direct UPI Transfer"
-                          : method.code}
+                        {method.code === "SILKPAY" || method.code === "BLADEPAY"
+                          ? "GPay, PhonePe, Paytm, CRED & Instant Cashier UPI Link"
+                          : method.code === "UPI" || method.code === "UPI_MANUAL"
+                          ? "Scan QR or Transfer to UPI ID & submit 12-digit UTR"
+                          : method.instructions || method.code}
                       </div>
                       {conversionDisplay && (
                         <div className="text-xs font-semibold text-emerald-600 mt-1">{conversionDisplay}</div>
                       )}
-                      {(method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) && (
+                      {(method.code === "SILKPAY" || method.code === "BLADEPAY" || method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) && (
                         <div className="text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mt-1.5 inline-block">
                           15% tax on UPI Payment
                         </div>
                       )}
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {method.code === "UPI" && (
+                        {(method.code === "SILKPAY" || method.code === "BLADEPAY") && (
                           <span className="inline-block text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            ⚡ Automated Instant UPI
+                            ⚡ Automated Instant SilkPay
                           </span>
                         )}
-                        {method.code === "UPI_MANUAL" && (
+                        {(method.code === "UPI" || method.code === "UPI_MANUAL") && (
                           <span className="inline-block text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-full">
-                            📋 Manual UPI & QR
+                            📋 Direct UPI (QR & VPA)
                           </span>
                         )}
                         {method.isTestMode && <span className="inline-block text-[10px] uppercase font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded">Test Mode</span>}

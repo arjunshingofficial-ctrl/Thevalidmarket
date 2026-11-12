@@ -115,17 +115,17 @@ export function PaymentDetailsCard({
         type: "Internal Balance Deduction",
       };
     }
-    if (m === "UPI") {
-      if (rawMode === "BLADEPAY") {
-        return {
-          name: "BladePay Automated UPI",
-          icon: CreditCard,
-          color: "bg-emerald-50 text-emerald-700 border-emerald-200",
-          type: "Instant Gateway",
-        };
-      }
+    if (m === "SILKPAY" || (m === "UPI" && rawMode === "BLADEPAY")) {
       return {
-        name: "Manual UPI Transfer",
+        name: "SilkPay Automated UPI",
+        icon: CreditCard,
+        color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        type: "Instant Gateway",
+      };
+    }
+    if (m === "UPI") {
+      return {
+        name: "Direct UPI Transfer",
         icon: CreditCard,
         color: "bg-blue-50 text-blue-700 border-blue-200",
         type: "Direct VPA Transfer",

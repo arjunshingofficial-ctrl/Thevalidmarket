@@ -60,7 +60,12 @@ export async function POST(req: NextRequest) {
     // Determine FX Rate for external payment collection
     let fxRate = 1;
     let paymentCurrency = "USD";
-    const isUpi = paymentMethod === "UPI" || paymentMethod === "UPI_MANUAL" || paymentMethod.startsWith("UPI");
+    const isUpi =
+      paymentMethod === "SILKPAY" ||
+      paymentMethod === "BLADEPAY" ||
+      paymentMethod === "UPI" ||
+      paymentMethod === "UPI_MANUAL" ||
+      paymentMethod.startsWith("UPI");
 
     if (isUpi) {
       paymentCurrency = "INR";
@@ -95,8 +100,12 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // If BladePay automated UPI is chosen (code === "UPI" and mode === "AUTOMATIC"), initiate BladePay cashier
-    if (paymentMethod === "UPI" && methodConfig?.mode === "AUTOMATIC") {
+    // If SilkPay automated UPI is chosen, initiate cashier
+    if (
+      paymentMethod === "SILKPAY" ||
+      paymentMethod === "BLADEPAY" ||
+      (paymentMethod === "UPI" && methodConfig?.mode === "AUTOMATIC")
+    ) {
       try {
         const { createBladePayPayinOrder } = await import("@/lib/payments/bladepay");
         const { getBaseUrl } = await import("@/lib/siteUrl");
