@@ -353,7 +353,7 @@ export async function processPaymentLinkCheckout(data: {
         customerName: name.trim(),
         customerPhone: phone?.trim(),
         customerEmail: email.trim(),
-        notifyUrl: `${baseUrl}/api/webhooks/bladepay`,
+        notifyUrl: `${baseUrl}/api/payin-webhook`,
         returnUrl: `${baseUrl}/payment-success?orderId=${order.id}&paymentLinkId=${link.id}`,
       });
 

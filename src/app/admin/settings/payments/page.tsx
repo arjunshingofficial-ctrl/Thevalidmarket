@@ -9,16 +9,16 @@ async function ensureDefaultPaymentMethods() {
   const defaults = [
     {
       code: "UPI",
-      displayName: "BladePay UPI (Instant Automated)",
+      displayName: "Instant UPI (PhonePe, GPay, Paytm, QR)",
       sortOrder: 1,
       isEnabled: true,
       mode: "AUTOMATIC",
       instructions: "Pay instantly with any UPI app (Google Pay, PhonePe, Paytm, BHIM, etc.).",
       settings: JSON.stringify({
         gatewayMode: "BLADEPAY",
-        bladePayBaseUrl: "https://api.bladepay.pro",
-        bladePayMerchantCode: "MCH-20261026-5480",
-        bladePayToken: "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a",
+        bladePayBaseUrl: "https://api.silkpay.live",
+        bladePayMerchantCode: "MCH-SILKPAY",
+        bladePayToken: "gw_35481ca3b7132868cf94fb507fbce30ab540b98912697c3f24a753594471804c",
       }),
     },
     {

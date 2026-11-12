@@ -336,7 +336,7 @@ export async function POST(req: NextRequest) {
       if (isBladePay) {
         const { createBladePayPayinOrder } = await import("@/lib/payments/bladepay");
         const baseUrl = getBaseUrl();
-        const notifyUrl = `${baseUrl}/api/webhooks/bladepay`;
+        const notifyUrl = `${baseUrl}/api/payin-webhook`;
         const returnUrl = `${baseUrl}/payment-success?orderId=${order.id}`;
 
         const payinResult = await createBladePayPayinOrder({

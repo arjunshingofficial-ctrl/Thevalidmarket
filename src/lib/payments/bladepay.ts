@@ -5,10 +5,10 @@ import { processReferralCommission } from "@/lib/referrals";
 import { trackPurchaseCompleted } from "@/lib/analytics";
 import { createUserNotification, createAdminNotification } from "@/lib/notifications";
 
-export const DEFAULT_BLADEPAY_BASE_URL = "https://api.bladepay.pro";
-export const DEFAULT_BLADEPAY_TOKEN = "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a";
+export const DEFAULT_BLADEPAY_BASE_URL = "https://api.silkpay.live";
+export const DEFAULT_BLADEPAY_TOKEN = "gw_35481ca3b7132868cf94fb507fbce30ab540b98912697c3f24a753594471804c";
 export const BLADEPAY_MIN_INR = 100;
-export const BLADEPAY_MAX_INR = 10000;
+export const BLADEPAY_MAX_INR = 50000;
 
 export interface BladePayConfig {
   baseUrl: string;
@@ -37,9 +37,19 @@ export async function getBladePayConfig(): Promise<BladePayConfig> {
     }
 
     const mode = settings.gatewayMode || (config?.mode === "MANUAL" ? "MANUAL" : "BLADEPAY");
-    const token = settings.bladePayToken?.trim() || process.env.BLADEPAY_API_TOKEN || DEFAULT_BLADEPAY_TOKEN;
-    const baseUrl = settings.bladePayBaseUrl?.trim() || process.env.BLADEPAY_BASE_URL || DEFAULT_BLADEPAY_BASE_URL;
-    const merchantCode = settings.bladePayMerchantCode || "MCH-20261026-5480";
+    const token =
+      settings.silkPayToken?.trim() ||
+      settings.bladePayToken?.trim() ||
+      process.env.SILKPAY_API_TOKEN ||
+      process.env.BLADEPAY_API_TOKEN ||
+      DEFAULT_BLADEPAY_TOKEN;
+    const baseUrl =
+      settings.silkPayBaseUrl?.trim() ||
+      settings.bladePayBaseUrl?.trim() ||
+      process.env.SILKPAY_BASE_URL ||
+      process.env.BLADEPAY_BASE_URL ||
+      DEFAULT_BLADEPAY_BASE_URL;
+    const merchantCode = settings.silkPayMerchantCode || settings.bladePayMerchantCode || "MCH-SILKPAY";
 
     return {
       baseUrl: baseUrl.replace(/\/+$/, ""),
@@ -51,8 +61,8 @@ export async function getBladePayConfig(): Promise<BladePayConfig> {
   } catch (error) {
     return {
       baseUrl: DEFAULT_BLADEPAY_BASE_URL,
-      token: process.env.BLADEPAY_API_TOKEN || DEFAULT_BLADEPAY_TOKEN,
-      merchantCode: "MCH-20261026-5480",
+      token: process.env.SILKPAY_API_TOKEN || process.env.BLADEPAY_API_TOKEN || DEFAULT_BLADEPAY_TOKEN,
+      merchantCode: "MCH-SILKPAY",
       isEnabled: true,
       mode: "BLADEPAY",
     };

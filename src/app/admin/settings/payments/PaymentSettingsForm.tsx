@@ -49,7 +49,7 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
   const Icon = icons[method.code] || CreditCard;
 
   const handleCopyWebhook = () => {
-    const url = `${origin || "https://asiadmarket.com"}/api/webhooks/bladepay`;
+    const url = `${origin || "https://thevalidmarket.com"}/api/payin-webhook`;
     navigator.clipboard.writeText(url);
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2500);
@@ -256,13 +256,13 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
                     />
                     <div>
                       <div className="text-sm font-semibold flex items-center gap-1.5">
-                        <span>BladePay Automated</span>
-                        <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">
-                          Auto-Cashier
+                        <span>SilkPay Automated</span>
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">
+                          Active Gateway
                         </span>
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5">
-                        Redirects customer to BladePay cashier and verifies via webhook. (Auto-falls back to Direct UPI if offline).
+                        Instant UPI payment via SilkPay cashier with live auto-verification and webhook callbacks.
                       </div>
                     </div>
                   </label>
@@ -367,13 +367,13 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
                 </div>
               </div>
 
-              {/* BladePay Automated UPI Configuration */}
+              {/* SilkPay Automated UPI Configuration */}
               <div className={`p-5 rounded-xl border space-y-4 ${gatewayMode === "BLADEPAY" ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50 border-slate-200 opacity-90"}`}>
                 <div className="flex items-center justify-between pb-3 border-b border-emerald-100">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-5 w-5 text-emerald-600" />
                     <h5 className="font-semibold text-sm text-emerald-950">
-                      BladePay Gateway Credentials
+                      SilkPay Gateway Credentials
                     </h5>
                   </div>
                   <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-full">
@@ -383,18 +383,18 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">BladePay API Base URL</label>
+                    <label className="text-xs font-semibold text-slate-700">SilkPay API Base URL</label>
                     <input
                       name="setting_bladePayBaseUrl"
-                      defaultValue={settings.bladePayBaseUrl || "https://api.bladepay.pro"}
+                      defaultValue={settings.bladePayBaseUrl || "https://api.silkpay.live"}
                       className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Merchant Code</label>
+                    <label className="text-xs font-semibold text-slate-700">Merchant Code (Optional)</label>
                     <input
                       name="setting_bladePayMerchantCode"
-                      defaultValue={settings.bladePayMerchantCode || "MCH-20261026-5480"}
+                      defaultValue={settings.bladePayMerchantCode || "MCH-SILKPAY"}
                       className="w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                     />
                   </div>
@@ -405,11 +405,11 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
                   <input
                     name="setting_bladePayToken"
                     type="password"
-                    defaultValue={settings.bladePayToken || "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a"}
+                    defaultValue={settings.bladePayToken || "gw_35481ca3b7132868cf94fb507fbce30ab540b98912697c3f24a753594471804c"}
                     className="w-full border rounded-md px-3 py-2 text-sm font-mono bg-white focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                   <p className="text-xs text-slate-500">
-                    Used for Bearer authorization on payin creation and balance queries.
+                    Used for Bearer authorization on payin creation, query, and balance verification.
                   </p>
                 </div>
 
@@ -417,7 +417,7 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
                 <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-slate-700">
-                      BladePay Webhook URL (For Real-time Callback)
+                      SilkPay Webhook URL (notifyUrl)
                     </span>
                     <button
                       type="button"
@@ -438,10 +438,10 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
                     </button>
                   </div>
                   <div className="p-2 bg-slate-50 rounded border text-xs font-mono text-slate-800 break-all select-all">
-                    {origin || "https://asiadmarket.com"}/api/webhooks/bladepay
+                    {origin || "https://thevalidmarket.com"}/api/payin-webhook
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Set this in your BladePay merchant dashboard. Signatures are automatically verified using MD5 and acknowledged with raw &quot;SUCCESS&quot;.
+                    Configure this in your SilkPay merchant dashboard. Callbacks are verified using MD5 and acknowledged with raw &quot;SUCCESS&quot;.
                   </p>
                 </div>
 
@@ -454,7 +454,7 @@ export default function PaymentSettingsForm({ method }: { method: any }) {
                     className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${loadingBalance ? "animate-spin" : ""}`} />
-                    {loadingBalance ? "Querying BladePay..." : "Check Live BladePay Balance"}
+                    {loadingBalance ? "Connecting to SilkPay..." : "Check Live SilkPay Balance"}
                   </button>
 
                   {balanceData && (
