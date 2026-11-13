@@ -23,8 +23,8 @@ export interface BladePayConfig {
  */
 export async function getBladePayConfig(): Promise<BladePayConfig> {
   try {
-    const config = await prisma.paymentMethodConfig.findFirst({
-      where: { code: { in: ["SILKPAY", "BLADEPAY"] } },
+    const config = await prisma.paymentMethodConfig.findUnique({
+      where: { code: "UPI" },
     });
 
     let settings: any = {};
@@ -36,6 +36,7 @@ export async function getBladePayConfig(): Promise<BladePayConfig> {
       }
     }
 
+    const mode = settings.gatewayMode || (config?.mode === "MANUAL" ? "MANUAL" : "BLADEPAY");
     const token =
       settings.silkPayToken?.trim() ||
       settings.bladePayToken?.trim() ||
@@ -54,16 +55,16 @@ export async function getBladePayConfig(): Promise<BladePayConfig> {
       baseUrl: baseUrl.replace(/\/+$/, ""),
       token,
       merchantCode,
-      isEnabled: config?.isEnabled ?? false,
-      mode: (config?.isEnabled ? "BLADEPAY" : "MANUAL") as "BLADEPAY" | "MANUAL",
+      isEnabled: config?.isEnabled ?? true,
+      mode: mode as "BLADEPAY" | "MANUAL",
     };
   } catch (error) {
     return {
       baseUrl: DEFAULT_BLADEPAY_BASE_URL,
       token: process.env.SILKPAY_API_TOKEN || process.env.BLADEPAY_API_TOKEN || DEFAULT_BLADEPAY_TOKEN,
       merchantCode: "MCH-SILKPAY",
-      isEnabled: false,
-      mode: "MANUAL",
+      isEnabled: true,
+      mode: "BLADEPAY",
     };
   }
 }
@@ -493,7 +494,7 @@ export async function processBladePayWebhook(payload: Record<string, any>): Prom
   if (order) {
     if (order.paymentStatus !== "PAID") {
       let paymentRecord = order.payments.find(
-        (p) => p.transactionId === gatewayOrderNo || p.transactionId === cleanOrderNo || p.method === "UPI" || p.method === "SILKPAY"
+        (p) => p.transactionId === gatewayOrderNo || p.transactionId === cleanOrderNo || p.method === "UPI"
       );
 
       if (paymentRecord) {

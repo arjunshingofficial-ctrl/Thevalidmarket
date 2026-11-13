@@ -39,7 +39,7 @@ export default async function DepositPage() {
   const inrRate = await getUpiEffectiveInrRate();
   const btcRate = await getUsdToBtcRate();
 
-  const fxRates = { INR: inrRate, UPI: inrRate, SILKPAY: inrRate, BLADEPAY: inrRate, BTC: btcRate, USDT: 1 };
+  const fxRates = { INR: inrRate, UPI: inrRate, BTC: btcRate, USDT: 1 };
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

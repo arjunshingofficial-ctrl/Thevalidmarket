@@ -36,8 +36,6 @@ export default async function CheckoutPage() {
   const fxRates = {
     INR: inrRate,
     UPI: inrRate,
-    SILKPAY: inrRate,
-    BLADEPAY: inrRate,
     BTC: btcRate,
     USDT: 1 // usually 1:1 with USD
   };

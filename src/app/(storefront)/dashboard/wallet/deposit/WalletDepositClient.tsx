@@ -121,7 +121,7 @@ export default function WalletDepositClient({ user, config, paymentMethods, fxRa
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {paymentMethods.map((method: any) => {
             let conversionDisplay = null;
-            if (method.code === "SILKPAY" || method.code === "BLADEPAY" || method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) {
+            if (method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) {
               conversionDisplay = `~ ${formatInr(amountNum * fxRates.INR)}`;
             } else if (method.code === "BTC") {
               conversionDisplay = `~ ${formatBtc(amountNum * fxRates.BTC)}`;
@@ -149,7 +149,7 @@ export default function WalletDepositClient({ user, config, paymentMethods, fxRa
                   {conversionDisplay && (
                     <div className="text-xs font-semibold text-emerald-600 mt-1">{conversionDisplay}</div>
                   )}
-                  {(method.code === "SILKPAY" || method.code === "BLADEPAY" || method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) && (
+                  {(method.code === "UPI" || method.code === "UPI_MANUAL" || method.code.startsWith("UPI")) && (
                     <div className="text-[11px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 rounded px-2 py-0.5 mt-1.5 inline-block">
                       15% tax on UPI Payment
                     </div>
