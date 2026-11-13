@@ -21,7 +21,7 @@ import { unstable_cache } from "next/cache";
 
 const getCachedProduct = unstable_cache(
   async (slug: string) => {
-    let product = await prisma.product.findUnique({
+    return prisma.product.findUnique({
       where: { slug },
       include: {
         category: true,
@@ -39,35 +39,6 @@ const getCachedProduct = unstable_cache(
         },
       },
     });
-
-    if (!product && (slug === "carding-course" || slug === "carding")) {
-      product = await prisma.product.findFirst({
-        where: {
-          OR: [
-            { slug: "digital-marketing-1" },
-            { slug: "digital-marketing" },
-            { type: "COURSE" },
-          ],
-        },
-        include: {
-          category: true,
-          course: {
-            include: {
-              modules: {
-                orderBy: { sortOrder: "asc" },
-                include: {
-                  lessons: {
-                    orderBy: { sortOrder: "asc" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-    }
-
-    return product;
   },
   ["product-detail"],
   { revalidate: 300, tags: ["products"] }

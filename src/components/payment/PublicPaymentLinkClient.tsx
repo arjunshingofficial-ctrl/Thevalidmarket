@@ -18,7 +18,6 @@ import {
   ChevronRight,
   HelpCircle,
   Building2,
-  MessageCircle,
 } from "lucide-react";
 import { processPaymentLinkCheckout } from "@/lib/actions/payment-links";
 import { formatInr } from "@/lib/currency";
