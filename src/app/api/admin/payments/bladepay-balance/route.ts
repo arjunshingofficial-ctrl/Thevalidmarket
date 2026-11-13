@@ -6,7 +6,7 @@ import { getBladePayBalance } from "@/lib/payments/bladepay";
 export async function GET(req: NextRequest) {
   try {
     const session = (await getServerSession(authOptions)) as any;
-    if (!session?.user || !["ADMIN", "SUPER_ADMIN"].includes(session.user.role)) {
+    if (!session?.user || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden: Admin only" }, { status: 403 });
     }
 

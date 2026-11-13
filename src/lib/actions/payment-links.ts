@@ -228,7 +228,7 @@ export async function getPaymentLinkPublic(slug: string) {
       fxRates,
       amountInr,
       methods,
-      bladePayEnabled: bladePayConfig.isEnabled && bladePayConfig.mode === "BLADEPAY",
+      bladePayEnabled: bladePayConfig.isEnabled,
       supportSettings,
     };
   } catch (err: any) {
@@ -272,20 +272,6 @@ export async function processPaymentLinkCheckout(data: {
     if (link.singleUse && link.paymentsCount > 0) {
       await prisma.paymentLink.update({ where: { id: link.id }, data: { status: "PAID" } });
       return { success: false, error: "This single-use payment link has already been paid" };
-    }
-
-    // Check if UPI is enabled when attempting UPI payment
-    const isUpiPayment = paymentMethod === "BLADEPAY" || paymentMethod === "UPI_MANUAL";
-    if (isUpiPayment) {
-      const activeUpi = await prisma.paymentMethodConfig.findFirst({
-        where: { code: { in: ["UPI", "UPI_MANUAL"] }, isEnabled: true },
-      });
-      if (!activeUpi) {
-        return {
-          success: false,
-          error: "UPI payments are currently turned off for maintenance. Please contact support via WhatsApp to complete your transaction.",
-        };
-      }
     }
 
     // Authenticated user check or lookup/create customer account
@@ -353,46 +339,14 @@ export async function processPaymentLinkCheckout(data: {
         customerName: name.trim(),
         customerPhone: phone?.trim(),
         customerEmail: email.trim(),
-        notifyUrl: `${baseUrl}/api/payin-webhook`,
+        notifyUrl: `${baseUrl}/api/webhooks/bladepay`,
         returnUrl: `${baseUrl}/payment-success?orderId=${order.id}&paymentLinkId=${link.id}`,
       });
 
       if (!bladePayOrder.success || !bladePayOrder.cashierUrl) {
-        console.warn("[PaymentLink] BladePay unavailable, falling back to manual UPI:", bladePayOrder.error);
-        
-        // Auto fallback to Direct Manual UPI
-        const fallbackPayment = await prisma.payment.create({
-          data: {
-            orderId: order.id,
-            method: "UPI",
-            mode: "MANUAL",
-            status: utrTransactionId?.trim() ? "PAYMENT_REVIEW" : "PAYMENT_REQUIRED",
-            amount: amountInr,
-            currency: "INR",
-            baseAmount: amountUsd,
-            baseCurrency: "USD",
-            fxRate: inrRate,
-            transactionId: utrTransactionId?.trim() || null,
-            submittedAt: utrTransactionId?.trim() ? new Date() : null,
-            metadata: JSON.stringify({
-              paymentLinkId: link.id,
-              customerName: name.trim(),
-              customerEmail: email.trim(),
-              customerPhone: phone?.trim() || null,
-              customerNote,
-              fallbackFromBladePay: true,
-              error: bladePayOrder.error,
-            }),
-          },
-        });
-
         return {
-          success: true,
-          fallbackToManual: true,
-          orderId: order.id,
-          paymentId: fallbackPayment.id,
-          paymentStatus: fallbackPayment.status,
-          notice: "Instant gateway is temporarily offline. Please scan the QR code or transfer directly to the UPI ID below.",
+          success: false,
+          error: bladePayOrder.error || "Failed to initialize automated UPI gateway. Please try manual UPI or contact support.",
         };
       }
 

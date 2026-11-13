@@ -5,10 +5,10 @@ import { processReferralCommission } from "@/lib/referrals";
 import { trackPurchaseCompleted } from "@/lib/analytics";
 import { createUserNotification, createAdminNotification } from "@/lib/notifications";
 
-export const DEFAULT_BLADEPAY_BASE_URL = "https://api.silkpay.live";
-export const DEFAULT_BLADEPAY_TOKEN = "gw_35481ca3b7132868cf94fb507fbce30ab540b98912697c3f24a753594471804c";
+export const DEFAULT_BLADEPAY_BASE_URL = "https://api.bladepay.pro";
+export const DEFAULT_BLADEPAY_TOKEN = "gw_5bb3b36ca2c30c2e6793bf8fe275f9bdedc668c707557b61358bc993d04d8b1a";
 export const BLADEPAY_MIN_INR = 100;
-export const BLADEPAY_MAX_INR = 50000;
+export const BLADEPAY_MAX_INR = 10000;
 
 export interface BladePayConfig {
   baseUrl: string;
@@ -36,20 +36,10 @@ export async function getBladePayConfig(): Promise<BladePayConfig> {
       }
     }
 
-    const mode = settings.gatewayMode || (config?.mode === "MANUAL" ? "MANUAL" : "BLADEPAY");
-    const token =
-      settings.silkPayToken?.trim() ||
-      settings.bladePayToken?.trim() ||
-      process.env.SILKPAY_API_TOKEN ||
-      process.env.BLADEPAY_API_TOKEN ||
-      DEFAULT_BLADEPAY_TOKEN;
-    const baseUrl =
-      settings.silkPayBaseUrl?.trim() ||
-      settings.bladePayBaseUrl?.trim() ||
-      process.env.SILKPAY_BASE_URL ||
-      process.env.BLADEPAY_BASE_URL ||
-      DEFAULT_BLADEPAY_BASE_URL;
-    const merchantCode = settings.silkPayMerchantCode || settings.bladePayMerchantCode || "MCH-SILKPAY";
+    const mode = settings.gatewayMode || (config?.mode === "AUTOMATIC" ? "BLADEPAY" : "BLADEPAY");
+    const token = settings.bladePayToken?.trim() || process.env.BLADEPAY_API_TOKEN || DEFAULT_BLADEPAY_TOKEN;
+    const baseUrl = settings.bladePayBaseUrl?.trim() || process.env.BLADEPAY_BASE_URL || DEFAULT_BLADEPAY_BASE_URL;
+    const merchantCode = settings.bladePayMerchantCode || "MCH-20261026-5480";
 
     return {
       baseUrl: baseUrl.replace(/\/+$/, ""),
@@ -61,8 +51,8 @@ export async function getBladePayConfig(): Promise<BladePayConfig> {
   } catch (error) {
     return {
       baseUrl: DEFAULT_BLADEPAY_BASE_URL,
-      token: process.env.SILKPAY_API_TOKEN || process.env.BLADEPAY_API_TOKEN || DEFAULT_BLADEPAY_TOKEN,
-      merchantCode: "MCH-SILKPAY",
+      token: process.env.BLADEPAY_API_TOKEN || DEFAULT_BLADEPAY_TOKEN,
+      merchantCode: "MCH-20261026-5480",
       isEnabled: true,
       mode: "BLADEPAY",
     };
@@ -126,26 +116,9 @@ export async function createBladePayPayinOrder({
       },
       body: JSON.stringify(payload),
       cache: "no-store",
-      signal: AbortSignal.timeout(4000),
     });
 
-    if (!res.ok) {
-      return {
-        success: false,
-        error: `BladePay gateway server returned HTTP ${res.status}`,
-      };
-    }
-
-    const text = await res.text();
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return {
-        success: false,
-        error: "BladePay gateway server returned an invalid non-JSON response.",
-      };
-    }
+    const data = await res.json();
 
     if (data.code === 0 && data.data?.cashierUrl) {
       return {
@@ -163,14 +136,10 @@ export async function createBladePayPayinOrder({
       raw: data,
     };
   } catch (err: any) {
-    const isTimeout = err?.name === "TimeoutError" || err?.name === "AbortError";
-    const msg = isTimeout
-      ? "BladePay gateway server connection timed out (server offline)."
-      : (err.message || "Network error connecting to BladePay gateway");
-    console.warn("[BladePay] createPayinOrder failed:", msg);
+    console.error("[BladePay] createPayinOrder request failed:", err);
     return {
       success: false,
-      error: msg,
+      error: err.message || "Network error connecting to BladePay gateway",
     };
   }
 }
@@ -201,28 +170,9 @@ export async function queryBladePayOrder(orderNo: string): Promise<{
       },
       body: JSON.stringify({ orderNo }),
       cache: "no-store",
-      signal: AbortSignal.timeout(4000),
     });
 
-    if (!res.ok) {
-      return {
-        success: false,
-        isPaid: false,
-        error: `BladePay returned HTTP ${res.status}`,
-      };
-    }
-
-    const text = await res.text();
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return {
-        success: false,
-        isPaid: false,
-        error: "BladePay server returned invalid response format",
-      };
-    }
+    const data = await res.json();
 
     if (data.code === 0 && data.data) {
       const d = data.data;
@@ -245,13 +195,11 @@ export async function queryBladePayOrder(orderNo: string): Promise<{
       raw: data,
     };
   } catch (err: any) {
-    const isTimeout = err?.name === "TimeoutError" || err?.name === "AbortError";
-    const msg = isTimeout ? "BladePay query timed out." : (err.message || "Failed to query BladePay transaction status");
-    console.warn("[BladePay] queryOrder failed:", msg);
+    console.error("[BladePay] queryOrder failed:", err);
     return {
       success: false,
       isPaid: false,
-      error: msg,
+      error: err.message || "Failed to query BladePay transaction status",
     };
   }
 }
@@ -307,21 +255,9 @@ export async function getBladePayBalance(): Promise<{
         Authorization: `Bearer ${config.token}`,
       },
       cache: "no-store",
-      signal: AbortSignal.timeout(4000),
     });
 
-    if (!res.ok) {
-      return { success: false, error: `BladePay balance API returned HTTP ${res.status}` };
-    }
-
-    const text = await res.text();
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return { success: false, error: "BladePay API server is currently unreachable" };
-    }
-
+    const data = await res.json();
     if (data.code === 0 && data.data) {
       return {
         success: true,
@@ -335,11 +271,7 @@ export async function getBladePayBalance(): Promise<{
     }
     return { success: false, error: data.msg || `Error code ${data.code}` };
   } catch (err: any) {
-    const isTimeout = err?.name === "TimeoutError" || err?.name === "AbortError";
-    return {
-      success: false,
-      error: isTimeout ? "BladePay server connection timed out" : (err.message || "Failed to fetch BladePay balance"),
-    };
+    return { success: false, error: err.message || "Failed to fetch BladePay balance" };
   }
 }
 
@@ -389,21 +321,9 @@ export async function createBladePayUpiPayout({
       },
       body: JSON.stringify(payload),
       cache: "no-store",
-      signal: AbortSignal.timeout(4000),
     });
 
-    if (!res.ok) {
-      return { success: false, error: `BladePay payout API returned HTTP ${res.status}` };
-    }
-
-    const text = await res.text();
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return { success: false, error: "BladePay payout API returned invalid response" };
-    }
-
+    const data = await res.json();
     if (data.code === 0 && data.data) {
       return {
         success: true,
@@ -414,11 +334,7 @@ export async function createBladePayUpiPayout({
     }
     return { success: false, error: data.msg || `Payout error ${data.code}`, raw: data };
   } catch (err: any) {
-    const isTimeout = err?.name === "TimeoutError" || err?.name === "AbortError";
-    return {
-      success: false,
-      error: isTimeout ? "BladePay payout timed out" : (err.message || "Failed to execute UPI payout"),
-    };
+    return { success: false, error: err.message || "Failed to execute UPI payout" };
   }
 }
 

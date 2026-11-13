@@ -336,7 +336,7 @@ export async function POST(req: NextRequest) {
       if (isBladePay) {
         const { createBladePayPayinOrder } = await import("@/lib/payments/bladepay");
         const baseUrl = getBaseUrl();
-        const notifyUrl = `${baseUrl}/api/payin-webhook`;
+        const notifyUrl = `${baseUrl}/api/webhooks/bladepay`;
         const returnUrl = `${baseUrl}/payment-success?orderId=${order.id}`;
 
         const payinResult = await createBladePayPayinOrder({
@@ -380,76 +380,60 @@ export async function POST(req: NextRequest) {
             redirectUrl: payinResult.cashierUrl,
           });
         } else {
-          console.warn("[BladePay] Order creation failed, falling back to manual UPI:", payinResult.error);
+          console.warn("[BladePay] Order creation failed:", payinResult.error);
 
-          // Retrieve manual UPI configuration for fallback
-          let manualConfigSettings: any = {};
-          try {
-            const manualConfig = await prisma.paymentMethodConfig.findUnique({
-              where: { code: "UPI_MANUAL" }
+          // If manual UPI VPA is configured, safely fall back to manual QR/VPA transfer
+          if (upiSettings?.vpa) {
+            const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+            const paymentRecord = await prisma.payment.create({
+              data: {
+                orderId: order.id,
+                method: "UPI",
+                mode: "MANUAL",
+                amount: paymentAmount,
+                currency: "INR",
+                baseAmount: total,
+                baseCurrency: "USD",
+                fxRate,
+                status: "PAYMENT_REQUIRED",
+                expiresAt,
+                metadata: JSON.stringify({
+                  ...upiSettings,
+                  couponCode: appliedCoupon?.code || null,
+                  discount,
+                  fallbackNotice: payinResult.error || "Automated gateway limit exceeded. Switched to manual UPI transfer.",
+                }),
+              },
             });
-            if (manualConfig?.settings) {
-              manualConfigSettings = JSON.parse(manualConfig.settings);
-            }
-          } catch (e) {}
 
-          const effectiveVpa = upiSettings?.vpa?.trim() || manualConfigSettings?.vpa?.trim() || "";
-          const effectiveReceiver = upiSettings?.receiverName?.trim() || manualConfigSettings?.receiverName?.trim() || "The Valid Market";
-          const effectiveMode = upiSettings?.upiPaymentMode || manualConfigSettings?.upiPaymentMode || (effectiveVpa ? "DIRECT_SUPPORT" : "SUPPORT");
-          const whatsappNumber = upiSettings?.whatsappNumber || manualConfigSettings?.whatsappNumber || "+916389458286";
-          const telegramUsername = upiSettings?.telegramUsername || manualConfigSettings?.telegramUsername || "";
+            createUserNotification({
+              userId: session.user.id,
+              type: "PAYMENT",
+              title: "Payment Required - UPI Transfer",
+              message: `Please complete your UPI payment of ₹${paymentAmount.toFixed(2)} to ${upiSettings.vpa} and submit your UTR.`,
+              priority: "NORMAL",
+              actionUrl: `/payment/${paymentRecord.id}`,
+              entityType: "PAYMENT",
+              entityId: paymentRecord.id,
+            }).catch(console.error);
 
-          const mergedSettings = {
-            ...manualConfigSettings,
-            ...upiSettings,
-            vpa: effectiveVpa,
-            receiverName: effectiveReceiver,
-            upiPaymentMode: effectiveMode,
-            whatsappNumber,
-            telegramUsername,
-            requireTransactionId: true,
-            requireProof: true,
-            couponCode: appliedCoupon?.code || null,
-            discount,
-            fallbackNotice: "Automated gateway is currently unreachable. Switched to Direct UPI transfer.",
-          };
+            return NextResponse.json({
+              success: true,
+              order,
+              paymentRecord,
+              redirectUrl: `/payment/${paymentRecord.id}`,
+            });
+          }
 
-          const expiresAt = new Date(Date.now() + 20 * 60 * 1000); // 20 mins
-          const paymentRecord = await prisma.payment.create({
-            data: {
-              orderId: order.id,
-              method: "UPI",
-              mode: "MANUAL",
-              amount: paymentAmount,
-              currency: "INR",
-              baseAmount: total,
-              baseCurrency: "USD",
-              fxRate,
-              status: "PAYMENT_REQUIRED",
-              expiresAt,
-              metadata: JSON.stringify(mergedSettings),
-            },
+          // No manual fallback available - cancel order and report clear error
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { paymentStatus: "FAILED", orderStatus: "CANCELLED" },
           });
-
-          createUserNotification({
-            userId: session.user.id,
-            type: "PAYMENT",
-            title: "Payment Required - UPI Transfer",
-            message: effectiveVpa
-              ? `Please complete your UPI payment of ₹${paymentAmount.toFixed(2)} to ${effectiveVpa} and submit your UTR.`
-              : `Please complete your UPI payment of ₹${paymentAmount.toFixed(2)} and submit your UTR.`,
-            priority: "NORMAL",
-            actionUrl: `/payment/${paymentRecord.id}`,
-            entityType: "PAYMENT",
-            entityId: paymentRecord.id,
-          }).catch(console.error);
 
           return NextResponse.json({
-            success: true,
-            order,
-            paymentRecord,
-            redirectUrl: `/payment/${paymentRecord.id}`,
-          });
+            error: payinResult.error || "Automated UPI gateway unavailable. Please choose another payment method.",
+          }, { status: 400 });
         }
       }
     }

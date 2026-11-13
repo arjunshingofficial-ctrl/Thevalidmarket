@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         const { createBladePayPayinOrder } = await import("@/lib/payments/bladepay");
         const { getBaseUrl } = await import("@/lib/siteUrl");
         const baseUrl = getBaseUrl();
-        const notifyUrl = `${baseUrl}/api/payin-webhook`;
+        const notifyUrl = `${baseUrl}/api/webhooks/bladepay`;
         const returnUrl = `${baseUrl}/dashboard/wallet?depositSuccess=${deposit.id}`;
 
         const payinRes = await createBladePayPayinOrder({
@@ -141,8 +141,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      depositId: deposit.id,
-      redirectUrl: `/dashboard/wallet/deposit/${deposit.id}`,
+      depositId: deposit.id
     });
   } catch (error: any) {
     console.error("Wallet deposit error:", error);

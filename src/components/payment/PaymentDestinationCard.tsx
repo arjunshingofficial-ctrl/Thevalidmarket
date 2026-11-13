@@ -38,14 +38,7 @@ export function PaymentDestinationCard({
     qrValue = settings.usdtAddress || "";
   }
 
-  let hasValidConfig = false;
-  if (method === "UPI" || method === "UPI_MANUAL") {
-    hasValidConfig = !!settings.vpa && settings.vpa.trim() !== "";
-  } else if (method === "BTC") {
-    hasValidConfig = !!settings.btcAddress && settings.btcAddress.trim() !== "";
-  } else if (method === "USDT" || method === "USDT_TRC20") {
-    hasValidConfig = !!settings.usdtAddress && settings.usdtAddress.trim() !== "";
-  }
+  const hasValidConfig = qrValue && qrValue !== "bitcoin:?amount=0" && qrValue !== "upi://pay?pa=&pn=D%20Market&am=0&cu=INR";
 
   if (!hasValidConfig) {
     return (
