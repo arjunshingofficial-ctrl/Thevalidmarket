@@ -2,22 +2,22 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-// Ensure connection_limit (default 10), timeouts, and optional direct session connection
+// Ensure connection_limit, timeouts, and automatic direct connection to avoid EMAXCONN pool errors
 function getDatasourceUrl(): string | undefined {
-  // If DB_USE_DIRECT="true" and DIRECT_URL is available, use direct session mode on Port 5432
-  // Default is false to use Supabase PgBouncer pooler (port 6543) which safely multiplexes concurrent traffic
-  const useDirect = process.env.DB_USE_DIRECT === 'true' || process.env.DB_USE_DIRECT === '1';
+  // Use direct connection on Port 5432 by default if DIRECT_URL is present, or if DB_USE_DIRECT="true"
+  // This completely avoids the Supabase PgBouncer "FATAL: (EMAXCONN) max client connections reached, limit: 200" error
+  const useDirect = process.env.DB_USE_DIRECT === 'true' || process.env.DB_USE_DIRECT === '1' || (process.env.DB_USE_DIRECT !== 'false' && !!process.env.DIRECT_URL);
   const url = (useDirect && process.env.DIRECT_URL) ? process.env.DIRECT_URL : process.env.DATABASE_URL;
   if (!url) return undefined;
 
-  const connectionLimit = process.env.DB_CONNECTION_LIMIT || '10';
+  const connectionLimit = process.env.DB_CONNECTION_LIMIT || '5';
   const poolTimeout = process.env.DB_POOL_TIMEOUT || '30';
   const connectTimeout = process.env.DB_CONNECT_TIMEOUT || '20';
 
   try {
     const parsed = new URL(url);
 
-    // If not present or previously capped at 1, elevate to connectionLimit (default 10) for fast parallel queries
+    // If not present or previously capped at 1, elevate to connectionLimit (default 5) for parallel queries
     if (!parsed.searchParams.has('connection_limit') || parsed.searchParams.get('connection_limit') === '1') {
       parsed.searchParams.set('connection_limit', connectionLimit);
     }
