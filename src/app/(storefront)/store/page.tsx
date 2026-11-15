@@ -65,8 +65,9 @@ export default async function StorePage({
   };
 
   if (category && category.toLowerCase() !== "all") {
+    const catSlug = category.toLowerCase() === "bb" ? "cc" : category.toLowerCase();
     whereClause.category = {
-      slug: category.toLowerCase(),
+      slug: { in: [catSlug, catSlug.toLowerCase(), catSlug.toUpperCase()] },
     };
   }
 

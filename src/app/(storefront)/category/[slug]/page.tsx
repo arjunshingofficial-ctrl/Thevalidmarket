@@ -53,9 +53,25 @@ export default async function CategoryPage({
   const resolvedParams = await params;
   const resolvedSearch = await searchParams;
 
-  const category = await prisma.category.findUnique({
+  let category = await prisma.category.findUnique({
     where: { slug: resolvedParams.slug, isActive: true }
   });
+
+  if (!category) {
+    category = await prisma.category.findFirst({
+      where: {
+        slug: { in: [resolvedParams.slug, resolvedParams.slug.toLowerCase(), resolvedParams.slug.toUpperCase()] },
+        isActive: true
+      }
+    });
+  }
+
+  // Backwards compatibility for old bookmarks linking to 'bb'
+  if (!category && resolvedParams.slug.toLowerCase() === "bb") {
+    category = await prisma.category.findFirst({
+      where: { slug: { in: ["cc", "CC"] }, isActive: true }
+    });
+  }
 
   if (!category) {
     const blogCategory = await prisma.blogCategory.findUnique({
