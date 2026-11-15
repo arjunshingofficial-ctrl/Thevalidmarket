@@ -2,17 +2,20 @@ import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
-// Ensure connection_limit=1 and pgbouncer=true for serverless pooler safety
+// Ensure connection_limit=10 and pgbouncer=true for fast parallel queries with Supabase pooler
 function getDatasourceUrl(): string | undefined {
   const url = process.env.DATABASE_URL;
   if (!url) return undefined;
 
-  // If using Supabase pooler (port 6543 or pooler hostname), ensure connection_limit=1 and pgbouncer=true
+  const connectionLimit = process.env.DB_CONNECTION_LIMIT || '10';
+
+  // If using Supabase pooler (port 6543 or pooler hostname), ensure optimal connection_limit and pgbouncer=true
   if (url.includes('pooler.supabase.com') || url.includes(':6543')) {
     try {
       const parsed = new URL(url);
-      if (!parsed.searchParams.has('connection_limit')) {
-        parsed.searchParams.set('connection_limit', '1');
+      // If not present or previously capped at 1, elevate to 10 for fast concurrent queries
+      if (!parsed.searchParams.has('connection_limit') || parsed.searchParams.get('connection_limit') === '1') {
+        parsed.searchParams.set('connection_limit', connectionLimit);
       }
       if (!parsed.searchParams.has('pgbouncer')) {
         parsed.searchParams.set('pgbouncer', 'true');
