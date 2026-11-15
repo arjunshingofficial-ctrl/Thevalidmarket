@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { getCart, clearCart } from "@/lib/cart";
+import { getCart, clearCart, saveCart } from "@/lib/cart";
 
 import { formatUsd, formatInr, formatBtc, formatUsdt } from "@/lib/currency";
 
@@ -179,15 +179,68 @@ export default function CheckoutFlow({ user, paymentMethods, fxRates, walletBala
     );
   }
 
+  const handleRemoveUnavailable = () => {
+    // Filter out item whose name appears in the error message
+    const updated = cart.filter(item => !error.toLowerCase().includes(item.name.toLowerCase()));
+    saveCart(updated);
+    setCart(updated);
+    setError("");
+    if (updated.length === 0) {
+      router.push("/store");
+    } else {
+      setStep("CART");
+    }
+  };
+
+  const handleClearCart = () => {
+    clearCart();
+    setCart([]);
+    setError("");
+    router.push("/store");
+  };
+
   if (step === "FAILED") {
+    const isAvailabilityError = error.toLowerCase().includes("not available") || error.toLowerCase().includes("out of stock");
+
     return (
       <div className="bg-white p-8 rounded-xl border shadow-sm text-center max-w-lg mx-auto">
         <AlertCircle className="mx-auto h-16 w-16 text-red-500 mb-4" />
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Checkout Failed</h2>
-        <p className="text-slate-500 mb-6">{error}</p>
-        <button onClick={() => setStep("CART")} className="w-full bg-primary text-white py-3 rounded-lg font-medium">
-          Try Again
-        </button>
+        <p className="text-slate-600 mb-6 bg-red-50 text-red-700 py-3 px-4 rounded-lg text-sm border border-red-200">
+          {error}
+        </p>
+
+        <div className="flex flex-col gap-3">
+          {isAvailabilityError && (
+            <button
+              onClick={handleRemoveUnavailable}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-lg text-sm transition shadow-sm"
+            >
+              Remove Unavailable Item & Continue
+            </button>
+          )}
+
+          <button
+            onClick={() => setStep("CART")}
+            className="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-lg font-medium transition"
+          >
+            Review Cart
+          </button>
+
+          <button
+            onClick={handleClearCart}
+            className="w-full border border-slate-200 text-slate-600 hover:bg-slate-50 py-2.5 rounded-lg text-sm font-medium transition"
+          >
+            Clear Entire Cart
+          </button>
+
+          <button
+            onClick={() => router.push("/store")}
+            className="w-full text-slate-500 hover:text-slate-800 py-2 text-sm transition"
+          >
+            Return to Store
+          </button>
+        </div>
       </div>
     );
   }
