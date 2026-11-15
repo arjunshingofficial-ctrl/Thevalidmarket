@@ -67,10 +67,8 @@ export default async function CategoryPage({
   }
 
   // Backwards compatibility for old bookmarks linking to 'bb'
-  if (!category && resolvedParams.slug.toLowerCase() === "bb") {
-    category = await prisma.category.findFirst({
-      where: { slug: { in: ["cc", "CC"] }, isActive: true }
-    });
+  if (resolvedParams.slug.toLowerCase() === "bb") {
+    redirect("/category/cc");
   }
 
   if (!category) {

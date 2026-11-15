@@ -54,6 +54,40 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: '/store',
+        has: [
+          {
+            type: 'query',
+            key: 'category',
+            value: 'bb',
+          },
+        ],
+        destination: '/store?category=cc',
+        permanent: false,
+      },
+      {
+        source: '/store',
+        has: [
+          {
+            type: 'query',
+            key: 'category',
+            value: 'BB',
+          },
+        ],
+        destination: '/store?category=cc',
+        permanent: false,
+      },
+      {
+        source: '/category/bb',
+        destination: '/category/cc',
+        permanent: false,
+      },
+      {
+        source: '/category/BB',
+        destination: '/category/cc',
+        permanent: false,
+      },
+      {
         source: '/hello',
         destination: '/',
         permanent: true,

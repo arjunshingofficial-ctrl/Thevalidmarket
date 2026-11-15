@@ -4,6 +4,7 @@ import RDPProductCard from "@/components/product/RDPProductCard";
 import VipBuyButton from "@/components/product/VipBuyButton";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import CategoryMobileNav from "@/components/layout/CategoryMobileNav";
 import CCProductTable from "@/components/product/CCProductTable";
 import IBProductTable from "@/components/product/IBProductTable";
@@ -38,8 +39,8 @@ const getCachedProducts = unstable_cache(
       orderBy: { createdAt: "desc" },
     });
   },
-  ["store-products-list-v3"],
-  { revalidate: 300, tags: ["products", "products-v3"] }
+  ["store-products-list-v4"],
+  { revalidate: 300, tags: ["products", "products-v4"] }
 );
 
 const getCachedCategories = unstable_cache(
@@ -49,8 +50,8 @@ const getCachedCategories = unstable_cache(
       orderBy: { sortOrder: "asc" },
     });
   },
-  ["store-categories-list-v3"],
-  { revalidate: 3600, tags: ["categories", "categories-v3"] }
+  ["store-categories-list-v4"],
+  { revalidate: 3600, tags: ["categories", "categories-v4"] }
 );
 
 export default async function StorePage({
@@ -59,6 +60,16 @@ export default async function StorePage({
   searchParams: Promise<{ category?: string; q?: string; sort?: string; seed?: string }>;
 }) {
   const { category, q, sort, seed } = (await searchParams) || {};
+
+  // Redirect legacy /store?category=bb to /store?category=cc
+  if (category && (category.toLowerCase() === "bb" || category.toLowerCase() === "bb-products")) {
+    const params = new URLSearchParams();
+    params.set("category", "cc");
+    if (q) params.set("q", q);
+    if (sort) params.set("sort", sort);
+    if (seed) params.set("seed", seed);
+    redirect(`/store?${params.toString()}`);
+  }
 
   const whereClause: any = {
     status: "PUBLISHED",
