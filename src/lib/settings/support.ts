@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getSiteSettings } from "./site";
 
 export const DEFAULT_TELEGRAM_SUPPORT_URL = "https://t.me/+xpN22t7nSkk4ZWJl";
 export const DEFAULT_SUPPORT_EMAIL = "support@thevalidmarket.com";
@@ -41,7 +41,7 @@ export async function getSupportSettings(): Promise<SupportSettings> {
   let supportEmail = DEFAULT_SUPPORT_EMAIL;
 
   try {
-    const settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+    const settings = await getSiteSettings();
     if (settings?.footerConfig) {
       const parsed = JSON.parse(settings.footerConfig);
       if (parsed.telegramUrl !== undefined && typeof parsed.telegramUrl === "string" && parsed.telegramUrl.trim()) {

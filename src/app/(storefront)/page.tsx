@@ -1,12 +1,11 @@
 import { Metadata } from "next";
 import HackerHero from "@/components/home/HackerHero";
-
-import { prisma } from "@/lib/prisma";
+import { getSiteSettings } from "@/lib/settings/site";
 
 export async function generateMetadata(): Promise<Metadata> {
   let settings = null;
   try {
-    settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+    settings = await getSiteSettings();
   } catch (e) {
     console.error("Failed to fetch siteSettings for homepage metadata", e);
   }

@@ -1,4 +1,4 @@
-import { prisma } from "./prisma";
+import { getSiteSettings } from "./settings/site";
 
 let cachedRates: Record<string, { rate: number; timestamp: number }> = {};
 const CACHE_TTL = 3600 * 1000; // 1 hour
@@ -12,9 +12,7 @@ export async function getUsdToInrRate(): Promise<number> {
   }
 
   // Check database configuration
-  const settings = await prisma.siteSettings.findUnique({
-    where: { id: "GLOBAL" }
-  });
+  const settings = await getSiteSettings();
 
   let config = { mode: "MANUAL", manualRate: 96 };
   

@@ -132,6 +132,8 @@ export default async function CategoryPage({
     const needFetchAll = isWorthSort || isDefaultSort;
 
     // ── Parallel queries ───────────────────────────────────────────────────
+    const canReuseRawForStats = needFetchAll && !countryFilter && (!q || !q.trim());
+
     const [
       productsRaw,
       totalCount,
@@ -151,11 +153,13 @@ export default async function CategoryPage({
         take: needFetchAll ? 1000 : limit,
       }),
       prisma.product.count({ where: whereClause }),
-      // For stats — fetch minimal data from ALL published CC products
-      prisma.product.findMany({
-        where: { categoryId: category.id, status: "PUBLISHED" },
-        select: { price: true, salePrice: true, fieldValues: { include: { field: true } } },
-      }),
+      // For stats — reuse productsRaw if already fetching all, otherwise fetch minimal data
+      canReuseRawForStats
+        ? Promise.resolve([])
+        : prisma.product.findMany({
+            where: { categoryId: category.id, status: "PUBLISHED" },
+            select: { price: true, salePrice: true, fieldValues: { include: { field: true } } },
+          }),
       prisma.category.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
@@ -193,7 +197,8 @@ export default async function CategoryPage({
     let priceSum = 0;
     let priceCount = 0;
 
-    for (const p of allPublishedProducts) {
+    const statsSource = canReuseRawForStats ? productsRaw : allPublishedProducts;
+    for (const p of statsSource) {
       const price = p.salePrice ?? p.price;
       if (price > 0) { priceSum += price; priceCount++; }
       for (const fv of p.fieldValues) {

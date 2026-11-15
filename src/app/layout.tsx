@@ -5,7 +5,7 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 import ProgressBarProvider from "@/components/providers/ProgressBarProvider";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import { UserPopupNotification } from "@/components/notifications/UserPopupNotification";
-import { prisma } from "@/lib/prisma";
+import { getSiteSettings } from "@/lib/settings/site";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 export async function generateMetadata(): Promise<Metadata> {
   let settings = null;
   try {
-    settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+    settings = await getSiteSettings();
   } catch (e) {
     console.error("Failed to fetch site settings in generateMetadata:", e);
   }
@@ -142,7 +142,7 @@ export default async function RootLayout({
 }>) {
   let settings = null;
   try {
-    settings = await prisma.siteSettings.findUnique({ where: { id: "GLOBAL" } });
+    settings = await getSiteSettings();
   } catch (e) {
     console.error("Failed to fetch site settings in RootLayout:", e);
   }
