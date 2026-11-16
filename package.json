@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build --webpack",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "db:secure": "tsx scripts/secure_database_rls.ts",
@@ -42,7 +42,7 @@
     "isomorphic-dompurify": "^4.5.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^1.50.0",
-    "next": "16.3.8",
+    "next": "^15.1.0",
     "next-auth": "^4.24.15",
     "next-nprogress-bar": "^2.4.7",
     "react": "19.2.8",
